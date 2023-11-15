@@ -1,6 +1,6 @@
-# redd-go-template
+# rlinks
 
-A template for my go projects. It contains both my default contributing guideline and my default licensing message.
+A simple link shortener written in Go.
 
 ## Contributing
 
