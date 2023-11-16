@@ -3,6 +3,7 @@ module github.com/redds-be/rlinks
 go 1.21.4
 
 require (
+	github.com/dchest/uniuri v1.2.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/cors v1.2.1
 	github.com/google/uuid v1.4.0
