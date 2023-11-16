@@ -25,25 +25,32 @@ func configRouter(router *chi.Mux) *chi.Mux {
 	return router
 }
 
-func subRouters() *chi.Mux {
+func subRouters(dbURL string) *chi.Mux {
 	// Create a router for '/'
-	RootRouter := chi.NewRouter()
-	RootRouter.Get("/ok", handlerReadiness)
-	RootRouter.Get("/err", handlerErr)
-	RootRouter.Get("/", handlerRedirect)
+	rootRouter := chi.NewRouter()
+	rootRouter.Get("/status", handlerReadiness)
+	rootRouter.Get("/error", handlerErr)
 
-	return RootRouter
+	// Connect to the database and create a config
+	apiCfg := dbConnect(dbURL)
+
+	rootRouter.Get("/garbage", apiCfg.handlerGarbage)
+
+	rootRouter.Post("/", apiCfg.handlerCreateLink)
+	rootRouter.Get("/*", apiCfg.getURL(apiCfg.handlerGetLink))
+
+	return rootRouter
 }
 
-func mountRouter(router *chi.Mux) *chi.Mux {
+func mountRouter(router *chi.Mux, dbURL string) *chi.Mux {
 	// Mount the sub router to the main router to /v1/
-	RootRouter := subRouters()
-	router.Mount("/", RootRouter)
+	rootRouter := subRouters(dbURL)
+	router.Mount("/", rootRouter)
 
 	return router
 }
 
-func getRouter() *chi.Mux {
+func getRouter(dbURL string) *chi.Mux {
 	// Create the main router
 	router := createRouter()
 
@@ -51,7 +58,7 @@ func getRouter() *chi.Mux {
 	router = configRouter(router)
 
 	// Mount other routers to the main one
-	router = mountRouter(router)
+	router = mountRouter(router, dbURL)
 
 	return router
 }
