@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/chmike/domain"
 	"github.com/dchest/uniuri"
 	"github.com/google/uuid"
 	"github.com/redds-be/rlinks/internal/database"
@@ -29,6 +30,13 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, r, 400, "Error parsing JSON : Syntax is probably invalid.")
+		return
+	}
+
+	// Check the url before continuing
+	err = domain.Check(params.Url)
+	if err != nil {
+		respondWithError(w, r, 400, fmt.Sprintf("Error reading the url : %s", err))
 		return
 	}
 

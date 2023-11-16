@@ -1,3 +1,6 @@
+# github.com/chmike/domain v1.0.1
+## explicit; go 1.19
+github.com/chmike/domain
 # github.com/dchest/uniuri v1.2.0
 ## explicit; go 1.19
 github.com/dchest/uniuri
