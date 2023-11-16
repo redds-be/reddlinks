@@ -58,7 +58,7 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 
 	// Check if the path is a reserved one, 'status' and 'error' are used to debug, 'garbage' is used to delete expired links
 	if params.CustomPath == "status" || params.CustomPath == "error" || params.CustomPath == "garbage" {
-		respondWithJSON(w, 400, fmt.Sprintf("The path '/%s' is a reserved.", params.CustomPath))
+		respondWithJSON(w, 400, fmt.Sprintf("The path '/%s' is reserved.", params.CustomPath))
 		return
 	}
 
