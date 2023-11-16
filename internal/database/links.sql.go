@@ -13,9 +13,9 @@ import (
 )
 
 const createLink = `-- name: CreateLink :one
-INSERT INTO links (id, created_at, expire_at, url)
-VALUES ($1, $2, $3, $4)
-RETURNING id, created_at, expire_at, url
+INSERT INTO links (id, created_at, expire_at, url, short)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, created_at, expire_at, url, short
 `
 
 type CreateLinkParams struct {
@@ -23,6 +23,7 @@ type CreateLinkParams struct {
 	CreatedAt time.Time
 	ExpireAt  time.Time
 	Url       string
+	Short     string
 }
 
 func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		arg.CreatedAt,
 		arg.ExpireAt,
 		arg.Url,
+		arg.Short,
 	)
 	var i Link
 	err := row.Scan(
@@ -38,6 +40,66 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		&i.CreatedAt,
 		&i.ExpireAt,
 		&i.Url,
+		&i.Short,
 	)
 	return i, err
+}
+
+const getLinkByShort = `-- name: GetLinkByShort :one
+SELECT id, created_at, expire_at, url, short FROM links WHERE short = $1
+`
+
+func (q *Queries) GetLinkByShort(ctx context.Context, short string) (Link, error) {
+	row := q.db.QueryRowContext(ctx, getLinkByShort, short)
+	var i Link
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.ExpireAt,
+		&i.Url,
+		&i.Short,
+	)
+	return i, err
+}
+
+const getLinks = `-- name: GetLinks :many
+SELECT id, created_at, expire_at, url, short FROM links
+`
+
+func (q *Queries) GetLinks(ctx context.Context) ([]Link, error) {
+	rows, err := q.db.QueryContext(ctx, getLinks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Link
+	for rows.Next() {
+		var i Link
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.ExpireAt,
+			&i.Url,
+			&i.Short,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const removeLink = `-- name: RemoveLink :exec
+DELETE FROM links WHERE short = $1
+`
+
+func (q *Queries) RemoveLink(ctx context.Context, short string) error {
+	_, err := q.db.ExecContext(ctx, removeLink, short)
+	return err
 }

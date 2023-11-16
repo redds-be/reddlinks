@@ -15,4 +15,5 @@ type Link struct {
 	CreatedAt time.Time
 	ExpireAt  time.Time
 	Url       string
+	Short     string
 }
