@@ -51,27 +51,7 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 
 	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
 	if params.CustomPath == "" {
-		// To avoid basically telling the user that the custom path he sent is unavailable despite the fact he hasn't sent a custom path, we check and regenerate it if it's unavailable
-		isShortAvailable := false
-		for !isShortAvailable {
-			log.Println("Generating a new short...")
-			params.CustomPath = uniuri.NewLen(params.Length)
-			log.Println("Checking if the new short is available...")
-			links, err := apiCfg.DB.GetLinks(r.Context())
-			if err != nil {
-				log.Printf("Can't access the links : %s", err)
-				respondWithError(w, r, 500, "The server can't check if the short if available.")
-				return
-			}
-			for _, link := range links {
-				if params.CustomPath == link.Short {
-					log.Println("The generated link is already in use.")
-					isShortAvailable = false
-					continue
-				}
-				isShortAvailable = true
-			}
-		}
+		params.CustomPath = uniuri.NewLen(params.Length)
 	} else if len(params.CustomPath) > 16 {
 		params.CustomPath = params.CustomPath[:16]
 	}
