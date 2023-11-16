@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/chmike/domain"
 	"github.com/dchest/uniuri"
 	"github.com/google/uuid"
 	"github.com/redds-be/rlinks/internal/database"
@@ -33,13 +32,6 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Check the url before continuing
-	err = domain.Check(params.Url)
-	if err != nil {
-		respondWithError(w, r, 400, fmt.Sprintf("Error reading the url : %s", err))
-		return
-	}
-
 	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
 	if params.ExpireAfter == -1 {
 		expireAt = time.Date(9999, 12, 30, 23, 59, 59, 59, time.UTC)
@@ -60,7 +52,8 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
 	if params.CustomPath == "" {
 		params.CustomPath = uniuri.NewLen(params.Length)
-	} else if len(params.CustomPath) > 16 {
+	}
+	if len(params.CustomPath) > 16 {
 		params.CustomPath = params.CustomPath[:16]
 	}
 

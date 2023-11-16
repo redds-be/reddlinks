@@ -1,5 +1,3 @@
-github.com/chmike/domain v1.0.1 h1:ug6h3a7LLAfAecBAysbCXWxP1Jo8iBKWNVDxcs1BNzA=
-github.com/chmike/domain v1.0.1/go.mod h1:h558M2qGKpYRUxHHNyey6puvXkZBjvjmseOla/d1VGQ=
 github.com/dchest/uniuri v1.2.0 h1:koIcOUdrTIivZgSLhHQvKgqdWZq5d7KdMEWF1Ud6+5g=
 github.com/dchest/uniuri v1.2.0/go.mod h1:fSzm4SLHzNZvWLvWJew423PhAzkpNQYq+uNLq4kxhkY=
 github.com/go-chi/chi/v5 v5.0.10 h1:rLz5avzKpjqxrYwXNfmjkrYYXOyLJd37pz53UFHC6vk=
