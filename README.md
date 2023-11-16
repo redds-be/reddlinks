@@ -2,6 +2,12 @@
 
 A simple link shortener written in Go.
 
+## TODO
+
+- [ ] Write documentation
+- [ ] Password protected links
+- [ ] User interface
+
 ## Contributing
 
 I don't expect anyone other than me to contribute, there exists no specific guidelines, but you should follow these steps :
