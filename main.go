@@ -9,16 +9,18 @@ import (
 func main() {
 	// Load the env file
 	var envFile = ".env"
-	portStr, _ := getEnv(envFile)
+	portStr, dbURL := getEnv(envFile)
 
 	// Create the router
-	router := getRouter()
+	router := getRouter(dbURL)
 
 	// Create the http handler
 	srv := &http.Server{
 		Handler: router,
 		Addr:    ":" + portStr,
 	}
+
+	go collectGarbage(portStr)
 
 	// Start to listen
 	log.Printf("Listening on port : '%s'.", portStr)
