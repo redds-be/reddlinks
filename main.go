@@ -24,11 +24,10 @@ func main() {
 	// Assign a handler to these different paths
 	http.HandleFunc("/status", handlerReadiness)
 	http.HandleFunc("/error", handlerErr)
-	http.HandleFunc("/garbage", db.handlerGarbage)
 	http.HandleFunc("/", db.handlerRoot)
 
 	// Periodically clean the database
-	go collectGarbage(portStr)
+	go db.collectGarbage()
 
 	// Start to listen
 	log.Printf("Listening on port : '%s'.", portStr)
