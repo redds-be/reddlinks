@@ -1,0 +1,12 @@
+[Unit]
+Description=Run rlinks
+After=network.target
+
+[Service]
+User=rlinks
+Group=rlinks
+WorkingDirectory=/opt/rlinks/
+ExecStart=/opt/rlinks/rlinks
+
+[Install]
+WantedBy=multi-user.target
