@@ -1,9 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/redds-be/rlinks/database"
 )
+
+type Database struct {
+	db *sql.DB
+}
 
 func createRouter() *chi.Mux {
 	// Creating the main router
@@ -31,13 +37,14 @@ func subRouters(dbURL string) *chi.Mux {
 	rootRouter.Get("/status", handlerReadiness)
 	rootRouter.Get("/error", handlerErr)
 
-	// Connect to the database and create a config
-	apiCfg := dbConnect(dbURL)
+	// Connect to the database and create the links table
+	db := &Database{db: database.DbConnect(dbURL)}
+	database.CreateLinksTable(db.db)
 
-	rootRouter.Get("/garbage", apiCfg.handlerGarbage)
+	rootRouter.Get("/garbage", db.handlerGarbage)
 
-	rootRouter.Post("/", apiCfg.handlerCreateLink)
-	rootRouter.Get("/*", apiCfg.getURL(apiCfg.handlerGetLink))
+	rootRouter.Post("/", db.handlerCreateLink)
+	rootRouter.Get("/*", db.handlerRedirectToUrl)
 
 	return rootRouter
 }

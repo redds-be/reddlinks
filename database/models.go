@@ -1,0 +1,12 @@
+package database
+
+import (
+	"time"
+)
+
+type Link struct {
+	// Define the structure of a link entry that will be served to the client in json
+	ExpireAt time.Time `json:"expire_at"`
+	Url      string    `json:"url"`
+	Short    string    `json:"short"`
+}

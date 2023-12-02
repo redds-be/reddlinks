@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/dchest/uniuri"
 	"github.com/google/uuid"
-	"github.com/redds-be/rlinks/internal/database"
+	"github.com/redds-be/rlinks/database"
 	"log"
 	"net/http"
 	"time"
 )
 
-func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request) {
+func (db *Database) handlerCreateLink(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 	var expireAt time.Time
 
@@ -65,13 +65,7 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 	}
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
-	link, err := apiCfg.DB.CreateLink(r.Context(), database.CreateLinkParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now().UTC(),
-		ExpireAt:  expireAt,
-		Url:       params.Url,
-		Short:     params.CustomPath,
-	})
+	link, err := database.CreateLink(db.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.CustomPath)
 	if err != nil {
 		log.Println(err)
 		respondWithError(w, r, 400, "Could not add link: The path is probably already in use.")
@@ -79,11 +73,17 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 	}
 
 	// Send back the expiry time, the url and the short to the user
-	respondWithJSON(w, 201, databaseLinkToLink(link))
+	respondWithJSON(w, 201, link)
 }
 
-func (apiCfg apiConfig) handlerGetLink(w http.ResponseWriter, r *http.Request, link database.Link) {
+func (db *Database) handlerRedirectToUrl(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
+	url, err := database.GetUrlByShort(db.db, trimFirstRune(r.URL.Path))
+	if err != nil {
+		log.Println(err)
+		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
+		return
+	}
 	// Redirect the client to the URL associated with the short of the database
-	handlerRedirect(w, r, databaseLinkToLink(link).Url)
+	http.Redirect(w, r, url, http.StatusSeeOther)
 }

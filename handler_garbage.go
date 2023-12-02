@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/redds-be/rlinks/database"
 	"log"
 	"net/http"
 	"time"
@@ -20,10 +21,10 @@ func collectGarbage(portStr string) {
 	}
 }
 
-func (apiCfg apiConfig) handlerGarbage(_ http.ResponseWriter, r *http.Request) {
+func (db *Database) handlerGarbage(_ http.ResponseWriter, _ *http.Request) {
 	// Manual garbage collecting when accessing '/garbage', it will go through all the link entries in the database and check if the current time is after or equal the expiry time
 	log.Println("Collecting garbage...")
-	links, err := apiCfg.DB.GetLinks(r.Context())
+	links, err := database.GetLinks(db.db)
 	if err != nil {
 		log.Println(err)
 		return
@@ -34,9 +35,9 @@ func (apiCfg apiConfig) handlerGarbage(_ http.ResponseWriter, r *http.Request) {
 	for _, link := range links {
 		if now.After(link.ExpireAt) || now.Equal(link.ExpireAt) {
 			log.Printf("URL : %s (%s) is expired, deleting it...", link.Url, link.Short)
-			err := apiCfg.DB.RemoveLink(r.Context(), link.Short)
+			err := database.RemoveLink(db.db, link.Short)
 			if err != nil {
-				log.Printf("Could not remove URL : %s (%s).", link.Url, link.Short)
+				log.Printf("Could not remove URL : %s (%s): %s", link.Url, link.Short, err)
 				return
 			}
 		}
