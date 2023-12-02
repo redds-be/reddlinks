@@ -28,6 +28,7 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
+		log.Println(err)
 		respondWithError(w, r, 400, "Error parsing JSON : Syntax is probably invalid.")
 		return
 	}
@@ -72,6 +73,7 @@ func (apiCfg apiConfig) handlerCreateLink(w http.ResponseWriter, r *http.Request
 		Short:     params.CustomPath,
 	})
 	if err != nil {
+		log.Println(err)
 		respondWithError(w, r, 400, "Could not add link: The path is probably already in use.")
 		return
 	}
