@@ -66,8 +66,8 @@ func (db *Database) createLink(w http.ResponseWriter, r *http.Request) {
 	if params.CustomPath == "" {
 		params.CustomPath = uniuri.NewLen(params.Length)
 	}
-	if len(params.CustomPath) > 16 {
-		params.CustomPath = params.CustomPath[:16]
+	if len(params.CustomPath) > 255 {
+		params.CustomPath = params.CustomPath[:255]
 	}
 
 	// Check if the path is a reserved one, 'status' and 'error' are used to debug, 'garbage' is used to delete expired links

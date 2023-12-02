@@ -21,7 +21,7 @@ func checkTable(db *sql.DB, table string) bool {
 func CreateLinksTable(db *sql.DB) {
 	doTableExists := checkTable(db, "links")
 	if !doTableExists {
-		sqlCreateTable := `CREATE TABLE links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url TEXT NOT NULL, short varchar(16) UNIQUE NOT NULL);`
+		sqlCreateTable := `CREATE TABLE links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url TEXT NOT NULL, short varchar(255) UNIQUE NOT NULL);`
 		_, err := db.Exec(sqlCreateTable)
 		if err != nil {
 			log.Fatal("Unable to create the 'links' table:", err)
