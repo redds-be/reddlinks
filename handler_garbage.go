@@ -21,9 +21,16 @@ func collectGarbage(portStr string) {
 	}
 }
 
-func (db *Database) handlerGarbage(_ http.ResponseWriter, _ *http.Request) {
+func (db *Database) handlerGarbage(w http.ResponseWriter, r *http.Request) {
 	// Manual garbage collecting when accessing '/garbage', it will go through all the link entries in the database and check if the current time is after or equal the expiry time
 	log.Println("Collecting garbage...")
+
+	// Check method
+	if r.Method != http.MethodGet {
+		respondWithError(w, r, 405, "405 Method Not Allowed")
+		return
+	}
+
 	links, err := database.GetLinks(db.db)
 	if err != nil {
 		log.Println(err)

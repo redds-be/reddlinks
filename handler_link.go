@@ -11,7 +11,19 @@ import (
 	"time"
 )
 
-func (db *Database) handlerCreateLink(w http.ResponseWriter, r *http.Request) {
+func (db *Database) handlerRoot(w http.ResponseWriter, r *http.Request) {
+	// Check method and decide whether to create or redirect to link
+	if r.Method == http.MethodGet {
+		db.redirectToUrl(w, r)
+	} else if r.Method == http.MethodPost {
+		db.createLink(w, r)
+	} else {
+		respondWithError(w, r, 405, "405 Method Not Allowed")
+		return
+	}
+}
+
+func (db *Database) createLink(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 	var expireAt time.Time
 
@@ -29,7 +41,7 @@ func (db *Database) handlerCreateLink(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 400, "Error parsing JSON : Syntax is probably invalid.")
+		respondWithError(w, r, 400, "400 JSON syntax is probably invalid.")
 		return
 	}
 
@@ -68,7 +80,7 @@ func (db *Database) handlerCreateLink(w http.ResponseWriter, r *http.Request) {
 	link, err := database.CreateLink(db.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.CustomPath)
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 400, "Could not add link: The path is probably already in use.")
+		respondWithError(w, r, 400, "400 Could not add link: the path is probably already in use.")
 		return
 	}
 
@@ -76,12 +88,12 @@ func (db *Database) handlerCreateLink(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, 201, link)
 }
 
-func (db *Database) handlerRedirectToUrl(w http.ResponseWriter, r *http.Request) {
+func (db *Database) redirectToUrl(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 	url, err := database.GetUrlByShort(db.db, trimFirstRune(r.URL.Path))
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
+		respondWithError(w, r, 404, "404 there is no link associated with this path, it is probably invalid or expired.")
 		return
 	}
 	// Redirect the client to the URL associated with the short of the database
