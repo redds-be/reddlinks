@@ -33,7 +33,7 @@ func (apiCfg apiConfig) handlerGarbage(_ http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	for _, link := range links {
 		if now.After(link.ExpireAt) || now.Equal(link.ExpireAt) {
-			log.Printf("URL : %s (%s) is rexpired, deleting it...", link.Url, link.Short)
+			log.Printf("URL : %s (%s) is expired, deleting it...", link.Url, link.Short)
 			err := apiCfg.DB.RemoveLink(r.Context(), link.Short)
 			if err != nil {
 				log.Printf("Could not remove URL : %s (%s).", link.Url, link.Short)
