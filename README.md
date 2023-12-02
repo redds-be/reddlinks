@@ -5,7 +5,6 @@ A simple link shortener written in Go.
 ## TODO
 
 - [ ] Write documentation
-- [ ] Password protected links
 - [ ] User interface
 
 ## Contributing
