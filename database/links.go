@@ -21,7 +21,7 @@ func checkTable(db *sql.DB, table string) bool {
 func CreateLinksTable(db *sql.DB) {
 	doTableExists := checkTable(db, "links")
 	if !doTableExists {
-		sqlCreateTable := `CREATE TABLE links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url TEXT NOT NULL, short varchar(255) UNIQUE NOT NULL);`
+		sqlCreateTable := `CREATE TABLE links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url varchar NOT NULL, short varchar(255) UNIQUE NOT NULL, password varchar(97));`
 		_, err := db.Exec(sqlCreateTable)
 		if err != nil {
 			log.Fatal("Unable to create the 'links' table:", err)
@@ -29,10 +29,10 @@ func CreateLinksTable(db *sql.DB) {
 	}
 }
 
-func CreateLink(db *sql.DB, id uuid.UUID, createdAt time.Time, expireAt time.Time, url, short string) (Link, error) {
-	sqlCreateLink := `INSERT INTO links (id, created_at, expire_at, url, short) VALUES ($1, $2, $3, $4, $5) RETURNING expire_at, url, short;`
+func CreateLink(db *sql.DB, id uuid.UUID, createdAt time.Time, expireAt time.Time, url, short, password string) (Link, error) {
+	sqlCreateLink := `INSERT INTO links (id, created_at, expire_at, url, short, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING expire_at, url, short;`
 	var returnValues Link
-	err := db.QueryRow(sqlCreateLink, id, createdAt, expireAt, url, short).Scan(
+	err := db.QueryRow(sqlCreateLink, id, createdAt, expireAt, url, short, password).Scan(
 		&returnValues.ExpireAt,
 		&returnValues.Url,
 		&returnValues.Short,
@@ -50,6 +50,17 @@ func GetUrlByShort(db *sql.DB, short string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func GetHashByShort(db *sql.DB, short string) (string, error) {
+	sqlGetPasswordByShort := `SELECT password FROM links WHERE short = $1;`
+	var password string
+	err := db.QueryRow(sqlGetPasswordByShort, short).Scan(&password)
+	if err != nil {
+		return "", err
+	}
+
+	return password, nil
 }
 
 func GetLinks(db *sql.DB) ([]Link, error) {
