@@ -70,8 +70,8 @@ func (db *Database) createLink(w http.ResponseWriter, r *http.Request) {
 		params.CustomPath = params.CustomPath[:255]
 	}
 
-	// Check if the path is a reserved one, 'status' and 'error' are used to debug, 'garbage' is used to delete expired links
-	if params.CustomPath == "status" || params.CustomPath == "error" || params.CustomPath == "garbage" {
+	// Check if the path is a reserved one, 'status' and 'error' are used to debug.
+	if params.CustomPath == "status" || params.CustomPath == "error" {
 		respondWithJSON(w, 400, fmt.Sprintf("The path '/%s' is reserved.", params.CustomPath))
 		return
 	}
