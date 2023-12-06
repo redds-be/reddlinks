@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -104,24 +105,36 @@ func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameter
 		params.Length = 16
 	}
 
+	// Check the validity of a custom path
+	if params.Path != "" {
+		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access and assets are used for the front.
+		reservedMatch, err := regexp.MatchString(`^status$|^error$|^add$|^access$|^assets.*$`, params.Path)
+		if err != nil {
+			fmt.Println(err)
+			return database.Link{}, 500, "Could not check the path."
+		}
+		if reservedMatch {
+			return database.Link{}, 400, fmt.Sprintf("The path '/%s' is reserved.", params.Path)
+		}
+
+		// Check the validity of the custom path
+		reservedChars := []string{":", "/", "?", "#", "[", "]", "@", "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="}
+		for _, char := range reservedChars {
+			if match := strings.Contains(params.Path, char); match {
+				return database.Link{}, 400, fmt.Sprintf("The character '%s' is not allowed.", char)
+			}
+		}
+	}
+
 	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
 	autoGen := false
+	allowedChars := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 	if params.Path == "" {
 		autoGen = true
-		params.Path = uniuri.NewLen(params.Length)
+		params.Path = uniuri.NewLenChars(params.Length, allowedChars)
 	}
 	if len(params.Path) > 255 {
 		params.Path = params.Path[:255]
-	}
-
-	// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access and assets are used for the front.
-	reservedMatch, err := regexp.MatchString(`^status$|^error$|^add$|^access$|^assets.*$`, params.Path)
-	if err != nil {
-		fmt.Println(err)
-		return database.Link{}, 500, "Could not check the path."
-	}
-	if reservedMatch {
-		return database.Link{}, 400, fmt.Sprintf("The path '/%s' is reserved.", params.Path)
 	}
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
@@ -141,7 +154,7 @@ func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameter
 		return database.Link{}, 400, "Could not add link: the path is probably already in use."
 	} else if err != nil && autoGen {
 		for i := 6; i <= 16; i++ {
-			params.Path = uniuri.NewLen(i)
+			params.Path = uniuri.NewLenChars(i, allowedChars)
 			link, err = database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
 			if err != nil {
 				log.Println(err)

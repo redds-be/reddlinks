@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -89,27 +90,39 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, stri
 		params.Length = 16
 	}
 
+	if params.Path != "" {
+		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access and assets are used for the front.
+		reservedMatch, err := regexp.MatchString(`^status$|^error$|^add$|^access$|^assets.*$`, params.Path)
+		if err != nil {
+			return "The path could not be checked.", 500, "", database.Link{}
+		}
+		if reservedMatch {
+			return fmt.Sprintf("The path '/%s' is reserved.", params.Path), 400, "", database.Link{}
+		}
+
+		// Check the validity of the custom path
+		reservedChars := []string{":", "/", "?", "#", "[", "]", "@", "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="}
+		for _, char := range reservedChars {
+			if match := strings.Contains(params.Path, char); match {
+				return fmt.Sprintf("The character '%s' is not allowed.", char), 400, "", database.Link{}
+			}
+		}
+	}
+
 	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
 	autoGen := false
+	allowedChars := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 	if params.Path == "" {
 		autoGen = true
-		params.Path = uniuri.NewLen(params.Length)
+		params.Path = uniuri.NewLenChars(params.Length, allowedChars)
 	}
 	if len(params.Path) > 255 {
 		params.Path = params.Path[:255]
 	}
 
-	// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access and assets are used for the front.
-	reservedMatch, err := regexp.MatchString(`^status$|^error$|^add$|^access$|^assets.*$`, params.Path)
-	if err != nil {
-		return "The path could not be checked.", 500, "", database.Link{}
-	}
-	if reservedMatch {
-		return fmt.Sprintf("The path '/%s' is reserved.", params.Path), 400, "", database.Link{}
-	}
-
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
 	hash := ""
+	var err error = nil //nolint:ineffassign <- Don't want to do that but go build and golang-ci are seemingly drunk
 	if params.Password != "" {
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
@@ -126,7 +139,7 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, stri
 		return "Could not add link: the path is probably already in use.", 400, "", database.Link{}
 	} else if err != nil && autoGen {
 		for i := 6; i <= 16; i++ {
-			params.Path = uniuri.NewLen(i)
+			params.Path = uniuri.NewLenChars(i, allowedChars)
 			link, err = database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
 			if err != nil {
 				log.Println(err)
