@@ -122,7 +122,7 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, stri
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
 	hash := ""
-	var err error = nil //nolint:ineffassign <- Don't want to do that but go build and golang-ci are seemingly drunk
+	var err error = nil //nolint:ineffassign
 	if params.Password != "" {
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
