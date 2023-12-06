@@ -44,6 +44,7 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, p any) 
 }
 
 func (info sendToHandlers) frontErrorPage(w http.ResponseWriter, r *http.Request, code int, errMsg string) {
+	log.Printf("Responding with an error to %s (%s) at '%s' with method '%s':\nError: %s (%d)\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method, errMsg, code)
 	// Set what is going to be displayed on the error page
 	p := &Page{
 		InstanceTitle: info.instanceName,
