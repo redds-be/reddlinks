@@ -67,19 +67,19 @@ func getEnv(envFile string) (string, string, string, string, int) {
 	}
 
 	// Read the port
-	portStr := os.Getenv("PORT")
+	portStr := os.Getenv("RLINKS_PORT")
 
 	// Read the instance name
-	instanceName := os.Getenv("INSTANCE_NAME")
+	instanceName := os.Getenv("RLINKS_INSTANCE_NAME")
 
 	// Read the instance URL
-	instanceURL := os.Getenv("INSTANCE_URL")
+	instanceURL := os.Getenv("RLINKS_INSTANCE_URL")
 
 	// Read the database URL
-	dbURL := os.Getenv("DB_URL")
+	dbURL := os.Getenv("RLINKS_DB_URL")
 
 	// Read the time between cleanup and convert it to an int
-	timeBetweenCleanupsStr := os.Getenv("TIME_BETWEEN_DB_CLEANUP")
+	timeBetweenCleanupsStr := os.Getenv("RLINKS_TIME_BETWEEN_DB_CLEANUP")
 	timeBetweenCleanups, err := strconv.Atoi(timeBetweenCleanupsStr)
 	if err != nil {
 		log.Fatal("the time between database cleanup couldn't be read")
