@@ -10,7 +10,7 @@ func handlerReadiness(w http.ResponseWriter, r *http.Request) {
 
 	// Check method
 	if r.Method != http.MethodGet {
-		respondWithError(w, r, 405, "405 Method Not Allowed.")
+		respondWithError(w, r, 405, "Method Not Allowed.")
 		return
 	}
 

@@ -38,7 +38,7 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, p any) 
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 500, "500 Unable to the page.")
+		respondWithError(w, r, 500, "Unable to load the page.")
 		return
 	}
 }

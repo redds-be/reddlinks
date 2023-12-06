@@ -19,7 +19,7 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 	hash, err := database.GetHashByShort(info.db, trimFirstRune(r.URL.Path))
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 404, "404 There is no link associated with this path, it is probably invalid or expired.")
+		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
 		return
 	}
 
@@ -41,7 +41,7 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 			params, err := decodeJSON(r)
 			if err != nil {
 				fmt.Println(err)
-				respondWithError(w, r, 400, "500 Wrong JSON or no password has been given. This link requires a password to access it.")
+				respondWithError(w, r, 400, "Wrong JSON or no password has been given. This link requires a password to access it.")
 				return
 			}
 			password = params.Password
@@ -54,11 +54,11 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 
 		// Check if the password matches the hash
 		if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil && !match {
-			respondWithError(w, r, 400, "400 Wrong password has been given.")
+			respondWithError(w, r, 400, "Wrong password has been given.")
 			return
 		} else if err != nil {
 			log.Println(err)
-			respondWithError(w, r, 500, "500 Could not compare the password against corresponding hash.")
+			respondWithError(w, r, 500, "Could not compare the password against corresponding hash.")
 			return
 		}
 	}
@@ -67,7 +67,7 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 	url, err := database.GetUrlByShort(info.db, trimFirstRune(r.URL.Path))
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 404, "404 There is no link associated with this path, it is probably invalid or expired.")
+		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
 		return
 	}
 
@@ -80,7 +80,7 @@ func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int,
 	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.Url)
 	if err != nil {
 		fmt.Println(err)
-		return database.Link{}, 500, "500 Unable to check the URL."
+		return database.Link{}, 500, "Unable to check the URL."
 	}
 	if !isValid {
 		return database.Link{}, 400, "400 The URL is invalid."
@@ -116,10 +116,10 @@ func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int,
 	reservedMatch, err := regexp.MatchString(`^status$|^error$|^add$|^access$|^assets.*$`, params.Path)
 	if err != nil {
 		fmt.Println(err)
-		return database.Link{}, 500, "500 Could not check the path."
+		return database.Link{}, 500, "Could not check the path."
 	}
 	if reservedMatch {
-		return database.Link{}, 400, fmt.Sprintf("400 The path '/%s' is reserved.", params.Path)
+		return database.Link{}, 400, fmt.Sprintf("The path '/%s' is reserved.", params.Path)
 	}
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
@@ -128,7 +128,7 @@ func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int,
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
 			log.Println(err)
-			return database.Link{}, 500, "500 Could not hash the password."
+			return database.Link{}, 500, "Could not hash the password."
 		}
 	}
 
@@ -136,7 +136,7 @@ func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int,
 	link, err := database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
 	if err != nil {
 		log.Println(err)
-		return database.Link{}, 400, "400 Could not add link: the path is probably already in use."
+		return database.Link{}, 400, "Could not add link: the path is probably already in use."
 	}
 
 	// Return the expiry time, the url and the short to the user
@@ -155,7 +155,7 @@ func (info sendToHandlers) apiHandlerRoot(w http.ResponseWriter, r *http.Request
 		log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 		params, err := decodeJSON(r)
 		if err != nil {
-			respondWithError(w, r, 400, "500 Invalid JSON syntax.")
+			respondWithError(w, r, 400, "Invalid JSON syntax.")
 			return
 		}
 		link, code, errMsg := info.apiCreateLink(params)
@@ -166,7 +166,7 @@ func (info sendToHandlers) apiHandlerRoot(w http.ResponseWriter, r *http.Request
 		// Send back the expiry time, the url and the short to the user
 		respondWithJSON(w, 201, link)
 	} else {
-		respondWithError(w, r, 405, "405 Method Not Allowed.")
+		respondWithError(w, r, 405, "Method Not Allowed.")
 		return
 	}
 }
