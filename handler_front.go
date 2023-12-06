@@ -24,6 +24,7 @@ type Page struct {
 	ExpireAt      string
 	Password      string
 	Error         string
+	AddInfo       string
 }
 
 // Parse the templates files in advance
@@ -69,7 +70,7 @@ func (info sendToHandlers) frontHandlerMainPage(w http.ResponseWriter, r *http.R
 	renderTemplate(w, r, "index", p)
 }
 
-func (info sendToHandlers) frontCreateLink(params parameters) (string, int, database.Link) {
+func (info sendToHandlers) frontCreateLink(params parameters) (string, int, string, database.Link) {
 	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
 	var expireAt time.Time
 	if params.ExpireAfter == -1 {
@@ -89,7 +90,9 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, data
 	}
 
 	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
+	autoGen := false
 	if params.Path == "" {
+		autoGen = true
 		params.Path = uniuri.NewLen(params.Length)
 	}
 	if len(params.Path) > 255 {
@@ -99,10 +102,10 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, data
 	// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access and assets are used for the front.
 	reservedMatch, err := regexp.MatchString(`^status$|^error$|^add$|^access$|^assets.*$`, params.Path)
 	if err != nil {
-		return "Error 500: The path could not be checked.", 500, database.Link{}
+		return "The path could not be checked.", 500, "", database.Link{}
 	}
 	if reservedMatch {
-		return fmt.Sprintf("The path '/%s' is reserved.", params.Path), 400, database.Link{}
+		return fmt.Sprintf("The path '/%s' is reserved.", params.Path), 400, "", database.Link{}
 	}
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
@@ -111,18 +114,34 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, data
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
 			log.Println(err)
-			return "Error 500: Could not hash the password.", 500, database.Link{}
+			return "Could not hash the password.", 500, "", database.Link{}
 		}
 	}
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
+	addInfo := ""
 	link, err := database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
-	if err != nil {
+	if err != nil && !autoGen {
 		log.Println(err)
-		return "Error 400: Could not add link: the path is probably already in use.", 400, database.Link{}
+		return "Could not add link: the path is probably already in use.", 400, "", database.Link{}
+	} else if err != nil && autoGen {
+		for i := 6; i <= 16; i++ {
+			params.Path = uniuri.NewLen(i)
+			link, err = database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
+			if err != nil {
+				log.Println(err)
+			} else if err != nil && i == 16 {
+				return "No more space left in the database.", 500, "", database.Link{}
+			} else if err == nil && i != params.Length {
+				addInfo = "The length of your auto-generated path had to be changed due to space limitations in the database."
+				break
+			} else if err == nil {
+				break
+			}
+		}
 	}
 
-	return "", 0, link
+	return "", 0, addInfo, link
 }
 
 func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +176,7 @@ func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Reques
 		}
 
 		// Create a link entry into the database, display an error page if it can't
-		errMsg, code, link := info.frontCreateLink(params)
+		errMsg, code, addInfo, link := info.frontCreateLink(params)
 		if errMsg != "" {
 			info.frontErrorPage(w, r, code, errMsg)
 			return
@@ -180,6 +199,7 @@ func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Reques
 			Url:           link.Url,
 			ExpireAt:      expireAt,
 			Password:      params.Password,
+			AddInfo:       addInfo,
 		}
 
 		// Display the add page which will display the information about the added link

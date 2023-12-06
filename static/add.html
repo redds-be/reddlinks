@@ -14,6 +14,9 @@
 </p>
 
 <div class="main">
+    {{if .AddInfo}}
+    <p>{{.AddInfo}}</p>
+    {{end}}
     <p>Shortened link: <a href="{{.InstanceURL}}{{.Short}}" target="_blank" id="myInput">{{.ShortenedLink}}</a></p>
     <p>Links to: {{.Url}}</p>
     {{if .Password}}

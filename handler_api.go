@@ -75,7 +75,7 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 	http.Redirect(w, r, url, http.StatusSeeOther)
 }
 
-func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int, string) {
+func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameters) (database.Link, int, string) {
 	// Check if the url is valid
 	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.Url)
 	if err != nil {
@@ -83,7 +83,7 @@ func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int,
 		return database.Link{}, 500, "Unable to check the URL."
 	}
 	if !isValid {
-		return database.Link{}, 400, "400 The URL is invalid."
+		return database.Link{}, 400, "The URL is invalid."
 	}
 
 	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
@@ -105,7 +105,9 @@ func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int,
 	}
 
 	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
+	autoGen := false
 	if params.Path == "" {
+		autoGen = true
 		params.Path = uniuri.NewLen(params.Length)
 	}
 	if len(params.Path) > 255 {
@@ -134,9 +136,27 @@ func (info sendToHandlers) apiCreateLink(params parameters) (database.Link, int,
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
 	link, err := database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
-	if err != nil {
+	if err != nil && !autoGen {
 		log.Println(err)
 		return database.Link{}, 400, "Could not add link: the path is probably already in use."
+	} else if err != nil && autoGen {
+		for i := 6; i <= 16; i++ {
+			params.Path = uniuri.NewLen(i)
+			link, err = database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
+			if err != nil {
+				log.Println(err)
+			} else if err != nil && i == 16 {
+				return database.Link{}, 500, "No more space left in the database."
+			} else if err == nil && i != params.Length {
+				type informationResponse struct {
+					Information string `json:"information"`
+				}
+				respondWithJSON(w, 100, informationResponse{Information: "The length of your auto-generated path had to be changed due to space limitations in the database."})
+				break
+			} else if err == nil {
+				break
+			}
+		}
 	}
 
 	// Return the expiry time, the url and the short to the user
@@ -158,7 +178,7 @@ func (info sendToHandlers) apiHandlerRoot(w http.ResponseWriter, r *http.Request
 			respondWithError(w, r, 400, "Invalid JSON syntax.")
 			return
 		}
-		link, code, errMsg := info.apiCreateLink(params)
+		link, code, errMsg := info.apiCreateLink(w, params)
 		if errMsg != "" {
 			respondWithError(w, r, code, errMsg)
 			return
