@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Shorten link | {{.InstanceTitle}}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
+    <a href="https://github.com/redds-be/rlinks" target="_blank" class="nav-text nav-link">
+        <img src="assets/img/github_logo.svg" width="16" height="16" alt="Github Logo" class="svg">Source
+    </a>
+</p>
+
+<div class="main">
+    <p>Enter a URL to shorten</p>
+    <form id="create_link" action="/add" method="post">
+        <div class="div-input">
+            <input placeholder="https://example.com" name="url" title="A url" class="url-input" type="url" required>
+        </div>
+        <div class="div-input">
+            <input placeholder="custom" name="short" title="A custom path" class="oth-input" type="text" maxlength="255">
+            <details>
+                <summary>Custom path for your url. <b>Optional</b></summary>
+                Example: {{.ShortenedLink}}<b>custom</b><br>
+                If none is given, the path will be randomly generated.<br>
+                "error" and "status" are reserved names.
+            </details>
+        </div>
+        <div class="div-input">
+            <label>
+                <input placeholder="6" type="number" name="length" min="6" max="16" class="oth-input" value="6">
+            </label>
+            <details>
+                <summary>Length of the randomly generated path. <b>Optional</b></summary>
+                Example: {{.ShortenedLink}}<b>hTx0Z0</b><br>
+                Defaults to 6.
+            </details>
+        </div>
+        <div class="div-input">
+            <label>
+                <input placeholder="2880" type="number" name="expire_after" min="-1" class="oth-input" value="2880">
+            </label>
+            <details>
+                <summary>Expiration time in minutes. <b>Optional</b></summary>
+                Minutes before the link is expired.<br>Input -1 for no expiration time.<br>
+                If the expiration time is -1 and the path is<br>
+                randomly generated, its length will default to 16.<br>
+                Defaults to 22880 = 48 hours.
+            </details>
+        </div>
+        <div class="div-input">
+            <input placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" name="password" title="Password" class="oth-input" type="password">
+            <details>
+                <summary>Password to protect the shortened url. <b>Optional</b></summary>
+                Example: {{.ShortenedLink}}<b>path</b> will ask for a password.
+            </details>
+        </div>
+        <div class="div-input">
+            <button value="Add" name="add" type="submit">Shorten URL</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

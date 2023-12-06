@@ -1,0 +1,186 @@
+html {
+    font-size: 22px;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+ul.no-bullets {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+a.nav-link {
+    text-decoration: none;
+}
+
+p {
+    text-align: center;
+}
+
+p.nav-text {
+    word-spacing: 5px;
+}
+
+div.main {
+    border-radius: 15px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 10px;
+}
+
+button {
+    background-color: #222;
+    border-radius: 4px;
+    border-style: none;
+    box-sizing: border-box;
+    color: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin: 0;
+    max-width: none;
+    min-height: 44px;
+    min-width: 10px;
+    outline: none;
+    overflow: hidden;
+    padding: 9px 20px 8px;
+    text-transform: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    width: 100%;
+}
+
+button:hover,
+button:focus {
+    opacity: .75;
+}
+
+input {
+    font: inherit;
+    outline: 0;
+}
+
+.url-input {
+    border-radius: 0.25em;
+    border-style: solid;
+    border-width: 2px;
+    font-size: 1rem;
+}
+
+.url-input:invalid {
+    border-color: firebrick;
+}
+
+.url-input:valid {
+    border-color: forestgreen;
+}
+
+.oth-input {
+    border-radius: 0.25em;
+    border-style: solid;
+    border-width: 2px;
+    font-size: 1rem;
+}
+
+details {
+    font-size: 15px;
+}
+
+div.div-input {
+    margin-top: 10px;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 140px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 150%;
+    left: 50%;
+    margin-left: -75px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #333;
+        color: whitesmoke;
+    }
+
+    .svg {
+        filter:invert(100%)
+    }
+
+    a {
+        color: lightgray;
+    }
+
+    a:visited.nav-text {
+        color: lightgray;
+    }
+
+    a:hover.nav-text {
+        color: whitesmoke;
+    }
+
+    .main {
+        border: 5px solid darkgray;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    body {
+        background-color: whitesmoke;
+        color: black;
+    }
+
+    a {
+        color: #333333;
+    }
+
+    a:visited.nav-text {
+        color: black;
+    }
+
+    a:hover.nav-text {
+        color: black;
+    }
+
+    .main {
+        border: 5px solid black;
+    }
+}

@@ -8,26 +8,41 @@ import (
 	"net/http"
 )
 
-type Database struct {
-	db *sql.DB
-}
-
 func main() {
 	// Load the env file
 	var envFile = ".env"
-	portStr, dbURL := getEnv(envFile)
+	portStr, instanceName, instanceURL, dbURL, timeBetweenCleanups := getEnv(envFile)
 
-	// Connect to the database
-	db := &Database{db: database.DbConnect(dbURL)}
-	database.CreateLinksTable(db.db)
+	// Create a struct to connect to the database and send the instance name and url to the handlers
+	handlersInfo := &sendToHandlers{
+		db:           database.DbConnect(dbURL),
+		instanceName: instanceName,
+		instanceURL:  instanceURL,
+	}
+
+	// Defer the closing of the database connection
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(handlersInfo.db)
+
+	// Create the links table, it will check if the table exists before creating it
+	database.CreateLinksTable(handlersInfo.db)
+
+	fs := http.FileServer(http.Dir("static/assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
 
 	// Assign a handler to these different paths
-	http.HandleFunc("/status", handlerReadiness)
-	http.HandleFunc("/error", handlerErr)
-	http.HandleFunc("/", db.handlerRoot)
+	http.HandleFunc("/status", handlerReadiness)                       // Check the status of the server
+	http.HandleFunc("/error", handlerErr)                              // Check if errors work as intended
+	http.HandleFunc("/add", handlersInfo.frontHandlerAdd)              // Add a link
+	http.HandleFunc("/access", handlersInfo.frontHandlerRedirectToUrl) // Access password protected link
+	http.HandleFunc("/", handlersInfo.apiHandlerRoot)                  // UI for link creation
 
 	// Periodically clean the database
-	go db.collectGarbage()
+	go handlersInfo.collectGarbage(timeBetweenCleanups)
 
 	// Start to listen
 	log.Printf("Listening on port : '%s'.", portStr)

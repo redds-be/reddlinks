@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>View | {{.InstanceTitle}}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
+    <a href="https://github.com/redds-be/rlinks" target="_blank" class="nav-text nav-link">
+        <img src="assets/img/github_logo.svg" width="16" height="16" alt="Github Logo" class="svg">Source
+    </a>
+</p>
+
+<div class="main">
+    <p>Shortened link: <a href="{{.InstanceURL}}{{.Short}}" target="_blank" id="myInput">{{.ShortenedLink}}</a></p>
+    <p>Links to: {{.Url}}</p>
+    {{if .Password}}
+    <p id="pass">Accessible using password: ********</p>
+    <div class="div-input">
+        <button onclick="revealPass()" id="reveal">Reveal Password</button>
+    </div>
+    {{end}}
+    <p>Will expire on: {{.ExpireAt}}</p>
+    <div class="div-input">
+        <button onclick="copyLink()" id="confirmation" onmouseleave="revertCopy()">Copy Link</button>
+    </div>
+    <form action="/" method="Get">
+        <div class="div-input">
+            <button>Shorten Another URL</button>
+        </div>
+    </form>
+</div>
+<script>
+    function copyLink() {
+        /* Copy text into clipboard */
+        navigator.clipboard.writeText
+        ("{{.ShortenedLink}}");
+        /* Set the new value for the button */
+        var conf = document.getElementById("confirmation");
+        conf.innerHTML = "Copied Link"
+    }
+    function revertCopy() {
+        /* Reset the value for the button */
+        var conf = document.getElementById("confirmation");
+        conf.innerHTML = "Copy Link"
+    }
+    function revealPass() {
+        var pass = document.getElementById("pass")
+        pass.innerHTML = "Accessible using password: {{.Password}}"
+        var rev = document.getElementById("reveal")
+        rev.innerHTML = "Password revealed"
+    }
+</script>
+</body>
+</html>

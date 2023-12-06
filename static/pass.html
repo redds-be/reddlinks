@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Password required | {{.InstanceTitle}}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
+    <a href="https://github.com/redds-be/rlinks" target="_blank" class="nav-text nav-link">
+        <img src="assets/img/github_logo.svg" width="16" height="16" alt="Github Logo" class="svg">Source
+    </a>
+</p>
+
+<div class="main">
+    <p>This link requires a password</p>
+    <form action="/access" method="post">
+        <div class="div-input">
+                <input placeholder="pas$$word" name="password" title="Password" class="oth-input" type="password" required>
+        </div>
+        <input type="hidden" name="short" value="{{.Short}}">
+        <div class="div-input">
+            <button value="Access" name="access" type="submit">Access the link</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>
