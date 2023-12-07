@@ -10,11 +10,15 @@ import (
 	"unicode/utf8"
 )
 
-type sendToHandlers struct {
+type configuration struct {
 	// Define what is going to be sent to the handlers
-	db           *sql.DB
-	instanceName string
-	instanceURL  string
+	db                     *sql.DB
+	instanceName           string
+	instanceURL            string
+	defaultShortLength     int
+	defaultMaxShortLength  int
+	defaultMaxCustomLength int
+	defaultExpiryTime      int
 }
 
 type parameters struct {
@@ -32,12 +36,12 @@ func trimFirstRune(s string) string {
 	return s[i:]
 }
 
-func (info sendToHandlers) collectGarbage(timeBetweenCleanups int) {
+func (conf configuration) collectGarbage(timeBetweenCleanups int) {
 	// Just some kind of hack to call the manual garbage collecting function every minute
 	for {
 		log.Println("Collecting garbage...")
 		// Get the links
-		links, err := database.GetLinks(info.db)
+		links, err := database.GetLinks(conf.db)
 		if err != nil {
 			log.Println(err)
 			return
@@ -48,7 +52,7 @@ func (info sendToHandlers) collectGarbage(timeBetweenCleanups int) {
 		for _, link := range links {
 			if now.After(link.ExpireAt) || now.Equal(link.ExpireAt) {
 				log.Printf("URL : %s (%s) is expired, deleting it...", link.Url, link.Short)
-				err := database.RemoveLink(info.db, link.Short)
+				err := database.RemoveLink(conf.db, link.Short)
 				if err != nil {
 					log.Printf("Could not remove URL : %s (%s): %s", link.Url, link.Short, err)
 					return

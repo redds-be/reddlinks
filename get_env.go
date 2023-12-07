@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func envCheck(portStr, instanceName, instanceURL, dbURL string, timeBetweenCleanups int) error {
+func envCheck(portStr, instanceName, instanceURL, dbURL string, timeBetweenCleanups, defaultLength, defaultMaxLength, defaultMaxCustomLength, defaultExpiryTime int) error {
 	// Check the port
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
@@ -33,8 +33,8 @@ func envCheck(portStr, instanceName, instanceURL, dbURL string, timeBetweenClean
 	}
 
 	// Check if the port is valid
-	if port == 0 {
-		return errors.New("the port can't be null")
+	if port <= 0 {
+		return errors.New("the port can't be null or negative")
 	} else if port > 65535 {
 		return errors.New("the port cannot be superior to '65535'")
 	}
@@ -51,15 +51,45 @@ func envCheck(portStr, instanceName, instanceURL, dbURL string, timeBetweenClean
 	}
 
 	// Check the time between cleanup, can be any time really, so only checking if it's 0
-	if timeBetweenCleanups == 0 {
-		return errors.New("the time between database cleanup can't be null")
+	if timeBetweenCleanups <= 0 {
+		return errors.New("the time between database cleanup can't be null or negative")
+	}
+
+	// Check the default short length
+	if defaultLength <= 0 {
+		return errors.New("the default short length can't be null or negative")
+	} else if defaultLength > defaultMaxLength {
+		return errors.New("the default short length can't be superior to the default max short length")
+	}
+
+	// Check the default max custom short length
+	if defaultMaxCustomLength <= 0 {
+		return errors.New("the default max custom short length can't be null or negative")
+	} else if defaultMaxCustomLength > defaultMaxLength {
+		return errors.New("the default max custom short length can't be superior to the default max short length")
+	}
+
+	// Check the default max short length
+	if defaultMaxLength <= 0 {
+		return errors.New("the default short length can't be null or negative")
+	} else if defaultMaxLength <= defaultLength {
+		return errors.New("the max default short length can't be inferior to the default short length")
+	} else if defaultMaxLength < defaultMaxCustomLength {
+		return errors.New("the max default short length can't be inferior to the default max custom short length")
+	} else if defaultMaxLength > 8000 {
+		return errors.New("strangely, some database engines don't support strings over 8000 chars long for fixed-size strings")
+	}
+
+	// Check the default expiry time
+	if defaultExpiryTime <= 0 {
+		return errors.New("the default expiry time can't be null or negative")
 	}
 
 	// No errors, since everything is fine
 	return nil
 }
 
-func getEnv(envFile string) (string, string, string, string, int) {
+func getEnv(envFile string) (string, int, int, int, int, string, string, string, int) {
 	// Load the env file
 	err := godotenv.Load(envFile)
 	if err != nil {
@@ -68,6 +98,35 @@ func getEnv(envFile string) (string, string, string, string, int) {
 
 	// Read the port
 	portStr := os.Getenv("RLINKS_PORT")
+
+	// Read the default short length
+	defaultLengthStr := os.Getenv("RLINKS_DEF_SHORT_LENGTH")
+	defaultLength, err := strconv.Atoi(defaultLengthStr)
+	if err != nil {
+		log.Fatal("the default length couldn't be read:", err)
+	}
+
+	// Read the default max short length
+	defaultMaxLengthStr := os.Getenv("RLINKS_MAX_SHORT_LENGTH")
+	defaultMaxLength, err := strconv.Atoi(defaultMaxLengthStr)
+	if err != nil {
+		log.Fatal("the default max length couldn't be read:", err)
+	}
+
+	// Read the default max custom short length
+	defaultMaxCustomLengthStr := os.Getenv("RLINKS_MAX_CUSTOM_SHORT_LENGTH")
+	defaultMaxCustomLength, err := strconv.Atoi(defaultMaxCustomLengthStr)
+	if err != nil {
+		log.Fatal("the default max custom short length couldn't be read:", err)
+	}
+
+	// Read the default expiry time
+	defaultExpiryTimeStr := os.Getenv("RLINKS_DEF_EXPIRY_TIME")
+	defaultExpiryTime, err := strconv.Atoi(defaultExpiryTimeStr)
+	if err != nil {
+		log.Println(err)
+		log.Fatal("the default expiry time couldn't be read:", err)
+	}
 
 	// Read the instance name
 	instanceName := os.Getenv("RLINKS_INSTANCE_NAME")
@@ -82,14 +141,14 @@ func getEnv(envFile string) (string, string, string, string, int) {
 	timeBetweenCleanupsStr := os.Getenv("RLINKS_TIME_BETWEEN_DB_CLEANUP")
 	timeBetweenCleanups, err := strconv.Atoi(timeBetweenCleanupsStr)
 	if err != nil {
-		log.Fatal("the time between database cleanup couldn't be read")
+		log.Fatal("the time between database cleanup couldn't be read:", err)
 	}
 
 	// Check the port and the database URL
-	err = envCheck(portStr, instanceName, instanceURL, dbURL, timeBetweenCleanups)
+	err = envCheck(portStr, instanceName, instanceURL, dbURL, timeBetweenCleanups, defaultLength, defaultMaxLength, defaultMaxCustomLength, defaultExpiryTime)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return portStr, instanceName, instanceURL, dbURL, timeBetweenCleanups
+	return portStr, defaultLength, defaultMaxLength, defaultMaxCustomLength, defaultExpiryTime, instanceName, instanceURL, dbURL, timeBetweenCleanups
 }

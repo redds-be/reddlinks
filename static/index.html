@@ -20,7 +20,7 @@
             <input placeholder="https://example.com" name="url" title="A url" class="url-input" type="url" required>
         </div>
         <div class="div-input">
-            <input placeholder="custom" name="short" title="A custom path" class="oth-input" type="text" maxlength="255">
+            <input placeholder="custom" name="short" title="A custom path" class="oth-input" type="text" maxlength="{{.DefaultMaxCustomLength}}">
             <details>
                 <summary>Custom path for your url. <b>Optional</b></summary>
                 Example: {{.ShortenedLink}}<b>custom</b><br>
@@ -30,24 +30,24 @@
         </div>
         <div class="div-input">
             <label>
-                <input placeholder="6" type="number" name="length" min="6" max="16" class="oth-input" value="6">
+                <input placeholder="{{.DefaultShortLength}}" type="number" name="length" min="{{.DefaultShortLength}}" max="{{.DefaultMaxShortLength}}" class="oth-input" value="{{.DefaultShortLength}}">
             </label>
             <details>
                 <summary>Length of the randomly generated path. <b>Optional</b></summary>
                 Example: {{.ShortenedLink}}<b>hTx0Z0</b><br>
-                Defaults to 6.
+                Defaults to {{.DefaultShortLength}}.
             </details>
         </div>
         <div class="div-input">
             <label>
-                <input placeholder="2880" type="number" name="expire_after" min="-1" class="oth-input" value="2880">
+                <input placeholder="{{.DefaultExpiryTime}}" type="number" name="expire_after" min="-1" class="oth-input" value="{{.DefaultExpiryTime}}">
             </label>
             <details>
                 <summary>Expiration time in minutes. <b>Optional</b></summary>
                 Minutes before the link is expired.<br>Input -1 for no expiration time.<br>
                 If the expiration time is -1 and the path is<br>
                 randomly generated, its length will default to 16.<br>
-                Defaults to 22880 = 48 hours.
+                Defaults to {{.DefaultExpiryTime}}.
             </details>
         </div>
         <div class="div-input">

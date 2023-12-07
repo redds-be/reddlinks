@@ -13,11 +13,11 @@ import (
 	"time"
 )
 
-func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Request) {
+func (conf configuration) apiRedirectToUrl(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 
 	// Check if there is a hash associated with the short, if there is a hash, we will require a password
-	hash, err := database.GetHashByShort(info.db, trimFirstRune(r.URL.Path))
+	hash, err := database.GetHashByShort(conf.db, trimFirstRune(r.URL.Path))
 	if err != nil {
 		log.Println(err)
 		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
@@ -49,7 +49,7 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 		} else if r.URL.Query().Get("pass") != "" {
 			password = r.URL.Query().Get("pass")
 		} else {
-			info.frontAskForPassword(w, r)
+			conf.frontAskForPassword(w, r)
 			return
 		}
 
@@ -65,7 +65,7 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Get the URL
-	url, err := database.GetUrlByShort(info.db, trimFirstRune(r.URL.Path))
+	url, err := database.GetUrlByShort(conf.db, trimFirstRune(r.URL.Path))
 	if err != nil {
 		log.Println(err)
 		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
@@ -76,7 +76,7 @@ func (info sendToHandlers) apiRedirectToUrl(w http.ResponseWriter, r *http.Reque
 	http.Redirect(w, r, url, http.StatusSeeOther)
 }
 
-func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameters) (database.Link, int, string) {
+func (conf configuration) apiCreateLink(w http.ResponseWriter, params parameters) (database.Link, int, string) {
 	// Check if the url is valid
 	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.Url)
 	if err != nil {
@@ -91,18 +91,17 @@ func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameter
 	var expireAt time.Time
 	if params.ExpireAfter == -1 {
 		expireAt = time.Date(9999, 12, 31, 23, 59, 59, 59, time.UTC)
-		params.Length = 16
 	} else if params.ExpireAfter <= 0 {
-		expireAt = time.Now().UTC().Add(time.Hour * 24 * 2)
+		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.defaultExpiryTime))
 	} else {
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(params.ExpireAfter))
 	}
 
 	// Check the length, will default to 6 if it's inferior or equal to 0 or will default to 16 if it's over 16
 	if params.Length <= 0 {
-		params.Length = 6
-	} else if params.Length > 16 {
-		params.Length = 16
+		params.Length = conf.defaultShortLength
+	} else if params.Length > conf.defaultMaxShortLength {
+		params.Length = conf.defaultMaxShortLength
 	}
 
 	// Check the validity of a custom path
@@ -133,8 +132,8 @@ func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameter
 		autoGen = true
 		params.Path = uniuri.NewLenChars(params.Length, allowedChars)
 	}
-	if len(params.Path) > 255 {
-		params.Path = params.Path[:255]
+	if len(params.Path) > conf.defaultMaxCustomLength {
+		params.Path = params.Path[:conf.defaultMaxCustomLength]
 	}
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
@@ -148,17 +147,17 @@ func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameter
 	}
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
-	link, err := database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
+	link, err := database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
 	if err != nil && !autoGen {
 		log.Println(err)
 		return database.Link{}, 400, "Could not add link: the path is probably already in use."
 	} else if err != nil && autoGen {
-		for i := 6; i <= 16; i++ {
+		for i := conf.defaultShortLength; i <= conf.defaultMaxShortLength; i++ {
 			params.Path = uniuri.NewLenChars(i, allowedChars)
-			link, err = database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
+			link, err = database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
 			if err != nil {
 				log.Println(err)
-			} else if err != nil && i == 16 {
+			} else if err != nil && i == conf.defaultMaxShortLength {
 				return database.Link{}, 500, "No more space left in the database."
 			} else if err == nil && i != params.Length {
 				type informationResponse struct {
@@ -176,14 +175,14 @@ func (info sendToHandlers) apiCreateLink(w http.ResponseWriter, params parameter
 	return link, 0, ""
 }
 
-func (info sendToHandlers) apiHandlerRoot(w http.ResponseWriter, r *http.Request) {
+func (conf configuration) apiHandlerRoot(w http.ResponseWriter, r *http.Request) {
 	// Check method and decide whether to create or redirect to link
 	if r.Method == http.MethodGet && r.URL.Path == "/favicon.ico" {
 		return
 	} else if r.Method == http.MethodGet && r.URL.Path == "/" {
-		info.frontHandlerMainPage(w, r)
+		conf.frontHandlerMainPage(w, r)
 	} else if r.Method == http.MethodGet {
-		info.apiRedirectToUrl(w, r)
+		conf.apiRedirectToUrl(w, r)
 	} else if r.Method == http.MethodPost {
 		log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 		params, err := decodeJSON(r)
@@ -191,7 +190,7 @@ func (info sendToHandlers) apiHandlerRoot(w http.ResponseWriter, r *http.Request
 			respondWithError(w, r, 400, "Invalid JSON syntax.")
 			return
 		}
-		link, code, errMsg := info.apiCreateLink(w, params)
+		link, code, errMsg := conf.apiCreateLink(w, params)
 		if errMsg != "" {
 			respondWithError(w, r, code, errMsg)
 			return

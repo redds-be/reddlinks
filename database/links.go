@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"time"
@@ -18,10 +19,10 @@ func checkTable(db *sql.DB, table string) bool {
 	return tableExists
 }
 
-func CreateLinksTable(db *sql.DB) {
+func CreateLinksTable(db *sql.DB, maxShort int) {
 	doTableExists := checkTable(db, "links")
 	if !doTableExists {
-		sqlCreateTable := `CREATE TABLE links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url varchar NOT NULL, short varchar(255) UNIQUE NOT NULL, password varchar(97));`
+		sqlCreateTable := fmt.Sprintf("CREATE TABLE links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url varchar NOT NULL, short varchar(%d) UNIQUE NOT NULL, password varchar(97));", maxShort)
 		_, err := db.Exec(sqlCreateTable)
 		if err != nil {
 			log.Fatal("Unable to create the 'links' table:", err)

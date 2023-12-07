@@ -17,15 +17,19 @@ import (
 
 type Page struct {
 	// Define the structure of what can be displayed on a page
-	InstanceTitle string
-	InstanceURL   string
-	ShortenedLink string
-	Short         string
-	Url           string
-	ExpireAt      string
-	Password      string
-	Error         string
-	AddInfo       string
+	InstanceTitle          string
+	InstanceURL            string
+	ShortenedLink          string
+	Short                  string
+	Url                    string
+	ExpireAt               string
+	Password               string
+	Error                  string
+	AddInfo                string
+	DefaultShortLength     int
+	DefaultMaxShortLength  int
+	DefaultMaxCustomLength int
+	DefaultExpiryTime      int
 }
 
 // Parse the templates files in advance
@@ -45,12 +49,12 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, p any) 
 	}
 }
 
-func (info sendToHandlers) frontErrorPage(w http.ResponseWriter, r *http.Request, code int, errMsg string) {
+func (conf configuration) frontErrorPage(w http.ResponseWriter, r *http.Request, code int, errMsg string) {
 	log.Printf("Responding with an error to %s (%s) at '%s' with method '%s':\nError: %s (%d)\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method, errMsg, code)
 	// Set what is going to be displayed on the error page
 	p := &Page{
-		InstanceTitle: info.instanceName,
-		InstanceURL:   info.instanceURL,
+		InstanceTitle: conf.instanceName,
+		InstanceURL:   conf.instanceURL,
 		Error:         fmt.Sprintf("Error %d: %s", code, errMsg),
 	}
 
@@ -58,36 +62,39 @@ func (info sendToHandlers) frontErrorPage(w http.ResponseWriter, r *http.Request
 	renderTemplate(w, r, "error", p)
 }
 
-func (info sendToHandlers) frontHandlerMainPage(w http.ResponseWriter, r *http.Request) {
+func (conf configuration) frontHandlerMainPage(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 	// Set what is going to be displayed on the main page
 	p := &Page{
-		InstanceTitle: info.instanceName,
-		InstanceURL:   info.instanceURL,
-		ShortenedLink: regexp.MustCompile("^https://|http://").ReplaceAllString(info.instanceURL, ""),
+		InstanceTitle:          conf.instanceName,
+		InstanceURL:            conf.instanceURL,
+		ShortenedLink:          regexp.MustCompile("^https://|http://").ReplaceAllString(conf.instanceURL, ""),
+		DefaultShortLength:     conf.defaultShortLength,
+		DefaultMaxShortLength:  conf.defaultMaxShortLength,
+		DefaultMaxCustomLength: conf.defaultMaxCustomLength,
+		DefaultExpiryTime:      conf.defaultExpiryTime,
 	}
 
 	// Display the front page
 	renderTemplate(w, r, "index", p)
 }
 
-func (info sendToHandlers) frontCreateLink(params parameters) (string, int, string, database.Link) {
+func (conf configuration) frontCreateLink(params parameters) (string, int, string, database.Link) {
 	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
 	var expireAt time.Time
 	if params.ExpireAfter == -1 {
 		expireAt = time.Date(9999, 12, 31, 23, 59, 59, 59, time.UTC)
-		params.Length = 16
 	} else if params.ExpireAfter <= 0 {
-		expireAt = time.Now().UTC().Add(time.Hour * 24 * 2)
+		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.defaultExpiryTime))
 	} else {
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(params.ExpireAfter))
 	}
 
 	// Check the length, will default to 6 if it's inferior or equal to 0 or will default to 16 if it's over 16
 	if params.Length <= 0 {
-		params.Length = 6
-	} else if params.Length > 16 {
-		params.Length = 16
+		params.Length = conf.defaultShortLength
+	} else if params.Length > conf.defaultMaxShortLength {
+		params.Length = conf.defaultMaxShortLength
 	}
 
 	if params.Path != "" {
@@ -116,8 +123,8 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, stri
 		autoGen = true
 		params.Path = uniuri.NewLenChars(params.Length, allowedChars)
 	}
-	if len(params.Path) > 255 {
-		params.Path = params.Path[:255]
+	if len(params.Path) > conf.defaultMaxCustomLength {
+		params.Path = params.Path[:conf.defaultMaxCustomLength]
 	}
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
@@ -133,17 +140,17 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, stri
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
 	addInfo := ""
-	link, err := database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
+	link, err := database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
 	if err != nil && !autoGen {
 		log.Println(err)
 		return "Could not add link: the path is probably already in use.", 400, "", database.Link{}
 	} else if err != nil && autoGen {
-		for i := 6; i <= 16; i++ {
+		for i := conf.defaultShortLength; i <= conf.defaultMaxShortLength; i++ {
 			params.Path = uniuri.NewLenChars(i, allowedChars)
-			link, err = database.CreateLink(info.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
+			link, err = database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
 			if err != nil {
 				log.Println(err)
-			} else if err != nil && i == 16 {
+			} else if err != nil && i == conf.defaultMaxShortLength {
 				return "No more space left in the database.", 500, "", database.Link{}
 			} else if err == nil && i != params.Length {
 				addInfo = "The length of your auto-generated path had to be changed due to space limitations in the database."
@@ -157,7 +164,7 @@ func (info sendToHandlers) frontCreateLink(params parameters) (string, int, stri
 	return "", 0, addInfo, link
 }
 
-func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Request) {
+func (conf configuration) frontHandlerAdd(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
 
 	// What to if the form is correct, i.e. the front page form was posted.
@@ -167,7 +174,7 @@ func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Reques
 		length, err := strconv.Atoi(r.FormValue("length"))
 		if err != nil {
 			log.Println(err)
-			info.frontErrorPage(w, r, 500, "There was an error trying to read the password.")
+			conf.frontErrorPage(w, r, 500, "There was an error trying to read the password.")
 			return
 		}
 
@@ -175,7 +182,7 @@ func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Reques
 		expireAfter, err := strconv.Atoi(r.FormValue("expire_after"))
 		if err != nil {
 			log.Println(err)
-			info.frontErrorPage(w, r, 500, "There was an error trying to read the expiration time.")
+			conf.frontErrorPage(w, r, 500, "There was an error trying to read the expiration time.")
 			return
 		}
 
@@ -189,9 +196,9 @@ func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Reques
 		}
 
 		// Create a link entry into the database, display an error page if it can't
-		errMsg, code, addInfo, link := info.frontCreateLink(params)
+		errMsg, code, addInfo, link := conf.frontCreateLink(params)
 		if errMsg != "" {
-			info.frontErrorPage(w, r, code, errMsg)
+			conf.frontErrorPage(w, r, code, errMsg)
 			return
 		}
 
@@ -205,9 +212,9 @@ func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Reques
 
 		// Set what is going to be displayed on the add page
 		p := &Page{
-			InstanceTitle: info.instanceName,
-			InstanceURL:   info.instanceURL,
-			ShortenedLink: regexp.MustCompile("^https://|http://").ReplaceAllString(fmt.Sprintf("%s%s", info.instanceURL, link.Short), ""),
+			InstanceTitle: conf.instanceName,
+			InstanceURL:   conf.instanceURL,
+			ShortenedLink: regexp.MustCompile("^https://|http://").ReplaceAllString(fmt.Sprintf("%s%s", conf.instanceURL, link.Short), ""),
 			Short:         link.Short,
 			Url:           link.Url,
 			ExpireAt:      expireAt,
@@ -218,16 +225,16 @@ func (info sendToHandlers) frontHandlerAdd(w http.ResponseWriter, r *http.Reques
 		// Display the add page which will display the information about the added link
 		renderTemplate(w, r, "add", p)
 	} else {
-		info.frontErrorPage(w, r, 500, "Unable to read the form.")
+		conf.frontErrorPage(w, r, 500, "Unable to read the form.")
 		return
 	}
 }
 
-func (info sendToHandlers) frontAskForPassword(w http.ResponseWriter, r *http.Request) {
+func (conf configuration) frontAskForPassword(w http.ResponseWriter, r *http.Request) {
 	// Set what is going to be displayed on the pass page
 	p := &Page{
-		InstanceTitle: info.instanceName,
-		InstanceURL:   info.instanceURL,
+		InstanceTitle: conf.instanceName,
+		InstanceURL:   conf.instanceURL,
 		Short:         trimFirstRune(r.URL.Path),
 	}
 
@@ -235,12 +242,12 @@ func (info sendToHandlers) frontAskForPassword(w http.ResponseWriter, r *http.Re
 	renderTemplate(w, r, "pass", p)
 }
 
-func (info sendToHandlers) frontHandlerRedirectToUrl(w http.ResponseWriter, r *http.Request) {
+func (conf configuration) frontHandlerRedirectToUrl(w http.ResponseWriter, r *http.Request) {
 	// Get the hash corresponding to the short
-	hash, err := database.GetHashByShort(info.db, r.FormValue("short"))
+	hash, err := database.GetHashByShort(conf.db, r.FormValue("short"))
 	if err != nil {
 		log.Println(err)
-		info.frontErrorPage(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
+		conf.frontErrorPage(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
 		return
 	}
 
@@ -249,26 +256,26 @@ func (info sendToHandlers) frontHandlerRedirectToUrl(w http.ResponseWriter, r *h
 	if r.FormValue("access") == "Access" {
 		password = r.FormValue("password")
 	} else {
-		info.frontErrorPage(w, r, 500, "Unable to read the password.")
+		conf.frontErrorPage(w, r, 500, "Unable to read the password.")
 		return
 	}
 
 	// Check if the password matches the hash
 	if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil && !match {
 		log.Println(err)
-		info.frontErrorPage(w, r, 400, "The password is incorrect.")
+		conf.frontErrorPage(w, r, 400, "The password is incorrect.")
 		return
 	} else if err != nil {
 		log.Println(err)
-		info.frontErrorPage(w, r, 500, "Unable to compare the password against the hash.")
+		conf.frontErrorPage(w, r, 500, "Unable to compare the password against the hash.")
 		return
 	}
 
 	// Get the URL corresponding to the short
-	url, err := database.GetUrlByShort(info.db, r.FormValue("short"))
+	url, err := database.GetUrlByShort(conf.db, r.FormValue("short"))
 	if err != nil {
 		log.Println(err)
-		info.frontErrorPage(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
+		conf.frontErrorPage(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
 		return
 	}
 
