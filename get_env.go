@@ -25,26 +25,39 @@ import (
 	"strconv"
 )
 
-func envCheck(portStr, instanceName, instanceURL, dbURL string, timeBetweenCleanups, defaultLength, defaultMaxLength, defaultMaxCustomLength, defaultExpiryTime int) error {
+type env struct {
+	// Define a structure for the env variables
+	portStr                string
+	instanceName           string
+	instanceURL            string
+	dbURL                  string
+	timeBetweenCleanups    int
+	defaultLength          int
+	defaultMaxLength       int
+	defaultMaxCustomLength int
+	defaultExpiryTime      int
+}
+
+func (e env) envCheck() error {
 	// Check the port
-	port, err := strconv.Atoi(portStr)
+	port, err := strconv.Atoi(e.portStr)
 	if err != nil {
 		log.Println(err)
 		return errors.New("the port couldn't be read")
 	}
 
 	// Check if the instance name isn't null
-	if instanceName == "" {
+	if e.instanceName == "" {
 		return errors.New("the instance name can't be empty")
 	}
 
 	// Check if the instance URL is valid
-	instanceURLMatch, err := regexp.MatchString(`^https?://.*\..*/$`, instanceURL)
+	instanceURLMatch, err := regexp.MatchString(`^https?://.*\..*/$`, e.instanceURL)
 	if err != nil {
 		log.Println(err)
 		return errors.New("the instance URL could not be checked")
 	}
-	if instanceURL == "" || !instanceURLMatch {
+	if e.instanceURL == "" || !instanceURLMatch {
 		return errors.New("the instance URL is invalid")
 	}
 
@@ -57,47 +70,47 @@ func envCheck(portStr, instanceName, instanceURL, dbURL string, timeBetweenClean
 
 	// Check if the database URL is valid.
 	// /!\ Will be replaced later by a set of different variables for each of the db information
-	dbURLMatch, err := regexp.MatchString(`^postgres://.*:.*@.*:([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])/.*$`, dbURL)
+	dbURLMatch, err := regexp.MatchString(`^postgres://.*:.*@.*:([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])/.*$`, e.dbURL)
 	if err != nil {
 		log.Println(err)
 		return errors.New("the database URL could not be checked")
 	}
-	if dbURL == "" || !dbURLMatch {
+	if e.dbURL == "" || !dbURLMatch {
 		return errors.New("the database URL is invalid")
 	}
 
 	// Check the time between cleanup, can be any time really, so only checking if it's 0
-	if timeBetweenCleanups <= 0 {
+	if e.timeBetweenCleanups <= 0 {
 		return errors.New("the time between database cleanup can't be null or negative")
 	}
 
 	// Check the default short length
-	if defaultLength <= 0 {
+	if e.defaultLength <= 0 {
 		return errors.New("the default short length can't be null or negative")
-	} else if defaultLength > defaultMaxLength {
+	} else if e.defaultLength > e.defaultMaxLength {
 		return errors.New("the default short length can't be superior to the default max short length")
 	}
 
 	// Check the default max custom short length
-	if defaultMaxCustomLength <= 0 {
+	if e.defaultMaxCustomLength <= 0 {
 		return errors.New("the default max custom short length can't be null or negative")
-	} else if defaultMaxCustomLength > defaultMaxLength {
+	} else if e.defaultMaxCustomLength > e.defaultMaxLength {
 		return errors.New("the default max custom short length can't be superior to the default max short length")
 	}
 
 	// Check the default max short length
-	if defaultMaxLength <= 0 {
+	if e.defaultMaxLength <= 0 {
 		return errors.New("the default short length can't be null or negative")
-	} else if defaultMaxLength <= defaultLength {
+	} else if e.defaultMaxLength <= e.defaultLength {
 		return errors.New("the max default short length can't be inferior to the default short length")
-	} else if defaultMaxLength < defaultMaxCustomLength {
+	} else if e.defaultMaxLength < e.defaultMaxCustomLength {
 		return errors.New("the max default short length can't be inferior to the default max custom short length")
-	} else if defaultMaxLength > 8000 {
+	} else if e.defaultMaxLength > 8000 {
 		return errors.New("strangely, some database engines don't support strings over 8000 chars long for fixed-size strings")
 	}
 
 	// Check the default expiry time
-	if defaultExpiryTime <= 0 {
+	if e.defaultExpiryTime <= 0 {
 		return errors.New("the default expiry time can't be null or negative")
 	}
 
@@ -105,7 +118,7 @@ func envCheck(portStr, instanceName, instanceURL, dbURL string, timeBetweenClean
 	return nil
 }
 
-func getEnv(envFile string) (string, int, int, int, int, string, string, string, int) {
+func getEnv(envFile string) env {
 	// Load the env file
 	err := godotenv.Load(envFile)
 	if err != nil {
@@ -160,11 +173,23 @@ func getEnv(envFile string) (string, int, int, int, int, string, string, string,
 		log.Fatal("the time between database cleanups couldn't be read:", err)
 	}
 
+	e := env{
+		portStr:                portStr,
+		instanceName:           instanceName,
+		instanceURL:            instanceURL,
+		dbURL:                  dbURL,
+		timeBetweenCleanups:    timeBetweenCleanups,
+		defaultLength:          defaultLength,
+		defaultMaxLength:       defaultMaxLength,
+		defaultMaxCustomLength: defaultMaxCustomLength,
+		defaultExpiryTime:      defaultExpiryTime,
+	}
+
 	// Check the port and the database URL
-	err = envCheck(portStr, instanceName, instanceURL, dbURL, timeBetweenCleanups, defaultLength, defaultMaxLength, defaultMaxCustomLength, defaultExpiryTime)
+	err = e.envCheck()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return portStr, defaultLength, defaultMaxLength, defaultMaxCustomLength, defaultExpiryTime, instanceName, instanceURL, dbURL, timeBetweenCleanups
+	return e
 }

@@ -27,17 +27,17 @@ import (
 func main() {
 	// Load the env file
 	var envFile = ".env"
-	portStr, defaultLength, defaultMaxLength, defaultMaxCustomLength, defaultExpiryTime, instanceName, instanceURL, dbURL, timeBetweenCleanups := getEnv(envFile)
+	e := getEnv(envFile)
 
 	// Create a struct to connect to the database and send the instance name and url to the handlers
 	conf := &configuration{
-		db:                     database.DbConnect(dbURL),
-		instanceName:           instanceName,
-		instanceURL:            instanceURL,
-		defaultShortLength:     defaultLength,
-		defaultMaxShortLength:  defaultMaxLength,
-		defaultMaxCustomLength: defaultMaxCustomLength,
-		defaultExpiryTime:      defaultExpiryTime,
+		db:                     database.DbConnect(e.dbURL),
+		instanceName:           e.instanceName,
+		instanceURL:            e.instanceURL,
+		defaultShortLength:     e.defaultLength,
+		defaultMaxShortLength:  e.defaultMaxLength,
+		defaultMaxCustomLength: e.defaultMaxCustomLength,
+		defaultExpiryTime:      e.defaultExpiryTime,
 	}
 
 	// Defer the closing of the database connection
@@ -49,7 +49,7 @@ func main() {
 	}(conf.db)
 
 	// Create the links table, it will check if the table exists before creating it
-	database.CreateLinksTable(conf.db, defaultMaxLength)
+	database.CreateLinksTable(conf.db, e.defaultMaxLength)
 
 	fs := http.FileServer(http.Dir("static/assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
@@ -62,9 +62,9 @@ func main() {
 	http.HandleFunc("/", conf.apiHandlerRoot)                  // UI for link creation
 
 	// Periodically clean the database
-	go conf.collectGarbage(timeBetweenCleanups)
+	go conf.collectGarbage(e.timeBetweenCleanups)
 
 	// Start to listen
-	log.Printf("Listening on port : '%s'.", portStr)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", portStr), nil))
+	log.Printf("Listening on port : '%s'.", e.portStr)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", e.portStr), nil))
 }
