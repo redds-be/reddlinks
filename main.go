@@ -31,7 +31,7 @@ func main() {
 
 	// Create a struct to connect to the database and send the instance name and url to the handlers
 	conf := &configuration{
-		db:                     database.DbConnect(e.dbURL),
+		db:                     database.DbConnect(e.dbType, e.dbURL),
 		instanceName:           e.instanceName,
 		instanceURL:            e.instanceURL,
 		defaultShortLength:     e.defaultLength,

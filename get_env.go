@@ -30,6 +30,7 @@ type env struct {
 	portStr                string
 	instanceName           string
 	instanceURL            string
+	dbType                 string
 	dbURL                  string
 	timeBetweenCleanups    int
 	defaultLength          int
@@ -68,15 +69,19 @@ func (e env) envCheck() error {
 		return errors.New("the port cannot be superior to '65535'")
 	}
 
-	// Check if the database URL is valid.
-	// /!\ Will be replaced later by a set of different variables for each of the db information
-	dbURLMatch, err := regexp.MatchString(`^postgres://.*:.*@.*:([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])/.*$`, e.dbURL)
+	// Check if the database type is valid
+	dbTypeMatch, err := regexp.MatchString(`^postgres$|^sqlite3$`, e.dbType)
 	if err != nil {
 		log.Println(err)
-		return errors.New("the database URL could not be checked")
+		return errors.New("the database type could not be checked")
 	}
-	if e.dbURL == "" || !dbURLMatch {
-		return errors.New("the database URL is invalid")
+	if e.dbType == "" || !dbTypeMatch {
+		return errors.New("the database type is invalid or unsupported")
+	}
+
+	// Check if the database access string is empty or not.
+	if e.dbURL == "" {
+		return errors.New("the database access string can't be empty")
 	}
 
 	// Check the time between cleanup, can be any time really, so only checking if it's 0
@@ -163,8 +168,11 @@ func getEnv(envFile string) env {
 	// Read the instance URL
 	instanceURL := os.Getenv("RLINKS_INSTANCE_URL")
 
+	// Read the database type
+	dbType := os.Getenv("RLINKS_DB_TYPE")
+
 	// Read the database URL
-	dbURL := os.Getenv("RLINKS_DB_URL")
+	dbURL := os.Getenv("RLINKS_DB_STRING")
 
 	// Read the time between cleanup and convert it to an int
 	timeBetweenCleanupsStr := os.Getenv("RLINKS_TIME_BETWEEN_DB_CLEANUPS")
@@ -177,6 +185,7 @@ func getEnv(envFile string) env {
 		portStr:                portStr,
 		instanceName:           instanceName,
 		instanceURL:            instanceURL,
+		dbType:                 dbType,
 		dbURL:                  dbURL,
 		timeBetweenCleanups:    timeBetweenCleanups,
 		defaultLength:          defaultLength,
