@@ -8,25 +8,11 @@ import (
 	"time"
 )
 
-func checkTable(db *sql.DB, table string) bool {
-	sqlCheckTable := `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = $1);`
-	var tableExists bool
-	err := db.QueryRow(sqlCheckTable, table).Scan(&tableExists)
-	if err != nil {
-		log.Fatal("Unable to check if the table 'links' exists:", err)
-	}
-
-	return tableExists
-}
-
 func CreateLinksTable(db *sql.DB, maxShort int) {
-	doTableExists := checkTable(db, "links")
-	if !doTableExists {
-		sqlCreateTable := fmt.Sprintf("CREATE TABLE links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url varchar NOT NULL, short varchar(%d) UNIQUE NOT NULL, password varchar(97));", maxShort)
-		_, err := db.Exec(sqlCreateTable)
-		if err != nil {
-			log.Fatal("Unable to create the 'links' table:", err)
-		}
+	sqlCreateTable := fmt.Sprintf("CREATE TABLE IF NOT EXISTS links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url varchar NOT NULL, short varchar(%d) UNIQUE NOT NULL, password varchar(97));", maxShort)
+	_, err := db.Exec(sqlCreateTable)
+	if err != nil {
+		log.Fatal("Unable to create the 'links' table:", err)
 	}
 }
 
