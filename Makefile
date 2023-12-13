@@ -1,4 +1,5 @@
 GOFILES = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+VERSION = $(shell git describe --tags)
 
 all: compile
 
@@ -6,6 +7,7 @@ prep: fmt lint mod vet
 
 compile:
 	@mkdir -p build/
+	@sed -i "s/noVersion/$(VERSION)/g" main.go
 	@go build -o build/
 
 install:
