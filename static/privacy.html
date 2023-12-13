@@ -19,7 +19,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>error | {{.InstanceTitle}}</title>
+    <title>Shorten link | {{.InstanceTitle}}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="assets/css/main.css">
@@ -31,14 +31,48 @@
     </a>
 </p>
 
-<div class="main">
-    <p>{{.Error}}</p>
-    <form action="/" method="Get">
-        <div class="div-input">
-            <button onclick="history.back()" type="submit">Go back</button>
-        </div>
-    </form>
-</div>
+<h2>Privacy</h2>
+<p class="privacy">This document concerns what data you provide to this website,
+    the purpose of the data, how the data is stored, and how the data can be removed.
+    No data is stored in your browser.
+</p>
+
+<h3>Data you directly provide</h3>
+<p class="privacy">Information stored about a shortened link is limited to:</p>
+<ul class="privacy">
+    <li>The URL you shorten which the shortened link will redirect you.</li>
+    <li>The custom path for the shortened link if any is set.</li>
+    <li>The length of the auto-generated shortened link.</li>
+    <li>The expiration time of the shortened link.</li>
+    <li>The password of the shortened link if any is set.</li>
+</ul>
+
+<h3>Data you passively provide</h3>
+
+<p class="privacy">When you request any resource from this website (for example: a page, a font, an image, or an API endpoint)
+    information about the request may be logged.
+</p>
+
+<p class="privacy">Information about a request is limited to:</p>
+
+<ul class="privacy">
+    <li>The time the request was made.</li>
+    <li>The method of the request.</li>
+    <li>The requested URL. <em>Note: This does not include the URL that the shortened link points to</em>.</li>
+</ul>
+
+<p class="privacy">No identifying information is logged, such as the visitor's cookie, user-agent, or IP address.
+    Here are a couple lines to serve as an example:
+</p>
+
+<p class="privacy">2023/12/13 14:35:01 GET /<br>
+2023/12/13 15:36:16 GET /nz_~Kx<br>2023/12/15 11:18:14 POST /
+</p>
+
+<h3>Removal of data</h3>
+<p class="privacy">
+    To remove the data you directly or indirectly provided, contact this site's administrator.
+</p>
 
 <div class="footer">
     <p>

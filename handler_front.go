@@ -43,6 +43,7 @@ type Page struct {
 	Password               string
 	Error                  string
 	AddInfo                string
+	Version                string
 	DefaultShortLength     int
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int
@@ -54,7 +55,8 @@ var templates = template.Must(template.ParseFiles( //nolint:gochecknoglobals
 	"static/index.html",
 	"static/add.html",
 	"static/error.html",
-	"static/pass.html"))
+	"static/pass.html",
+	"static/privacy.html"))
 
 func renderTemplate(writer http.ResponseWriter, req *http.Request, tmpl string, p any) {
 	// Render a given template, json error if it can't
@@ -79,6 +81,7 @@ func (conf configuration) frontErrorPage(
 		InstanceTitle: conf.instanceName,
 		InstanceURL:   conf.instanceURL,
 		Error:         fmt.Sprintf("Error %d: %s", code, errMsg),
+		Version:       conf.Version,
 	}
 
 	// Display the error page
@@ -87,6 +90,7 @@ func (conf configuration) frontErrorPage(
 
 func (conf configuration) frontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
 	log.Printf("%s %s", req.Method, req.URL.Path)
+
 	// Set what is going to be displayed on the main page
 	page := &Page{
 		InstanceTitle: conf.instanceName,
@@ -97,10 +101,25 @@ func (conf configuration) frontHandlerMainPage(writer http.ResponseWriter, req *
 		DefaultMaxShortLength:  conf.defaultMaxShortLength,
 		DefaultMaxCustomLength: conf.defaultMaxCustomLength,
 		DefaultExpiryTime:      conf.defaultExpiryTime,
+		Version:                conf.Version,
 	}
 
 	// Display the front page
 	renderTemplate(writer, req, "index", page)
+}
+
+func (conf configuration) frontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
+	log.Printf("%s %s", req.Method, req.URL.Path)
+
+	// Set what is going to be displayed on the privacy page
+	page := &Page{
+		InstanceTitle: conf.instanceName,
+		InstanceURL:   conf.instanceURL,
+		Version:       conf.Version,
+	}
+
+	// Display the front page
+	renderTemplate(writer, req, "privacy", page)
 }
 
 func (conf configuration) frontCreateLink( //nolint:cyclop,funlen
@@ -125,9 +144,9 @@ func (conf configuration) frontCreateLink( //nolint:cyclop,funlen
 	}
 
 	if params.Path != "" {
-		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access and assets are used for the front.
+		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access, privacy and assets are used for the front.
 		reservedMatch, err := regexp.MatchString(
-			`^status$|^error$|^add$|^access$|^assets.*$`,
+			`^status$|^error$|^add$|^access$|^privacy$|^assets.*$`,
 			params.Path,
 		)
 		if err != nil {
@@ -308,6 +327,7 @@ func (conf configuration) frontHandlerAdd(writer http.ResponseWriter, req *http.
 		ExpireAt: expireAt,
 		Password: params.Password,
 		AddInfo:  addInfo,
+		Version:  conf.Version,
 	}
 
 	// Display the add page which will display the information about the added link
@@ -320,6 +340,7 @@ func (conf configuration) frontAskForPassword(writer http.ResponseWriter, req *h
 		InstanceTitle: conf.instanceName,
 		InstanceURL:   conf.instanceURL,
 		Short:         trimFirstRune(req.URL.Path),
+		Version:       conf.Version,
 	}
 
 	// Display the pass page which will ask the user for a password

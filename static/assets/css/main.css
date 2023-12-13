@@ -38,6 +38,11 @@ p {
     text-align: center;
 }
 
+.privacy {
+    text-align: initial;
+    font-size: 18px;
+}
+
 p.nav-text {
     word-spacing: 5px;
 }

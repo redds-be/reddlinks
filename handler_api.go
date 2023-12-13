@@ -152,10 +152,9 @@ func (conf configuration) apiCreateLink( //nolint:funlen,cyclop,gocognit
 
 	// Check the validity of a custom path
 	if params.Path != "" {
-		// Check if the path is a reserved one, 'status' and 'error' are used to debug,
-		// add, access and assets are used for the front.
+		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access, privacy and assets are used for the front.
 		reservedMatch, err := regexp.MatchString(
-			`^status$|^error$|^add$|^access$|^assets.*$`,
+			`^status$|^error$|^add$|^access$|^privacy$|^assets.*$`,
 			params.Path,
 		)
 		if err != nil {

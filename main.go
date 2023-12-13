@@ -25,7 +25,7 @@ import (
 	"github.com/redds-be/rlinks/database"
 )
 
-func main() { //nolint:funlen
+func main() {
 	// Load the env file
 	envFile := ".env"
 	env := getEnv(envFile)
@@ -39,6 +39,7 @@ func main() { //nolint:funlen
 		defaultMaxShortLength:  env.defaultMaxLength,
 		defaultMaxCustomLength: env.defaultMaxCustomLength,
 		defaultExpiryTime:      env.defaultExpiryTime,
+		Version:                "noVersion",
 	}
 
 	// Defer the closing of the database connection
@@ -56,20 +57,12 @@ func main() { //nolint:funlen
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
 
 	// Assign a handler to these different paths
-	http.HandleFunc(
-		"/status",
-		handlerReadiness,
-	) // Check the status of the server
-	http.HandleFunc(
-		"/error",
-		handlerErr,
-	) // Check if errors work as intended
-	http.HandleFunc("/add", conf.frontHandlerAdd) // Add a link
-	http.HandleFunc(
-		"/access",
-		conf.frontHandlerRedirectToURL,
-	) // Access password protected link
-	http.HandleFunc("/", conf.apiHandlerRoot) // UI for link creation
+	http.HandleFunc("/status", handlerReadiness)               // Check the status of the server
+	http.HandleFunc("/error", handlerErr)                      // Check if errors work as intended
+	http.HandleFunc("/add", conf.frontHandlerAdd)              // Add a link
+	http.HandleFunc("/access", conf.frontHandlerRedirectToURL) // Access password protected link
+	http.HandleFunc("/privacy", conf.frontHandlerPrivacyPage)  // Privacy policy information
+	http.HandleFunc("/", conf.apiHandlerRoot)                  // UI for link creation
 
 	// Periodically clean the database
 	go conf.collectGarbage(env.timeBetweenCleanups)
