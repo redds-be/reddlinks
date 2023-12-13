@@ -90,7 +90,7 @@ func (conf configuration) frontErrorPage(
 		InstanceTitle: conf.instanceName,
 		InstanceURL:   conf.instanceURL,
 		Error:         fmt.Sprintf("Error %d: %s", code, errMsg),
-		Version:       conf.Version,
+		Version:       conf.version,
 	}
 
 	// Display the error page
@@ -110,7 +110,7 @@ func (conf configuration) frontHandlerMainPage(writer http.ResponseWriter, req *
 		DefaultMaxShortLength:  conf.defaultMaxShortLength,
 		DefaultMaxCustomLength: conf.defaultMaxCustomLength,
 		DefaultExpiryTime:      conf.defaultExpiryTime,
-		Version:                conf.Version,
+		Version:                conf.version,
 	}
 
 	// Display the front page
@@ -124,7 +124,7 @@ func (conf configuration) frontHandlerPrivacyPage(writer http.ResponseWriter, re
 	page := &Page{
 		InstanceTitle: conf.instanceName,
 		InstanceURL:   conf.instanceURL,
-		Version:       conf.Version,
+		Version:       conf.version,
 	}
 
 	// Display the front page
@@ -336,7 +336,7 @@ func (conf configuration) frontHandlerAdd(writer http.ResponseWriter, req *http.
 		ExpireAt: expireAt,
 		Password: params.Password,
 		AddInfo:  addInfo,
-		Version:  conf.Version,
+		Version:  conf.version,
 	}
 
 	// Display the add page which will display the information about the added link
@@ -349,7 +349,7 @@ func (conf configuration) frontAskForPassword(writer http.ResponseWriter, req *h
 		InstanceTitle: conf.instanceName,
 		InstanceURL:   conf.instanceURL,
 		Short:         trimFirstRune(req.URL.Path),
-		Version:       conf.Version,
+		Version:       conf.version,
 	}
 
 	// Display the pass page which will ask the user for a password
