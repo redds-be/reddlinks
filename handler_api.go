@@ -31,13 +31,7 @@ import (
 )
 
 func (conf configuration) apiRedirectToURL(writer http.ResponseWriter, req *http.Request) { //nolint:funlen,cyclop
-	log.Printf(
-		"Client : %s (%s) accessing '%s' with method '%s'.\n",
-		req.RemoteAddr,
-		req.UserAgent(),
-		req.URL.Path,
-		req.Method,
-	)
+	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// Check if there is a hash associated with the short, if there is a hash, we will require a password
 	hash, err := database.GetHashByShort(conf.db, trimFirstRune(req.URL.Path))
@@ -283,13 +277,7 @@ func (conf configuration) apiHandlerRoot(writer http.ResponseWriter, req *http.R
 	case req.Method == http.MethodGet:
 		conf.apiRedirectToURL(writer, req)
 	case req.Method == http.MethodPost:
-		log.Printf(
-			"Client : %s (%s) accessing '%s' with method '%s'.\n",
-			req.RemoteAddr,
-			req.UserAgent(),
-			req.URL.Path,
-			req.Method,
-		)
+		log.Printf("%s %s", req.Method, req.URL.Path)
 		params, err := decodeJSON(req)
 		if err != nil {
 			respondWithError(writer, req, http.StatusBadRequest, "Invalid JSON syntax.")

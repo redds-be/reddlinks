@@ -71,18 +71,11 @@ func (conf configuration) collectGarbage(timeBetweenCleanups int) {
 		for _, link := range links {
 			if now.After(link.ExpireAt) || now.Equal(link.ExpireAt) {
 				log.Printf(
-					"URL : %s (%s) is expired, deleting it...",
-					link.URL,
-					link.Short,
-				)
+					"Link : %s is expired, deleting it...", link.Short)
 				err := database.RemoveLink(conf.db, link.Short)
 				if err != nil {
 					log.Printf(
-						"Could not remove URL : %s (%s): %s",
-						link.URL,
-						link.Short,
-						err,
-					)
+						"Could not remove Link: %s", link.Short)
 
 					return
 				}

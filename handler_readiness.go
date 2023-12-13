@@ -22,13 +22,7 @@ import (
 )
 
 func handlerReadiness(writer http.ResponseWriter, req *http.Request) {
-	log.Printf(
-		"Client : %s (%s) accessing '%s' with method '%s'.\n",
-		req.RemoteAddr,
-		req.UserAgent(),
-		req.URL.Path,
-		req.Method,
-	)
+	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// Check method
 	if req.Method != http.MethodGet {

@@ -23,18 +23,7 @@ import (
 	"net/http"
 )
 
-func respondWithError(writer http.ResponseWriter, req *http.Request, code int, msg string) {
-	// Respond the client with a JSON error
-	log.Printf(
-		"Responding with an error to %s (%s) at '%s' with method '%s':\nError: %s (%d)\n",
-		req.RemoteAddr,
-		req.UserAgent(),
-		req.URL.Path,
-		req.Method,
-		msg,
-		code,
-	)
-
+func respondWithError(writer http.ResponseWriter, _ *http.Request, code int, msg string) {
 	// Define a JSON structure for the error
 	type errResponse struct {
 		Error string `json:"error"`

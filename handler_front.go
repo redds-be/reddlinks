@@ -73,15 +73,7 @@ func (conf configuration) frontErrorPage(
 	code int,
 	errMsg string,
 ) {
-	log.Printf(
-		"Responding with an error to %s (%s) at '%s' with method '%s':\nError: %s (%d)\n",
-		req.RemoteAddr,
-		req.UserAgent(),
-		req.URL.Path,
-		req.Method,
-		errMsg,
-		code,
-	)
+	log.Printf("%s %s", req.Method, req.URL.Path)
 	// Set what is going to be displayed on the error page
 	page := &Page{
 		InstanceTitle: conf.instanceName,
@@ -94,13 +86,7 @@ func (conf configuration) frontErrorPage(
 }
 
 func (conf configuration) frontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
-	log.Printf(
-		"Client : %s (%s) accessing '%s' with method '%s'.\n",
-		req.RemoteAddr,
-		req.UserAgent(),
-		req.URL.Path,
-		req.Method,
-	)
+	log.Printf("%s %s", req.Method, req.URL.Path)
 	// Set what is going to be displayed on the main page
 	page := &Page{
 		InstanceTitle: conf.instanceName,
@@ -248,13 +234,7 @@ func (conf configuration) frontCreateLink( //nolint:cyclop,funlen
 }
 
 func (conf configuration) frontHandlerAdd(writer http.ResponseWriter, req *http.Request) { //nolint:funlen
-	log.Printf(
-		"Client : %s (%s) accessing '%s' with method '%s'.\n",
-		req.RemoteAddr,
-		req.UserAgent(),
-		req.URL.Path,
-		req.Method,
-	)
+	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
