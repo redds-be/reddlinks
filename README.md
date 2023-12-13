@@ -5,7 +5,6 @@ A simple link shortener written in Go.
 ## TODO
 
 - [ ] Write documentation
-- [ ] Support more SQL database engines
 
 ## Contributing
 
