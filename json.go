@@ -44,7 +44,7 @@ func respondWithJSON(writer http.ResponseWriter, code int, payload interface{}) 
 	}
 
 	// Add the json header to the response so that the client can interpret it as JSON, internal error if it can't
-	writer.Header().Add("Content-Type", "application/json")
+	writer.Header().Add("Content-Type", "application/json; charset=UTF-8")
 	writer.WriteHeader(code)
 	_, err = writer.Write(dat)
 	if err != nil {
