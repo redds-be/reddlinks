@@ -211,7 +211,7 @@ func (conf configuration) apiCreateLink( //nolint:funlen,cyclop,gocognit
 	// if its length is over 16, it will be trimmed
 	autoGen := false
 	allowedChars := []byte(
-		"ab",
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~",
 	)
 	if params.Path == "" {
 		autoGen = true
