@@ -32,7 +32,7 @@ type configuration struct {
 	db                     *sql.DB
 	instanceName           string
 	instanceURL            string
-	Version                string
+	version                string
 	defaultShortLength     int
 	defaultMaxShortLength  int
 	defaultMaxCustomLength int

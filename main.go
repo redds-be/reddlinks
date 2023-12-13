@@ -39,7 +39,7 @@ func main() {
 		defaultMaxShortLength:  env.defaultMaxLength,
 		defaultMaxCustomLength: env.defaultMaxCustomLength,
 		defaultExpiryTime:      env.defaultExpiryTime,
-		Version:                "noVersion",
+		version:                "noVersion",
 	}
 
 	// Defer the closing of the database connection
