@@ -279,6 +279,7 @@ func (conf configuration) apiHandlerRoot(writer http.ResponseWriter, req *http.R
 		log.Printf("%s %s", req.Method, req.URL.Path)
 		params, err := decodeJSON(req)
 		if err != nil {
+			log.Println(err)
 			respondWithError(writer, req, http.StatusBadRequest, "Invalid JSON syntax.")
 
 			return
