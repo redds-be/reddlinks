@@ -18,26 +18,27 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
-	"github.com/redds-be/rlinks/database"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/redds-be/rlinks/database"
 )
 
-func main() {
+func main() { //nolint:funlen
 	// Load the env file
-	var envFile = ".env"
-	e := getEnv(envFile)
+	envFile := ".env"
+	env := getEnv(envFile)
 
 	// Create a struct to connect to the database and send the instance name and url to the handlers
 	conf := &configuration{
-		db:                     database.DbConnect(e.dbType, e.dbURL),
-		instanceName:           e.instanceName,
-		instanceURL:            e.instanceURL,
-		defaultShortLength:     e.defaultLength,
-		defaultMaxShortLength:  e.defaultMaxLength,
-		defaultMaxCustomLength: e.defaultMaxCustomLength,
-		defaultExpiryTime:      e.defaultExpiryTime,
+		db:                     database.DBConnect(env.dbType, env.dbURL),
+		instanceName:           env.instanceName,
+		instanceURL:            env.instanceURL,
+		defaultShortLength:     env.defaultLength,
+		defaultMaxShortLength:  env.defaultMaxLength,
+		defaultMaxCustomLength: env.defaultMaxCustomLength,
+		defaultExpiryTime:      env.defaultExpiryTime,
 	}
 
 	// Defer the closing of the database connection
@@ -49,22 +50,46 @@ func main() {
 	}(conf.db)
 
 	// Create the links table, it will check if the table exists before creating it
-	database.CreateLinksTable(conf.db, e.defaultMaxLength)
+	database.CreateLinksTable(conf.db, env.defaultMaxLength)
 
 	fs := http.FileServer(http.Dir("static/assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
 
 	// Assign a handler to these different paths
-	http.HandleFunc("/status", handlerReadiness)               // Check the status of the server
-	http.HandleFunc("/error", handlerErr)                      // Check if errors work as intended
-	http.HandleFunc("/add", conf.frontHandlerAdd)              // Add a link
-	http.HandleFunc("/access", conf.frontHandlerRedirectToUrl) // Access password protected link
-	http.HandleFunc("/", conf.apiHandlerRoot)                  // UI for link creation
+	http.HandleFunc(
+		"/status",
+		handlerReadiness,
+	) // Check the status of the server
+	http.HandleFunc(
+		"/error",
+		handlerErr,
+	) // Check if errors work as intended
+	http.HandleFunc("/add", conf.frontHandlerAdd) // Add a link
+	http.HandleFunc(
+		"/access",
+		conf.frontHandlerRedirectToURL,
+	) // Access password protected link
+	http.HandleFunc("/", conf.apiHandlerRoot) // UI for link creation
 
 	// Periodically clean the database
-	go conf.collectGarbage(e.timeBetweenCleanups)
+	go conf.collectGarbage(env.timeBetweenCleanups)
+
+	// Set default timeout time in seconds
+	const readTimeout = 1 * time.Second
+	const WriteTimeout = 1 * time.Second
+	const IdleTimeout = 30 * time.Second
+	const ReadHeaderTimeout = 2 * time.Second
+
+	// Set the settings for the http servers
+	srv := &http.Server{
+		Addr:              ":" + env.portStr,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      WriteTimeout,
+		IdleTimeout:       IdleTimeout,
+		ReadHeaderTimeout: ReadHeaderTimeout,
+	}
 
 	// Start to listen
-	log.Printf("Listening on port : '%s'.", e.portStr)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", e.portStr), nil))
+	log.Printf("Listening on port : '%s'.", env.portStr)
+	log.Panic(srv.ListenAndServe())
 }

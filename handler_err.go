@@ -21,13 +21,20 @@ import (
 	"net/http"
 )
 
-func handlerErr(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
-	if r.Method != http.MethodGet {
-		respondWithError(w, r, 405, "Method Not Allowed.")
+func handlerErr(writer http.ResponseWriter, req *http.Request) {
+	log.Printf(
+		"Client : %s (%s) accessing '%s' with method '%s'.\n",
+		req.RemoteAddr,
+		req.UserAgent(),
+		req.URL.Path,
+		req.Method,
+	)
+	if req.Method != http.MethodGet {
+		respondWithError(writer, req, http.StatusMethodNotAllowed, "Method Not Allowed.")
+
 		return
 	}
 
 	// Respond with a generic error at '/error'
-	respondWithError(w, r, 400, "Something went wrong.")
+	respondWithError(writer, req, http.StatusBadRequest, "Something went wrong.")
 }

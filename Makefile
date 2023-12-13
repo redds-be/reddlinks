@@ -1,6 +1,8 @@
+GOFILES = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+
 all: compile
 
-check: fmt lint mod vet
+prep: fmt lint mod vet
 
 compile:
 	@mkdir -p build/
@@ -19,10 +21,10 @@ install:
 	@echo -n "You're almost done, You now need to:\n1. Install postgresql and create a user and a database for rlinks.\n2. Edit /opt/rlinks/.env, either as the root or rlinks user according to the comments\n3. Configure your web server/reverse proxy\n4. Run 'systemctl enable --now rlinks.service'\nAfter that You should be good to go.\n"
 
 fmt:
-	go fmt ./...
+	golines --max-len=120 --base-formatter=gofumpt -w $(GOFILES)
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run --enable-all --fix ./...
 
 vet:
 	go vet

@@ -18,34 +18,48 @@ package main
 
 import (
 	"fmt"
-	"github.com/alexedwards/argon2id"
-	"github.com/dchest/uniuri"
-	"github.com/google/uuid"
-	"github.com/redds-be/rlinks/database"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/alexedwards/argon2id"
+	"github.com/dchest/uniuri"
+	"github.com/google/uuid"
+	"github.com/redds-be/rlinks/database" // Local database package
 )
 
-func (conf configuration) apiRedirectToUrl(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
+func (conf configuration) apiRedirectToURL(writer http.ResponseWriter, req *http.Request) { //nolint:funlen,cyclop
+	log.Printf(
+		"Client : %s (%s) accessing '%s' with method '%s'.\n",
+		req.RemoteAddr,
+		req.UserAgent(),
+		req.URL.Path,
+		req.Method,
+	)
 
 	// Check if there is a hash associated with the short, if there is a hash, we will require a password
-	hash, err := database.GetHashByShort(conf.db, trimFirstRune(r.URL.Path))
+	hash, err := database.GetHashByShort(conf.db, trimFirstRune(req.URL.Path))
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
+		respondWithError(
+			writer,
+			req,
+			http.StatusNotFound,
+			"There is no link associated with this path, it is probably invalid or expired.",
+		)
+
 		return
 	}
 
 	if hash != "" {
 		// Decode the JSON, client error if it can't, most likely an invalid syntax or no password given at all
-		isJson := false
-		for _, contentType := range r.Header["Content-Type"] {
+		isJSON := false
+		for _, contentType := range req.Header["Content-Type"] {
 			if contentType == "application/json" {
-				isJson = true
+				isJSON = true
+
 				break
 			}
 		}
@@ -53,63 +67,85 @@ func (conf configuration) apiRedirectToUrl(w http.ResponseWriter, r *http.Reques
 		// If the client is sending json, decode it and set it as the password,
 		// Else if the client is sending a parameter, use its value as the password,
 		// Else if the client gives nothing, probably a browser, let a front handler handle that.
-		password := ""
-		if isJson {
-			params, err := decodeJSON(r)
+		var password string
+		switch {
+		case isJSON:
+			params, err := decodeJSON(req)
 			if err != nil {
-				fmt.Println(err)
-				respondWithError(w, r, 400, "Wrong JSON or no password has been given. This link requires a password to access it.")
+				log.Println(err)
+				respondWithError(
+					writer,
+					req,
+					http.StatusBadRequest,
+					"Wrong JSON or no password has been given. This link requires a password to access it.",
+				)
+
 				return
 			}
 			password = params.Password
-		} else if r.URL.Query().Get("pass") != "" {
-			password = r.URL.Query().Get("pass")
-		} else {
-			conf.frontAskForPassword(w, r)
+		case req.URL.Query().Get("pass") != "":
+			password = req.URL.Query().Get("pass")
+		default:
+			conf.frontAskForPassword(writer, req)
+
 			return
 		}
 
 		// Check if the password matches the hash
-		if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil && !match {
-			respondWithError(w, r, 400, "Wrong password has been given.")
+		if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil &&
+			!match {
+			respondWithError(writer, req, http.StatusBadRequest, "Wrong password has been given.")
+
 			return
 		} else if err != nil {
 			log.Println(err)
-			respondWithError(w, r, 500, "Could not compare the password against corresponding hash.")
+			respondWithError(writer, req, http.StatusInternalServerError, "Could not compare the password against corresponding hash.")
+
 			return
 		}
 	}
 
 	// Get the URL
-	url, err := database.GetUrlByShort(conf.db, trimFirstRune(r.URL.Path))
+	url, err := database.GetURLByShort(conf.db, trimFirstRune(req.URL.Path))
 	if err != nil {
 		log.Println(err)
-		respondWithError(w, r, 404, "There is no link associated with this path, it is probably invalid or expired.")
+		respondWithError(
+			writer,
+			req,
+			http.StatusNotFound,
+			"There is no link associated with this path, it is probably invalid or expired.",
+		)
+
 		return
 	}
 
 	// Redirect the client to the URL associated with the short of the database
-	http.Redirect(w, r, url, http.StatusSeeOther)
+	http.Redirect(writer, req, url, http.StatusSeeOther)
 }
 
-func (conf configuration) apiCreateLink(w http.ResponseWriter, params parameters) (database.Link, int, string) {
+func (conf configuration) apiCreateLink( //nolint:funlen,cyclop,gocognit
+	writer http.ResponseWriter,
+	params parameters,
+) (database.Link, int, string) {
 	// Check if the url is valid
-	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.Url)
+	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
 	if err != nil {
-		fmt.Println(err)
-		return database.Link{}, 500, "Unable to check the URL."
+		log.Println(err)
+
+		return database.Link{}, http.StatusInternalServerError, "Unable to check the URL."
 	}
 	if !isValid {
-		return database.Link{}, 400, "The URL is invalid."
+		return database.Link{}, http.StatusBadRequest, "The URL is invalid."
 	}
 
 	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
 	var expireAt time.Time
-	if params.ExpireAfter == -1 {
+	switch {
+	case params.ExpireAfter == -1:
 		expireAt = time.Date(9999, 12, 31, 23, 59, 59, 59, time.UTC)
-	} else if params.ExpireAfter <= 0 {
+	case params.ExpireAfter <= 0:
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.defaultExpiryTime))
-	} else {
+	default:
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(params.ExpireAfter))
 	}
 
@@ -122,28 +158,61 @@ func (conf configuration) apiCreateLink(w http.ResponseWriter, params parameters
 
 	// Check the validity of a custom path
 	if params.Path != "" {
-		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access and assets are used for the front.
-		reservedMatch, err := regexp.MatchString(`^status$|^error$|^add$|^access$|^assets.*$`, params.Path)
+		// Check if the path is a reserved one, 'status' and 'error' are used to debug,
+		// add, access and assets are used for the front.
+		reservedMatch, err := regexp.MatchString(
+			`^status$|^error$|^add$|^access$|^assets.*$`,
+			params.Path,
+		)
 		if err != nil {
-			fmt.Println(err)
-			return database.Link{}, 500, "Could not check the path."
+			log.Println(err)
+
+			return database.Link{}, http.StatusInternalServerError, "Could not check the path."
 		}
 		if reservedMatch {
-			return database.Link{}, 400, fmt.Sprintf("The path '/%s' is reserved.", params.Path)
+			return database.Link{}, http.StatusBadRequest, fmt.Sprintf(
+				"The path '/%s' is reserved.",
+				params.Path,
+			)
 		}
 
 		// Check the validity of the custom path
-		reservedChars := []string{":", "/", "?", "#", "[", "]", "@", "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="}
+		reservedChars := []string{
+			":",
+			"/",
+			"?",
+			"#",
+			"[",
+			"]",
+			"@",
+			"!",
+			"$",
+			"&",
+			"'",
+			"(",
+			")",
+			"*",
+			"+",
+			",",
+			";",
+			"=",
+		}
 		for _, char := range reservedChars {
 			if match := strings.Contains(params.Path, char); match {
-				return database.Link{}, 400, fmt.Sprintf("The character '%s' is not allowed.", char)
+				return database.Link{}, http.StatusBadRequest, fmt.Sprintf(
+					"The character '%s' is not allowed.",
+					char,
+				)
 			}
 		}
 	}
 
-	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
+	// Check the path, will default to a randomly generated one with specified length,
+	// if its length is over 16, it will be trimmed
 	autoGen := false
-	allowedChars := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+	allowedChars := []byte(
+		"ab",
+	)
 	if params.Path == "" {
 		autoGen = true
 		params.Path = uniuri.NewLenChars(params.Length, allowedChars)
@@ -158,63 +227,85 @@ func (conf configuration) apiCreateLink(w http.ResponseWriter, params parameters
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
 			log.Println(err)
-			return database.Link{}, 500, "Could not hash the password."
+
+			return database.Link{}, http.StatusInternalServerError, "Could not hash the password."
 		}
 	}
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
-	link, err := database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
+	err = database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
 	if err != nil && !autoGen {
 		log.Println(err)
-		return database.Link{}, 400, "Could not add link: the path is probably already in use."
+
+		return database.Link{}, http.StatusBadRequest, "Could not add link: the path is probably already in use."
 	} else if err != nil && autoGen {
-		for i := conf.defaultShortLength; i <= conf.defaultMaxShortLength; i++ {
-			params.Path = uniuri.NewLenChars(i, allowedChars)
-			link, err = database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.Url, params.Path, hash)
-			if err != nil {
+	loop:
+		for index := conf.defaultShortLength; index <= conf.defaultMaxShortLength; index++ {
+			params.Path = uniuri.NewLenChars(index, allowedChars)
+			err = database.CreateLink(conf.db, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
+			switch {
+			case err != nil:
 				log.Println(err)
-			} else if err != nil && i == conf.defaultMaxShortLength {
-				return database.Link{}, 500, "No more space left in the database."
-			} else if err == nil && i != params.Length {
+			case err != nil && index == conf.defaultMaxShortLength:
+				return database.Link{}, http.StatusInternalServerError, "No more space left in the database."
+			case err == nil && index != params.Length:
 				type informationResponse struct {
 					Information string `json:"information"`
 				}
-				respondWithJSON(w, 100, informationResponse{Information: "The length of your auto-generated path had to be changed due to space limitations in the database."})
-				break
-			} else if err == nil {
-				break
+				respondWithJSON(writer, http.StatusContinue, informationResponse{Information: "The length of your auto-generated path" +
+					" had to be changed due to space limitations in the database."})
+
+				break loop
+			case err == nil:
+				break loop
 			}
 		}
+	}
+
+	// Define what is to be returned to the user as a successful response
+	link := database.Link{
+		ExpireAt: expireAt,
+		URL:      params.URL,
+		Short:    params.Path,
 	}
 
 	// Return the expiry time, the url and the short to the user
 	return link, 0, ""
 }
 
-func (conf configuration) apiHandlerRoot(w http.ResponseWriter, r *http.Request) {
+func (conf configuration) apiHandlerRoot(writer http.ResponseWriter, req *http.Request) {
 	// Check method and decide whether to create or redirect to link
-	if r.Method == http.MethodGet && r.URL.Path == "/favicon.ico" {
+	switch {
+	case req.Method == http.MethodGet && req.URL.Path == "/favicon.ico":
 		return
-	} else if r.Method == http.MethodGet && r.URL.Path == "/" {
-		conf.frontHandlerMainPage(w, r)
-	} else if r.Method == http.MethodGet {
-		conf.apiRedirectToUrl(w, r)
-	} else if r.Method == http.MethodPost {
-		log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
-		params, err := decodeJSON(r)
+	case req.Method == http.MethodGet && req.URL.Path == "/":
+		conf.frontHandlerMainPage(writer, req)
+	case req.Method == http.MethodGet:
+		conf.apiRedirectToURL(writer, req)
+	case req.Method == http.MethodPost:
+		log.Printf(
+			"Client : %s (%s) accessing '%s' with method '%s'.\n",
+			req.RemoteAddr,
+			req.UserAgent(),
+			req.URL.Path,
+			req.Method,
+		)
+		params, err := decodeJSON(req)
 		if err != nil {
-			respondWithError(w, r, 400, "Invalid JSON syntax.")
+			respondWithError(writer, req, http.StatusBadRequest, "Invalid JSON syntax.")
+
 			return
 		}
-		link, code, errMsg := conf.apiCreateLink(w, params)
+		link, code, errMsg := conf.apiCreateLink(writer, params)
 		if errMsg != "" {
-			respondWithError(w, r, code, errMsg)
+			respondWithError(writer, req, code, errMsg)
+
 			return
 		}
-		// Send back the expiry time, the url and the short to the user
-		respondWithJSON(w, 201, link)
-	} else {
-		respondWithError(w, r, 405, "Method Not Allowed.")
+		respondWithJSON(writer, http.StatusCreated, link)
+	default:
+		respondWithError(writer, req, http.StatusMethodNotAllowed, "Method Not Allowed.")
+
 		return
 	}
 }

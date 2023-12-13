@@ -21,12 +21,19 @@ import (
 	"net/http"
 )
 
-func handlerReadiness(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Client : %s (%s) accessing '%s' with method '%s'.\n", r.RemoteAddr, r.UserAgent(), r.URL.Path, r.Method)
+func handlerReadiness(writer http.ResponseWriter, req *http.Request) {
+	log.Printf(
+		"Client : %s (%s) accessing '%s' with method '%s'.\n",
+		req.RemoteAddr,
+		req.UserAgent(),
+		req.URL.Path,
+		req.Method,
+	)
 
 	// Check method
-	if r.Method != http.MethodGet {
-		respondWithError(w, r, 405, "Method Not Allowed.")
+	if req.Method != http.MethodGet {
+		respondWithError(writer, req, http.StatusMethodNotAllowed, "Method Not Allowed.")
+
 		return
 	}
 
@@ -36,5 +43,5 @@ func handlerReadiness(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Respond to the client with the 'Alive.' message at '/status'
-	respondWithJSON(w, 200, statusResponse{Status: "Alive."})
+	respondWithJSON(writer, http.StatusOK, statusResponse{Status: "Alive."})
 }

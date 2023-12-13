@@ -22,7 +22,7 @@ import (
 
 type Link struct {
 	// Define the structure of a link entry that will be served to the client in json
-	ExpireAt time.Time `json:"expire_at"`
-	Url      string    `json:"url"`
+	ExpireAt time.Time `json:"expireAt"`
+	URL      string    `json:"url"`
 	Short    string    `json:"short"`
 }

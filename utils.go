@@ -19,11 +19,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/redds-be/rlinks/database"
 	"log"
 	"net/http"
 	"time"
 	"unicode/utf8"
+
+	"github.com/redds-be/rlinks/database"
 )
 
 type configuration struct {
@@ -39,16 +40,17 @@ type configuration struct {
 
 type parameters struct {
 	// Define the structure of the JSON payload that will be read from the user
-	Url         string `json:"url"`
+	URL         string `json:"url"`
 	Length      int    `json:"length"`
-	Path        string `json:"custom_path"`
-	ExpireAfter int    `json:"expire_after"`
+	Path        string `json:"customPath"`
+	ExpireAfter int    `json:"expireAfter"`
 	Password    string `json:"password"`
 }
 
 func trimFirstRune(s string) string {
 	// Remove the first letter of a string (https://go.dev/play/p/ZOZyRORkK82)
 	_, i := utf8.DecodeRuneInString(s)
+
 	return s[i:]
 }
 
@@ -60,6 +62,7 @@ func (conf configuration) collectGarbage(timeBetweenCleanups int) {
 		links, err := database.GetLinks(conf.db)
 		if err != nil {
 			log.Println(err)
+
 			return
 		}
 
@@ -67,10 +70,20 @@ func (conf configuration) collectGarbage(timeBetweenCleanups int) {
 		now := time.Now().UTC()
 		for _, link := range links {
 			if now.After(link.ExpireAt) || now.Equal(link.ExpireAt) {
-				log.Printf("URL : %s (%s) is expired, deleting it...", link.Url, link.Short)
+				log.Printf(
+					"URL : %s (%s) is expired, deleting it...",
+					link.URL,
+					link.Short,
+				)
 				err := database.RemoveLink(conf.db, link.Short)
 				if err != nil {
-					log.Printf("Could not remove URL : %s (%s): %s", link.Url, link.Short, err)
+					log.Printf(
+						"Could not remove URL : %s (%s): %s",
+						link.URL,
+						link.Short,
+						err,
+					)
+
 					return
 				}
 			}
@@ -85,9 +98,6 @@ func decodeJSON(r *http.Request) (parameters, error) {
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
-	if err != nil {
-		return parameters{}, err
-	}
 
-	return params, nil
+	return params, err
 }

@@ -19,87 +19,83 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-func CreateLinksTable(db *sql.DB, maxShort int) {
-	sqlCreateTable := fmt.Sprintf("CREATE TABLE IF NOT EXISTS links (id UUID PRIMARY KEY, created_at TIMESTAMP NOT NULL, expire_at TIMESTAMP NOT NULL, url varchar NOT NULL, short varchar(%d) UNIQUE NOT NULL, password varchar(97));", maxShort)
-	_, err := db.Exec(sqlCreateTable)
+func CreateLinksTable(database *sql.DB, maxShort int) {
+	sqlCreateTable := fmt.Sprintf(
+		"CREATE TABLE IF NOT EXISTS links ("+
+			"id UUID PRIMARY KEY, "+
+			"created_at TIMESTAMP NOT NULL, "+
+			"expire_at TIMESTAMP NOT NULL, "+
+			"url varchar NOT NULL, "+
+			"short varchar(%d) UNIQUE NOT NULL, "+
+			"password varchar(97));",
+		maxShort,
+	)
+	_, err := database.Exec(sqlCreateTable)
 	if err != nil {
 		log.Fatal("Unable to create the 'links' table:", err)
 	}
 }
 
-func CreateLink(db *sql.DB, id uuid.UUID, createdAt time.Time, expireAt time.Time, url, short, password string) (Link, error) {
-	sqlCreateLink := `INSERT INTO links (id, created_at, expire_at, url, short, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING expire_at, url, short;`
-	var returnValues Link
-	err := db.QueryRow(sqlCreateLink, id, createdAt, expireAt, url, short, password).Scan(
-		&returnValues.ExpireAt,
-		&returnValues.Url,
-		&returnValues.Short,
-	)
+func CreateLink(
+	database *sql.DB,
+	identifier uuid.UUID,
+	createdAt time.Time,
+	expireAt time.Time,
+	url, short, password string,
+) error {
+	sqlCreateLink := `INSERT INTO links (id, created_at, expire_at, url, short, password) 
+					  VALUES ($1, $2, $3, $4, $5, $6) RETURNING expire_at, url, short;`
+	_, err := database.Exec(sqlCreateLink, identifier, createdAt, expireAt, url, short, password)
 
-	return returnValues, err
+	return err
 }
 
-func GetUrlByShort(db *sql.DB, short string) (string, error) {
-	sqlGetUrlByShort := `SELECT url FROM links WHERE short = $1;`
+func GetURLByShort(db *sql.DB, short string) (string, error) {
+	sqlGetURLByShort := `SELECT url FROM links WHERE short = $1;`
 	var url string
-	err := db.QueryRow(sqlGetUrlByShort, short).Scan(&url)
-	if err != nil {
-		return "", err
-	}
+	err := db.QueryRow(sqlGetURLByShort, short).Scan(&url)
 
-	return url, nil
+	return url, err
 }
 
 func GetHashByShort(db *sql.DB, short string) (string, error) {
 	sqlGetPasswordByShort := `SELECT password FROM links WHERE short = $1;`
 	var password string
 	err := db.QueryRow(sqlGetPasswordByShort, short).Scan(&password)
-	if err != nil {
-		return "", err
-	}
 
-	return password, nil
+	return password, err
 }
 
 func GetLinks(db *sql.DB) ([]Link, error) {
 	sqlGetLinks := `SELECT expire_at, url, short FROM links;`
 	var links []Link
-	rows, err := db.Query(sqlGetLinks)
-	if err != nil {
+	rows, err := db.Query(sqlGetLinks) //nolint:sqlclosecheck
+	defer func(rows *sql.Rows) {       // It is in fact, closed...
+		err = rows.Close()
+	}(rows)
+
+	if rows.Err() != nil {
 		return nil, err
 	}
 
 	for rows.Next() {
 		var i Link
-		err := rows.Scan(
-			&i.ExpireAt,
-			&i.Url,
-			&i.Short,
-		)
-		if err != nil {
-			return nil, err
-		}
+		err = rows.Scan(&i.ExpireAt, &i.URL, &i.Short)
 		links = append(links, i)
 	}
 
-	err = rows.Close()
-	if err != nil {
-		return nil, err
-	}
-	return links, nil
+	return links, err
 }
 
 func RemoveLink(db *sql.DB, short string) error {
 	sqlRemoveLink := `DELETE FROM links WHERE short = $1;`
 	_, err := db.Exec(sqlRemoveLink, short)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }

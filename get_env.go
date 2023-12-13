@@ -17,12 +17,13 @@
 package main
 
 import (
-	"errors"
-	"github.com/joho/godotenv"
+	"fmt"
 	"log"
 	"os"
 	"regexp"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type env struct {
@@ -39,91 +40,95 @@ type env struct {
 	defaultExpiryTime      int
 }
 
-func (e env) envCheck() error {
+func (env env) envCheck() error { //nolint:funlen,cyclop
 	// Check the port
-	port, err := strconv.Atoi(e.portStr)
+	port, err := strconv.Atoi(env.portStr)
 	if err != nil {
-		log.Println(err)
-		return errors.New("the port couldn't be read")
+		return fmt.Errorf("the port %w", errRead)
 	}
 
 	// Check if the instance name isn't null
-	if e.instanceName == "" {
-		return errors.New("the instance name can't be empty")
+	if env.instanceName == "" {
+		return fmt.Errorf("the instance name %w", errEmpty)
 	}
 
 	// Check if the instance URL is valid
-	instanceURLMatch, err := regexp.MatchString(`^https?://.*\..*/$`, e.instanceURL)
+	instanceURLMatch, err := regexp.MatchString(`^https?://.*\..*/$`, env.instanceURL)
 	if err != nil {
-		log.Println(err)
-		return errors.New("the instance URL could not be checked")
+		return fmt.Errorf("the instance URL %w", errNotChecked)
 	}
-	if e.instanceURL == "" || !instanceURLMatch {
-		return errors.New("the instance URL is invalid")
+	if env.instanceURL == "" || !instanceURLMatch {
+		return fmt.Errorf("the instance URL %w", errInvalid)
 	}
 
 	// Check if the port is valid
+	const maxPort = 65535
 	if port <= 0 {
-		return errors.New("the port can't be null or negative")
-	} else if port > 65535 {
-		return errors.New("the port cannot be superior to '65535'")
+		return fmt.Errorf("the port %w", errNullOrNegative)
+	} else if port > maxPort {
+		return fmt.Errorf("the port %w '%d'", errSuperior, maxPort)
 	}
 
 	// Check if the database type is valid
-	dbTypeMatch, err := regexp.MatchString(`^postgres$|^sqlite3$`, e.dbType)
+	dbTypeMatch, err := regexp.MatchString(`^postgres$|^sqlite3$`, env.dbType)
 	if err != nil {
-		log.Println(err)
-		return errors.New("the database type could not be checked")
+		return fmt.Errorf("the database type %w: %w", errNotChecked, err)
 	}
-	if e.dbType == "" || !dbTypeMatch {
-		return errors.New("the database type is invalid or unsupported")
+	if env.dbType == "" || !dbTypeMatch {
+		return fmt.Errorf("the database type %w", errInvalidOrUnsupported)
 	}
 
 	// Check if the database access string is empty or not.
-	if e.dbURL == "" {
-		return errors.New("the database access string can't be empty")
+	if env.dbURL == "" {
+		return fmt.Errorf("the database access string %w", errEmpty)
 	}
 
-	// Check the time between cleanup, can be any time really, so only checking if it's 0
-	if e.timeBetweenCleanups <= 0 {
-		return errors.New("the time between database cleanup can't be null or negative")
+	// Check the time between cleanups, can be any time really, so only checking if it's 0
+	if env.timeBetweenCleanups <= 0 {
+		return fmt.Errorf("the time between database cleanups %w", errNullOrNegative)
 	}
 
 	// Check the default short length
-	if e.defaultLength <= 0 {
-		return errors.New("the default short length can't be null or negative")
-	} else if e.defaultLength > e.defaultMaxLength {
-		return errors.New("the default short length can't be superior to the default max short length")
+	if env.defaultLength <= 0 {
+		return fmt.Errorf("the default short length %w", errNullOrNegative)
+	} else if env.defaultLength > env.defaultMaxLength {
+		return fmt.Errorf("the default short length %w the default max short length", errSuperior)
 	}
 
 	// Check the default max custom short length
-	if e.defaultMaxCustomLength <= 0 {
-		return errors.New("the default max custom short length can't be null or negative")
-	} else if e.defaultMaxCustomLength > e.defaultMaxLength {
-		return errors.New("the default max custom short length can't be superior to the default max short length")
+	if env.defaultMaxCustomLength <= 0 {
+		return fmt.Errorf("the default max custom short length %w", errNullOrNegative)
+	} else if env.defaultMaxCustomLength > env.defaultMaxLength {
+		return fmt.Errorf("the default max custom short %w the default max short length", errSuperior)
 	}
 
 	// Check the default max short length
-	if e.defaultMaxLength <= 0 {
-		return errors.New("the default short length can't be null or negative")
-	} else if e.defaultMaxLength <= e.defaultLength {
-		return errors.New("the max default short length can't be inferior to the default short length")
-	} else if e.defaultMaxLength < e.defaultMaxCustomLength {
-		return errors.New("the max default short length can't be inferior to the default max custom short length")
-	} else if e.defaultMaxLength > 8000 {
-		return errors.New("strangely, some database engines don't support strings over 8000 chars long for fixed-size strings")
+	const maxString = 8000
+	switch {
+	case env.defaultMaxLength <= 0:
+		return fmt.Errorf("the default short length %w", errNullOrNegative)
+	case env.defaultMaxLength <= env.defaultLength:
+		return fmt.Errorf("the max default short length %w the default short length", errInferior)
+	case env.defaultMaxLength < env.defaultMaxCustomLength:
+		return fmt.Errorf("the max default short length %w the default max custom short length", errInferior)
+	case env.defaultMaxLength > maxString:
+		return fmt.Errorf( //nolint:goerr113
+			"strangely, some database engines don't support strings over %d chars long"+
+				" for fixed-sized strings",
+			maxString,
+		)
 	}
 
 	// Check the default expiry time
-	if e.defaultExpiryTime <= 0 {
-		return errors.New("the default expiry time can't be null or negative")
+	if env.defaultExpiryTime <= 0 {
+		return fmt.Errorf("the default expiry time %w", errNullOrNegative)
 	}
 
 	// No errors, since everything is fine
 	return nil
 }
 
-func getEnv(envFile string) env {
+func getEnv(envFile string) env { //nolint:funlen
 	// Load the env file
 	err := godotenv.Load(envFile)
 	if err != nil {
@@ -158,7 +163,6 @@ func getEnv(envFile string) env {
 	defaultExpiryTimeStr := os.Getenv("RLINKS_DEF_EXPIRY_TIME")
 	defaultExpiryTime, err := strconv.Atoi(defaultExpiryTimeStr)
 	if err != nil {
-		log.Println(err)
 		log.Fatal("the default expiry time couldn't be read:", err)
 	}
 
@@ -181,7 +185,7 @@ func getEnv(envFile string) env {
 		log.Fatal("the time between database cleanups couldn't be read:", err)
 	}
 
-	e := env{
+	env := env{
 		portStr:                portStr,
 		instanceName:           instanceName,
 		instanceURL:            instanceURL,
@@ -195,10 +199,10 @@ func getEnv(envFile string) env {
 	}
 
 	// Check the port and the database URL
-	err = e.envCheck()
+	err = env.envCheck()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return e
+	return env
 }
