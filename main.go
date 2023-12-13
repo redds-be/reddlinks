@@ -25,7 +25,10 @@ import (
 	"github.com/redds-be/rlinks/database"
 )
 
-func main() {
+// Set a global variable for a token.
+var token string //nolint:gochecknoglobals
+
+func main() { //nolint:funlen
 	// Load the env file
 	envFile := ".env"
 	env := getEnv(envFile)
@@ -41,6 +44,20 @@ func main() {
 		defaultExpiryTime:      env.defaultExpiryTime,
 		version:                "noVersion",
 	}
+
+	// Set default timeout time in seconds
+	const readTimeout = 1 * time.Second
+	const WriteTimeout = 1 * time.Second
+	const IdleTimeout = 30 * time.Second
+	const ReadHeaderTimeout = 2 * time.Second
+
+	// Generate a new token every x time
+	go func(duration time.Duration) {
+		for {
+			token = randomToken()
+			time.Sleep(duration)
+		}
+	}(IdleTimeout)
 
 	// Defer the closing of the database connection
 	defer func(db *sql.DB) {
@@ -66,12 +83,6 @@ func main() {
 
 	// Periodically clean the database
 	go conf.collectGarbage(env.timeBetweenCleanups)
-
-	// Set default timeout time in seconds
-	const readTimeout = 1 * time.Second
-	const WriteTimeout = 1 * time.Second
-	const IdleTimeout = 30 * time.Second
-	const ReadHeaderTimeout = 2 * time.Second
 
 	// Set the settings for the http servers
 	srv := &http.Server{

@@ -17,7 +17,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -94,4 +96,13 @@ func decodeJSON(r *http.Request) (parameters, error) {
 	err := decoder.Decode(&params)
 
 	return params, err
+}
+
+func randomToken() string {
+	bytes := make([]byte, 32) //nolint:gomnd
+	if _, err := rand.Read(bytes); err != nil {
+		log.Println(err)
+	}
+
+	return hex.EncodeToString(bytes)
 }

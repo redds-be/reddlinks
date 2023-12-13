@@ -44,6 +44,8 @@ type Page struct {
 	Error                  string
 	AddInfo                string
 	Version                string
+	Token                  string
+	TimeOfExecution        string
 	DefaultShortLength     int
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int
@@ -111,6 +113,8 @@ func (conf configuration) frontHandlerMainPage(writer http.ResponseWriter, req *
 		DefaultMaxCustomLength: conf.defaultMaxCustomLength,
 		DefaultExpiryTime:      conf.defaultExpiryTime,
 		Version:                conf.version,
+		Token:                  token,
+		TimeOfExecution:        time.Now().UTC().Format(time.ANSIC),
 	}
 
 	// Display the front page
@@ -272,6 +276,22 @@ func (conf configuration) frontHandlerAdd(writer http.ResponseWriter, req *http.
 		return
 	}
 
+	// Get the time of the request
+	execTime, err := time.Parse(time.ANSIC, req.FormValue("_time"))
+	if err != nil {
+		log.Println(err)
+		conf.frontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the form.")
+
+		return
+	}
+
+	// Check if the given token corresponds to the actual token, if not, probably invalid or expired
+	if token != req.FormValue("_token") && time.Now().UTC().Add(15*time.Minute).After(execTime) { //nolint:gomnd
+		conf.frontErrorPage(writer, req, http.StatusBadRequest, "Token invalid or expired.")
+
+		return
+	}
+
 	// Convert the length to an int, display an error page if it can't
 	length, err := strconv.Atoi(req.FormValue("length"))
 	if err != nil {
@@ -346,17 +366,35 @@ func (conf configuration) frontHandlerAdd(writer http.ResponseWriter, req *http.
 func (conf configuration) frontAskForPassword(writer http.ResponseWriter, req *http.Request) {
 	// Set what is going to be displayed on the pass page
 	page := &Page{
-		InstanceTitle: conf.instanceName,
-		InstanceURL:   conf.instanceURL,
-		Short:         trimFirstRune(req.URL.Path),
-		Version:       conf.version,
+		InstanceTitle:   conf.instanceName,
+		InstanceURL:     conf.instanceURL,
+		Short:           trimFirstRune(req.URL.Path),
+		Version:         conf.version,
+		Token:           token,
+		TimeOfExecution: time.Now().UTC().Format(time.ANSIC),
 	}
 
 	// Display the pass page which will ask the user for a password
 	renderTemplate(writer, req, "pass", page)
 }
 
-func (conf configuration) frontHandlerRedirectToURL(writer http.ResponseWriter, req *http.Request) {
+func (conf configuration) frontHandlerRedirectToURL(writer http.ResponseWriter, req *http.Request) { //nolint:funlen
+	// Get the time of the request
+	execTime, err := time.Parse(time.ANSIC, req.FormValue("_time"))
+	if err != nil {
+		log.Println(err)
+		conf.frontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the form.")
+
+		return
+	}
+
+	// Check if the given token corresponds to the actual token, if not, probably invalid or expired
+	if token != req.FormValue("_token") && time.Now().UTC().Add(15*time.Minute).After(execTime) { //nolint:gomnd
+		conf.frontErrorPage(writer, req, http.StatusBadRequest, "Token invalid or expired.")
+
+		return
+	}
+
 	// Get the hash corresponding to the short
 	hash, err := database.GetHashByShort(conf.db, req.FormValue("short"))
 	if err != nil {

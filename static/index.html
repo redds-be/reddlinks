@@ -74,6 +74,8 @@
                 <summary>Password to protect the shortened url. <b>Optional</b></summary>
                 Example: {{.ShortenedLink}}<b>path</b> will ask for a password.
             </details>
+            <input type="hidden" name="_token" value="{{.Token}}">
+            <input type="hidden" name="_time" value="{{.TimeOfExecution}}">
         </div>
         <div class="div-input">
             <button value="Add" name="add" type="submit">Shorten URL</button>
