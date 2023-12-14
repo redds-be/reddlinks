@@ -18,17 +18,12 @@ package database
 
 import (
 	"database/sql"
-	"log"
-
 	_ "github.com/lib/pq"           // Driver for postgresql
 	_ "github.com/mattn/go-sqlite3" // Driver for sqlite
 )
 
-func DBConnect(dbType, dbURL string) *sql.DB {
+func DBConnect(dbType, dbURL string) (*sql.DB, error) {
 	db, err := sql.Open(dbType, dbURL)
-	if err != nil {
-		log.Fatal("Can't connect to the database, please check the database URL:", err)
-	}
 
-	return db
+	return db, err
 }

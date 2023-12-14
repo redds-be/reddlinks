@@ -33,9 +33,14 @@ func main() { //nolint:funlen
 	envFile := ".env"
 	env := getEnv(envFile)
 
+	db, err := database.DBConnect(env.dbType, env.dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Create a struct to connect to the database and send the instance name and url to the handlers
 	conf := &configuration{
-		db:                     database.DBConnect(env.dbType, env.dbURL),
+		db:                     db,
 		instanceName:           env.instanceName,
 		instanceURL:            env.instanceURL,
 		defaultShortLength:     env.defaultLength,
