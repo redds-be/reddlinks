@@ -64,9 +64,10 @@ func renderTemplate(writer http.ResponseWriter, tmpl string, page any) {
 	// Tell that we serve HTML in UTF-8.
 	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	// Tell that all ressources comes from here and that only this site can frame itself
-	writer.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self';"+
-		" style-src 'self'; img-src 'self'; connect-src 'self'; frame-src 'self'; font-src 'self'; media-src 'self';"+
-		" object-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'")
+	writer.Header().
+		Set("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';"+
+			" style-src 'self' 'unsafe-inline'; img-src 'self' 'unsafe-inline'; connect-src 'self'; frame-src 'self'; font-src 'self'; media-src 'self';"+
+			" object-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'")
 	// Block access to styles and scripts
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
 
