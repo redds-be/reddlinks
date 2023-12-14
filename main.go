@@ -90,7 +90,12 @@ func main() { //nolint:funlen
 	http.HandleFunc("/", conf.apiHandlerRoot)                  // UI for link creation
 
 	// Periodically clean the database
-	go conf.collectGarbage(env.timeBetweenCleanups)
+	go func(duration time.Duration) {
+		for {
+			conf.collectGarbage()
+			time.Sleep(duration)
+		}
+	}(time.Duration(env.timeBetweenCleanups) * time.Minute)
 
 	// Set the settings for the http servers
 	srv := &http.Server{

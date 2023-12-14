@@ -57,35 +57,31 @@ func trimFirstRune(s string) string {
 	return s[i:]
 }
 
-func (conf configuration) collectGarbage(timeBetweenCleanups int) {
+func (conf configuration) collectGarbage() {
 	// Just some kind of hack to call the manual garbage collecting function every minute
-	for {
-		log.Println("Collecting garbage...")
-		// Get the links
-		links, err := database.GetLinks(conf.db)
-		if err != nil {
-			log.Println(err)
+	log.Println("Collecting garbage...")
+	// Get the links
+	links, err := database.GetLinks(conf.db)
+	if err != nil {
+		log.Println(err)
 
-			return
-		}
+		return
+	}
 
-		// Go through the link and delete expired ones
-		now := time.Now().UTC()
-		for _, link := range links {
-			if now.After(link.ExpireAt) || now.Equal(link.ExpireAt) {
+	// Go through the link and delete expired ones
+	now := time.Now().UTC()
+	for _, link := range links {
+		if now.After(link.ExpireAt) || now.Equal(link.ExpireAt) {
+			log.Printf(
+				"Link : %s is expired, deleting it...", link.Short)
+			err := database.RemoveLink(conf.db, link.Short)
+			if err != nil {
 				log.Printf(
-					"Link : %s is expired, deleting it...", link.Short)
-				err := database.RemoveLink(conf.db, link.Short)
-				if err != nil {
-					log.Printf(
-						"Could not remove Link: %s", link.Short)
+					"Could not remove Link: %s", link.Short)
 
-					return
-				}
+				return
 			}
 		}
-		// Wait for length of time in minutes specified in .env
-		time.Sleep(time.Duration(timeBetweenCleanups) * time.Minute)
 	}
 }
 
