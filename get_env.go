@@ -107,7 +107,7 @@ func (env env) envCheck() error { //nolint:funlen,cyclop
 	switch {
 	case env.defaultMaxLength <= 0:
 		return fmt.Errorf("the default short length %w", errNullOrNegative)
-	case env.defaultMaxLength <= env.defaultLength:
+	case env.defaultMaxLength < env.defaultLength:
 		return fmt.Errorf("the max default short length %w the default short length", errInferior)
 	case env.defaultMaxLength < env.defaultMaxCustomLength:
 		return fmt.Errorf("the max default short length %w the default max custom short length", errInferior)
