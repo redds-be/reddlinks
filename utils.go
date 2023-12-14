@@ -57,15 +57,13 @@ func trimFirstRune(s string) string {
 	return s[i:]
 }
 
-func (conf configuration) collectGarbage() {
+func (conf configuration) collectGarbage() error {
 	// Just some kind of hack to call the manual garbage collecting function every minute
 	log.Println("Collecting garbage...")
 	// Get the links
 	links, err := database.GetLinks(conf.db)
 	if err != nil {
-		log.Println(err)
-
-		return
+		return err
 	}
 
 	// Go through the link and delete expired ones
@@ -76,13 +74,12 @@ func (conf configuration) collectGarbage() {
 				"Link : %s is expired, deleting it...", link.Short)
 			err := database.RemoveLink(conf.db, link.Short)
 			if err != nil {
-				log.Printf(
-					"Could not remove Link: %s", link.Short)
-
-				return
+				return err
 			}
 		}
 	}
+
+	return nil
 }
 
 func decodeJSON(r *http.Request) (parameters, error) {

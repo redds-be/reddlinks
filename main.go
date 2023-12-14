@@ -92,7 +92,10 @@ func main() { //nolint:funlen
 	// Periodically clean the database
 	go func(duration time.Duration) {
 		for {
-			conf.collectGarbage()
+			err := conf.collectGarbage()
+			if err != nil {
+				log.Println("Could not collect garbage:", err)
+			}
 			time.Sleep(duration)
 		}
 	}(time.Duration(env.timeBetweenCleanups) * time.Minute)
