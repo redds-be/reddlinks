@@ -1,11 +1,6 @@
 name: gotest
 
-on:
-  push:
-    branches:
-      - master
-      - main
-  pull_request:
+on: [push]
 
 permissions:
   contents: read
