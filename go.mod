@@ -1,4 +1,4 @@
-//    rlinks, a simple link shortener written in Go.
+//    reddlinks, a simple link shortener written in Go.
 //    Copyright (C) 2023 redd
 //
 //    This program is free software: you can redistribute it and/or modify
@@ -14,14 +14,14 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-module github.com/redds-be/rlinks
+module github.com/redds-be/reddlinks
 
 go 1.21.4
 
 require (
 	github.com/alexedwards/argon2id v1.0.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.18
@@ -31,7 +31,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
