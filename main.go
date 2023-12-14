@@ -33,14 +33,14 @@ func main() { //nolint:funlen
 	envFile := ".env"
 	env := getEnv(envFile)
 
-	data, err := database.DBConnect(env.dbType, env.dbURL)
+	dataBase, err := database.DBConnect(env.dbType, env.dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create a struct to connect to the database and send the instance name and url to the handlers
 	conf := &configuration{
-		db:                     data,
+		db:                     dataBase,
 		instanceName:           env.instanceName,
 		instanceURL:            env.instanceURL,
 		defaultShortLength:     env.defaultLength,
@@ -72,7 +72,7 @@ func main() { //nolint:funlen
 		}
 	}(conf.db)
 
-	// Create the links table if it doesn't exists
+	// Create the links table if it doesn't exist
 	err = database.CreateLinksTable(conf.db, env.defaultMaxLength)
 	if err != nil {
 		log.Panic(err)
