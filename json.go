@@ -1,4 +1,4 @@
-//    rlinks, a simple link shortener written in Go.
+//    reddlinks, a simple link shortener written in Go.
 //    Copyright (C) 2023 redd
 //
 //    This program is free software: you can redistribute it and/or modify

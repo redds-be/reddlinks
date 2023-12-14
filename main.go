@@ -1,4 +1,4 @@
-//    rlinks, a simple link shortener written in Go.
+//    reddlinks, a simple link shortener written in Go.
 //    Copyright (C) 2023 redd
 //
 //    This program is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/redds-be/rlinks/database"
+	"github.com/redds-be/reddlinks/database"
 )
 
 // Set a global variable for a token.

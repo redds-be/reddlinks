@@ -1,4 +1,4 @@
-# rlinks
+# reddlinks
 
 A simple link shortener written in Go.
 

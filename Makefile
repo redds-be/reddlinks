@@ -12,16 +12,16 @@ compile: clean
 	@go build -o build/
 
 install:
-	@useradd rlinks
-	@mkdir -p /opt/rlinks
-	@chown rlinks:rlinks /opt/rlinks
-	@install -o rlinks -g rlinks -m 0755 build/rlinks /opt/rlinks
-	@install -o rlinks -g rlinks -m 0600 .env.example /opt/rlinks/.env
-	@install -o rlinks -g rlinks -m 0755 rlinks.service /etc/systemd/system/
-	@cp -r static/ /opt/rlinks
-	@chown -R rlinks:rlinks /opt/rlinks
+	@useradd reddlinks
+	@mkdir -p /opt/reddlinks
+	@chown reddlinks:reddlinks /opt/reddlinks
+	@install -o reddlinks -g reddlinks -m 0755 build/reddlinks /opt/reddlinks
+	@install -o reddlinks -g reddlinks -m 0600 .env.example /opt/reddlinks/.env
+	@install -o reddlinks -g reddlinks -m 0755 reddlinks.service /etc/systemd/system/
+	@cp -r static/ /opt/reddlinks
+	@chown -R reddlinks:reddlinks /opt/reddlinks
 	@systemctl daemon-reload
-	@echo -n "You're almost done, You now need to:\n1. Install postgresql and create a user and a database for rlinks.\n2. Edit /opt/rlinks/.env, either as the root or rlinks user according to the comments\n3. Configure your web server/reverse proxy\n4. Run 'systemctl enable --now rlinks.service'\nAfter that You should be good to go.\n"
+	@echo -n "You're almost done, You now need to:\n1. Install postgresql and create a user and a database for reddlinks.\n2. Edit /opt/reddlinks/.env, either as the root or reddlinks user according to the comments\n3. Configure your web server/reverse proxy\n4. Run 'systemctl enable --now reddlinks.service'\nAfter that You should be good to go.\n"
 
 fmt:
 	golines --max-len=120 --base-formatter=gofumpt -w $(GOFILES)

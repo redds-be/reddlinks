@@ -1,0 +1,12 @@
+[Unit]
+Description=Run reddlinks
+After=network.target
+
+[Service]
+User=reddlinks
+Group=reddlinks
+WorkingDirectory=/opt/reddlinks/
+ExecStart=/opt/reddlinks/reddlinks
+
+[Install]
+WantedBy=multi-user.target

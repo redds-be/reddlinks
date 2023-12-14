@@ -1,4 +1,4 @@
-//    rlinks, a simple link shortener written in Go.
+//    reddlinks, a simple link shortener written in Go.
 //    Copyright (C) 2023 redd
 //
 //    This program is free software: you can redistribute it and/or modify
@@ -136,50 +136,50 @@ func getEnv(envFile string) env { //nolint:funlen
 	}
 
 	// Read the port
-	portStr := os.Getenv("RLINKS_PORT")
+	portStr := os.Getenv("REDDLINKS_PORT")
 
 	// Read the default short length
-	defaultLengthStr := os.Getenv("RLINKS_DEF_SHORT_LENGTH")
+	defaultLengthStr := os.Getenv("REDDLINKS_DEF_SHORT_LENGTH")
 	defaultLength, err := strconv.Atoi(defaultLengthStr)
 	if err != nil {
 		log.Fatal("the default length couldn't be read:", err)
 	}
 
 	// Read the default max short length
-	defaultMaxLengthStr := os.Getenv("RLINKS_MAX_SHORT_LENGTH")
+	defaultMaxLengthStr := os.Getenv("REDDLINKS_MAX_SHORT_LENGTH")
 	defaultMaxLength, err := strconv.Atoi(defaultMaxLengthStr)
 	if err != nil {
 		log.Fatal("the default max length couldn't be read:", err)
 	}
 
 	// Read the default max custom short length
-	defaultMaxCustomLengthStr := os.Getenv("RLINKS_MAX_CUSTOM_SHORT_LENGTH")
+	defaultMaxCustomLengthStr := os.Getenv("REDDLINKS_MAX_CUSTOM_SHORT_LENGTH")
 	defaultMaxCustomLength, err := strconv.Atoi(defaultMaxCustomLengthStr)
 	if err != nil {
 		log.Fatal("the default max custom short length couldn't be read:", err)
 	}
 
 	// Read the default expiry time
-	defaultExpiryTimeStr := os.Getenv("RLINKS_DEF_EXPIRY_TIME")
+	defaultExpiryTimeStr := os.Getenv("REDDLINKS_DEF_EXPIRY_TIME")
 	defaultExpiryTime, err := strconv.Atoi(defaultExpiryTimeStr)
 	if err != nil {
 		log.Fatal("the default expiry time couldn't be read:", err)
 	}
 
 	// Read the instance name
-	instanceName := os.Getenv("RLINKS_INSTANCE_NAME")
+	instanceName := os.Getenv("REDDLINKS_INSTANCE_NAME")
 
 	// Read the instance URL
-	instanceURL := os.Getenv("RLINKS_INSTANCE_URL")
+	instanceURL := os.Getenv("REDDLINKS_INSTANCE_URL")
 
 	// Read the database type
-	dbType := os.Getenv("RLINKS_DB_TYPE")
+	dbType := os.Getenv("REDDLINKS_DB_TYPE")
 
 	// Read the database URL
-	dbURL := os.Getenv("RLINKS_DB_STRING")
+	dbURL := os.Getenv("REDDLINKS_DB_STRING")
 
 	// Read the time between cleanup and convert it to an int
-	timeBetweenCleanupsStr := os.Getenv("RLINKS_TIME_BETWEEN_DB_CLEANUPS")
+	timeBetweenCleanupsStr := os.Getenv("REDDLINKS_TIME_BETWEEN_DB_CLEANUPS")
 	timeBetweenCleanups, err := strconv.Atoi(timeBetweenCleanupsStr)
 	if err != nil {
 		log.Fatal("the time between database cleanups couldn't be read:", err)
