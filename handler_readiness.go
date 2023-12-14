@@ -26,7 +26,7 @@ func handlerReadiness(writer http.ResponseWriter, req *http.Request) {
 
 	// Check method
 	if req.Method != http.MethodGet {
-		respondWithError(writer, req, http.StatusMethodNotAllowed, "Method Not Allowed.")
+		respondWithError(writer, http.StatusMethodNotAllowed, "Method Not Allowed.")
 
 		return
 	}

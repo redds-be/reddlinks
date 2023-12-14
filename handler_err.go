@@ -26,11 +26,11 @@ func handlerErr(writer http.ResponseWriter, req *http.Request) {
 
 	// If the method is wrong, return with an error
 	if req.Method != http.MethodGet {
-		respondWithError(writer, req, http.StatusMethodNotAllowed, "Method Not Allowed.")
+		respondWithError(writer, http.StatusMethodNotAllowed, "Method Not Allowed.")
 
 		return
 	}
 
 	// Respond with a generic error at '/error'
-	respondWithError(writer, req, http.StatusBadRequest, "Something went wrong.")
+	respondWithError(writer, http.StatusBadRequest, "Something went wrong.")
 }

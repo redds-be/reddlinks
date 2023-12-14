@@ -23,12 +23,12 @@ import (
 	"net/http"
 )
 
-func respondWithError(writer http.ResponseWriter, _ *http.Request, code int, msg string) {
-	// Define a JSON structure for the error
-	type errResponse struct {
-		Error string `json:"error"`
-	}
+type errResponse struct {
+	// Define a JSON structure for an error
+	Error string `json:"error"`
+}
 
+func respondWithError(writer http.ResponseWriter, code int, msg string) {
 	// Send the JSON the client along with the error code
 	respondWithJSON(writer, code, errResponse{Error: fmt.Sprintf("%d %s", code, msg)})
 }

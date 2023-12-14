@@ -60,7 +60,7 @@ var templates = template.Must(template.ParseFiles( //nolint:gochecknoglobals
 	"static/pass.html",
 	"static/privacy.html"))
 
-func renderTemplate(writer http.ResponseWriter, req *http.Request, tmpl string, page any) {
+func renderTemplate(writer http.ResponseWriter, tmpl string, page any) {
 	// Tell that we serve HTML in UTF-8.
 	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	// Tell that all ressources comes from here and that only this site can frame itself
@@ -74,7 +74,7 @@ func renderTemplate(writer http.ResponseWriter, req *http.Request, tmpl string, 
 	err := templates.ExecuteTemplate(writer, tmpl+".html", page)
 	if err != nil {
 		log.Println(err)
-		respondWithError(writer, req, http.StatusInternalServerError, "Unable to load the page.")
+		respondWithError(writer, http.StatusInternalServerError, "Unable to load the page.")
 
 		return
 	}
@@ -96,7 +96,7 @@ func (conf configuration) frontErrorPage(
 	}
 
 	// Display the error page
-	renderTemplate(writer, req, "error", page)
+	renderTemplate(writer, "error", page)
 }
 
 func (conf configuration) frontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
@@ -118,7 +118,7 @@ func (conf configuration) frontHandlerMainPage(writer http.ResponseWriter, req *
 	}
 
 	// Display the front page
-	renderTemplate(writer, req, "index", page)
+	renderTemplate(writer, "index", page)
 }
 
 func (conf configuration) frontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
@@ -132,7 +132,7 @@ func (conf configuration) frontHandlerPrivacyPage(writer http.ResponseWriter, re
 	}
 
 	// Display the front page
-	renderTemplate(writer, req, "privacy", page)
+	renderTemplate(writer, "privacy", page)
 }
 
 func (conf configuration) frontCreateLink( //nolint:cyclop,funlen
@@ -360,7 +360,7 @@ func (conf configuration) frontHandlerAdd(writer http.ResponseWriter, req *http.
 	}
 
 	// Display the add page which will display the information about the added link
-	renderTemplate(writer, req, "add", page)
+	renderTemplate(writer, "add", page)
 }
 
 func (conf configuration) frontAskForPassword(writer http.ResponseWriter, req *http.Request) {
@@ -375,7 +375,7 @@ func (conf configuration) frontAskForPassword(writer http.ResponseWriter, req *h
 	}
 
 	// Display the pass page which will ask the user for a password
-	renderTemplate(writer, req, "pass", page)
+	renderTemplate(writer, "pass", page)
 }
 
 func (conf configuration) frontHandlerRedirectToURL(writer http.ResponseWriter, req *http.Request) { //nolint:funlen

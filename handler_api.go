@@ -39,7 +39,6 @@ func (conf configuration) apiRedirectToURL(writer http.ResponseWriter, req *http
 		log.Println(err)
 		respondWithError(
 			writer,
-			req,
 			http.StatusNotFound,
 			"There is no link associated with this path, it is probably invalid or expired.",
 		)
@@ -69,7 +68,6 @@ func (conf configuration) apiRedirectToURL(writer http.ResponseWriter, req *http
 				log.Println(err)
 				respondWithError(
 					writer,
-					req,
 					http.StatusBadRequest,
 					"Wrong JSON or no password has been given. This link requires a password to access it.",
 				)
@@ -88,12 +86,12 @@ func (conf configuration) apiRedirectToURL(writer http.ResponseWriter, req *http
 		// Check if the password matches the hash
 		if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil &&
 			!match {
-			respondWithError(writer, req, http.StatusBadRequest, "Wrong password has been given.")
+			respondWithError(writer, http.StatusBadRequest, "Wrong password has been given.")
 
 			return
 		} else if err != nil {
 			log.Println(err)
-			respondWithError(writer, req, http.StatusInternalServerError, "Could not compare the password against corresponding hash.")
+			respondWithError(writer, http.StatusInternalServerError, "Could not compare the password against corresponding hash.")
 
 			return
 		}
@@ -105,7 +103,6 @@ func (conf configuration) apiRedirectToURL(writer http.ResponseWriter, req *http
 		log.Println(err)
 		respondWithError(
 			writer,
-			req,
 			http.StatusNotFound,
 			"There is no link associated with this path, it is probably invalid or expired.",
 		)
@@ -280,19 +277,19 @@ func (conf configuration) apiHandlerRoot(writer http.ResponseWriter, req *http.R
 		params, err := decodeJSON(req)
 		if err != nil {
 			log.Println(err)
-			respondWithError(writer, req, http.StatusBadRequest, "Invalid JSON syntax.")
+			respondWithError(writer, http.StatusBadRequest, "Invalid JSON syntax.")
 
 			return
 		}
 		link, code, errMsg := conf.apiCreateLink(writer, params)
 		if errMsg != "" {
-			respondWithError(writer, req, code, errMsg)
+			respondWithError(writer, code, errMsg)
 
 			return
 		}
 		respondWithJSON(writer, http.StatusCreated, link)
 	default:
-		respondWithError(writer, req, http.StatusMethodNotAllowed, "Method Not Allowed.")
+		respondWithError(writer, http.StatusMethodNotAllowed, "Method Not Allowed.")
 
 		return
 	}
