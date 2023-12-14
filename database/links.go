@@ -19,13 +19,12 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-func CreateLinksTable(database *sql.DB, maxShort int) {
+func CreateLinksTable(database *sql.DB, maxShort int) error {
 	sqlCreateTable := fmt.Sprintf(
 		"CREATE TABLE IF NOT EXISTS links ("+
 			"id UUID PRIMARY KEY, "+
@@ -37,9 +36,8 @@ func CreateLinksTable(database *sql.DB, maxShort int) {
 		maxShort,
 	)
 	_, err := database.Exec(sqlCreateTable)
-	if err != nil {
-		log.Fatal("Unable to create the 'links' table:", err)
-	}
+
+	return err
 }
 
 func CreateLink(

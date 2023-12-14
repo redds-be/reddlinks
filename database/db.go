@@ -18,6 +18,7 @@ package database
 
 import (
 	"database/sql"
+
 	_ "github.com/lib/pq"           // Driver for postgresql
 	_ "github.com/mattn/go-sqlite3" // Driver for sqlite
 )
