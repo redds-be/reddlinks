@@ -24,7 +24,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="icon" type="image/svg" href="assets/img/reddlinks_logo_t.svg">
-    <script src="assets/js/main.js"></script>
 </head>
 <body>
 <p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
@@ -66,5 +65,28 @@
         <a href="https://github.com/redds-be/reddlinks" target="_blank">Source Code</a>.
     </p>
 </div>
+<script>
+    function copyLink() {
+        /* Copy text into clipboard */
+        navigator.clipboard.writeText
+        ("{{.ShortenedLink}}");
+        /* Set the new value for the button */
+        var conf = document.getElementById("confirmation");
+        conf.innerHTML = "Copied Link"
+    }
+    function revertCopy() {
+        /* Reset the value for the button */
+        var conf = document.getElementById("confirmation");
+        conf.innerHTML = "Copy Link"
+    }
+    {{if .Password}}
+    function revealPass() {
+        var pass = document.getElementById("pass")
+        pass.innerHTML = "Accessible using password: {{.Password}}"
+        var rev = document.getElementById("reveal")
+        rev.innerHTML = "Password revealed"
+    }
+    {{end}}
+</script>
 </body>
 </html>

@@ -62,7 +62,7 @@ func main() { //nolint:funlen
 			token = randomToken()
 			time.Sleep(duration)
 		}
-	}(IdleTimeout)
+	}(3 * time.Hour) //nolint:gomnd
 
 	// Defer the closing of the database connection
 	defer func(db *sql.DB) {
