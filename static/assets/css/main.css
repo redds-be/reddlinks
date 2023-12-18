@@ -38,6 +38,11 @@ p {
     text-align: center;
 }
 
+.privacy {
+    text-align: initial;
+    font-size: 16px;
+}
+
 p.nav-text {
     word-spacing: 5px;
 }
@@ -162,6 +167,27 @@ div.div-input {
     color: darkgray;
     text-align: center;
 }
+
+/* privacy page only */
+#page-container {
+    position: relative;
+    min-height: 100vh;
+}
+
+#content-wrap {
+    padding-bottom: 2.5rem;
+}
+
+#footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 2.5rem;
+    font-size: 16px;
+    color: darkgray;
+    text-align: center;
+}
+/* privacy page only */
 
 @media (prefers-color-scheme: dark) {
     body {
