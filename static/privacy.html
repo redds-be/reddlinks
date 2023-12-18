@@ -24,78 +24,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="icon" type="image/svg" href="assets/img/reddlinks_logo_t.svg">
-    <style>
-        .privacy {
-            text-align: initial;
-            font-size: 15px;
-        }
-    </style>
 </head>
 <body>
-<p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
-    <a href="https://github.com/redds-be/reddlinks" target="_blank" class="nav-text nav-link">
-        <img src="assets/img/github_logo.svg" width="16" height="16" alt="Github Logo" class="svg">Source
-    </a>
-</p>
+<div id="page-container">
+    <div id="content-wrap">
+        <p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
+            <a href="https://github.com/redds-be/reddlinks" target="_blank" class="nav-text nav-link">
+                <img src="assets/img/github_logo.svg" width="16" height="16" alt="Github Logo" class="svg">Source
+            </a>
+        </p>
 
-<h2>Privacy</h2>
-<p class="privacy">This document concerns what data you provide to this website,
-    the purpose of the data, how the data is stored, and how the data can be removed.
-    No data is stored in your browser.
-</p>
+        <h2>Privacy</h2>
+        <p class="privacy">This document concerns what data you provide to this website,
+            the purpose of the data, how the data is stored, and how the data can be removed.
+            No data is stored in your browser.
+        </p>
 
-<h3>Data you directly provide</h3>
-<p class="privacy">Information stored about a shortened link is limited to:</p>
-<ul class="privacy">
-    <li>The URL you shorten which the shortened link will redirect you.</li>
-    <li>The custom path for the shortened link if any is set.</li>
-    <li>The length of the auto-generated shortened link.</li>
-    <li>The expiration time of the shortened link.</li>
-    <li>The password of the shortened link if any is set.</li>
-</ul>
+        <h3>Data you directly provide</h3>
+        <p class="privacy">Information stored about a shortened link is limited to:</p>
+        <ul class="privacy">
+            <li>The URL you shorten which the shortened link will redirect you.</li>
+            <li>The custom path for the shortened link if any is set.</li>
+            <li>The length of the auto-generated shortened link.</li>
+            <li>The expiration time of the shortened link.</li>
+            <li>The password of the shortened link if any is set.</li>
+        </ul>
 
-<h3>Data you passively provide</h3>
+        <h3>Data you passively provide</h3>
 
-<p class="privacy">When you request any resource from this website (for example: a page, a font, an image, or an API endpoint)
-    information about the request may be logged.
-</p>
+        <p class="privacy">When you request any resource from this website (for example: a page, a font, an image, or an API endpoint)
+            information about the request may be logged.
+        </p>
 
-<p class="privacy">Information about a request is limited to:</p>
+        <p class="privacy">Information about a request is limited to:</p>
 
-<ul class="privacy">
-    <li>The time the request was made.</li>
-    <li>The method of the request.</li>
-    <li>The requested URL. <em>Note: This does not include the URL that the shortened link points to</em>.</li>
-</ul>
+        <ul class="privacy">
+            <li>The time the request was made.</li>
+            <li>The method of the request.</li>
+            <li>The requested URL. <em>Note: This does not include the URL that the shortened link points to</em>.</li>
+        </ul>
 
-<p class="privacy">No identifying information is logged, such as the visitor's cookie, user-agent, or IP address.
-    Here are a couple lines to serve as an example:
-</p>
+        <p class="privacy">No identifying information is logged, such as the visitor's cookie, user-agent, or IP address.
+            Here are a couple lines to serve as an example:
+        </p>
 
-<p class="privacy">2023/12/13 14:35:01 GET /<br>
-2023/12/13 15:36:16 GET /nz_~Kx<br>2023/12/15 11:18:14 POST /
-</p>
+        <p class="privacy">2023/12/13 14:35:01 GET /<br>
+            2023/12/13 15:36:16 GET /nz_~Kx<br>2023/12/15 11:18:14 POST /
+        </p>
 
-<p class="privacy">
-    By default, reddlinks does not save any of these logs, whether these logs are saved depend on this site's administrator.<br>
-    <em>Please note that this log policy concerns the logs saved by the application itself and not the web server, the extent on which requests are logged depend on the web server's configuration used by this site's administrator</em>
-</p>
+        <p class="privacy">
+            By default, reddlinks does not save any of these logs, whether these logs are saved depend on this site's administrator.<br>
+            <em>Please note that this log policy concerns the logs saved by the application itself and not the web server, the extent on which requests are logged depend on the web server's configuration used by this site's administrator</em>
+        </p>
 
-<h3>Removal of data</h3>
-<p class="privacy">
-    To remove the data you directly or indirectly provided, you can try to contact this site's administrator.<br>
-    <em>Please note that this site's administrator does not have the obligation to be contactable nor has the obligation to honor any requests.</em>
-</p>
+        <h3>Removal of data</h3>
+        <p class="privacy">
+            To remove the data you directly or indirectly provided, you can try to contact this site's administrator.<br>
+            <em>Please note that this site's administrator does not have the obligation to be contactable nor has the obligation to honor any requests.</em>
+        </p>
+    </div>
 
-<div class="footer">
-    <p>
-        <a href="/privacy">Privacy Policy</a> | Version: {{.Version}}
-    </p>
-    <p>Developed by <a href="https://github.com/redds-be" target="_blank">redd</a>. Licensed under the
-        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPLv3</a>
-        © 2023. Get the
-        <a href="https://github.com/redds-be/reddlinks" target="_blank">Source Code</a>.
-    </p>
+    <div id="footer">
+        <p>
+            <a href="/privacy">Privacy Policy</a> | Version: {{.Version}}
+        </p>
+        <p>Developed by <a href="https://github.com/redds-be" target="_blank">redd</a>. Licensed under the
+            <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPLv3</a>
+            © 2023. Get the
+            <a href="https://github.com/redds-be/reddlinks" target="_blank">Source Code</a>.
+        </p>
+    </div>
 </div>
 </body>
 </html>
