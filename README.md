@@ -103,7 +103,6 @@ curl -X GET https://ls.redds.be/ag4vb~ -H 'Content-Type: application/json' -d '{
 
 - [ ] Write documentation
 - [ ] Write tests for main handlers
-- [ ] Consider project restructuration
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -132,6 +131,6 @@ Make sure to run `make prep` before committing any code.
 
 *Project under the [GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.html).*
 
-*Copyright (C) 2023 redd*
+*Copyright (C) 2024 redd*
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

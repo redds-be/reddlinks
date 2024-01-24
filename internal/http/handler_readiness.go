@@ -14,24 +14,31 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-module github.com/redds-be/reddlinks
+package http
 
-go 1.21
+import (
+	"log"
+	"net/http"
 
-require (
-	github.com/alexedwards/argon2id v1.0.0
-	github.com/dchest/uniuri v1.2.0
-	github.com/google/uuid v1.6.0
-	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.9
-	github.com/mattn/go-sqlite3 v1.14.19
-	github.com/stretchr/testify v1.8.4
+	"github.com/redds-be/reddlinks/internal/json"
 )
 
-require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
+// HandlerReadiness returns a positive JSON response to indicate its readiness.
+func HandlerReadiness(writer http.ResponseWriter, req *http.Request) {
+	log.Printf("%s %s", req.Method, req.URL.Path)
+
+	// Check method
+	if req.Method != http.MethodGet {
+		json.RespondWithError(writer, http.StatusMethodNotAllowed, "Method Not Allowed.")
+
+		return
+	}
+
+	// Define a JSON structure for the status
+	type statusResponse struct {
+		Status string `json:"status"`
+	}
+
+	// Respond to the client with the 'Alive.' message at '/status'
+	json.RespondWithJSON(writer, http.StatusOK, statusResponse{Status: "Alive."})
+}

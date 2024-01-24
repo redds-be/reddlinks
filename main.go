@@ -1,5 +1,5 @@
 //    reddlinks, a simple link shortener written in Go.
-//    Copyright (C) 2023 redd
+//    Copyright (C) 2024 redd
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -18,48 +18,44 @@ package main
 
 import (
 	"database/sql"
+	"html/template"
 	"log"
-	"net/http"
 	"time"
 
-	"github.com/redds-be/reddlinks/database"
+	"github.com/redds-be/reddlinks/internal/database"
+	"github.com/redds-be/reddlinks/internal/env"
+	"github.com/redds-be/reddlinks/internal/http"
+	"github.com/redds-be/reddlinks/internal/utils"
 )
 
-// Set a global variable for a token.
-var token string //nolint:gochecknoglobals
-
-func main() { //nolint:funlen
+// main drives the application.
+func main() {
 	// Load the env file
 	envFile := ".env"
-	env := getEnv(envFile)
+	envVars := env.GetEnv(envFile)
 
-	dataBase, err := database.DBConnect(env.dbType, env.dbURL)
+	dataBase, err := database.DBConnect(envVars.DBType, envVars.DBURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create a struct to connect to the database and send the instance name and url to the handlers
-	conf := &configuration{
-		db:                     dataBase,
-		instanceName:           env.instanceName,
-		instanceURL:            env.instanceURL,
-		defaultShortLength:     env.defaultLength,
-		defaultMaxShortLength:  env.defaultMaxLength,
-		defaultMaxCustomLength: env.defaultMaxCustomLength,
-		defaultExpiryTime:      env.defaultExpiryTime,
-		version:                "noVersion",
+	conf := &utils.Configuration{
+		DB:                     dataBase,
+		PortSTR:                envVars.PortStr,
+		InstanceName:           envVars.InstanceName,
+		InstanceURL:            envVars.InstanceURL,
+		DefaultShortLength:     envVars.DefaultLength,
+		DefaultMaxShortLength:  envVars.DefaultMaxLength,
+		DefaultMaxCustomLength: envVars.DefaultMaxCustomLength,
+		DefaultExpiryTime:      envVars.DefaultExpiryTime,
+		Version:                "noVersion",
 	}
-
-	// Set default timeout time in seconds
-	const readTimeout = 1 * time.Second
-	const WriteTimeout = 1 * time.Second
-	const IdleTimeout = 30 * time.Second
-	const ReadHeaderTimeout = 2 * time.Second
 
 	// Generate a new token every x time
 	go func(duration time.Duration) {
 		for {
-			token = randomToken()
+			http.Token = utils.RandomToken()
 			time.Sleep(duration)
 		}
 	}(3 * time.Hour) //nolint:gomnd
@@ -70,46 +66,28 @@ func main() { //nolint:funlen
 		if err != nil {
 			log.Fatal(err)
 		}
-	}(conf.db)
+	}(conf.DB)
 
 	// Create the links table if it doesn't exist
-	err = database.CreateLinksTable(conf.db, env.defaultMaxLength)
+	err = database.CreateLinksTable(conf.DB, envVars.DefaultMaxLength)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	fs := http.FileServer(http.Dir("static/assets"))
-	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
-
-	// Assign a handler to these different paths
-	http.HandleFunc("/status", handlerReadiness)               // Check the status of the server
-	http.HandleFunc("/error", handlerErr)                      // Check if errors work as intended
-	http.HandleFunc("/add", conf.frontHandlerAdd)              // Add a link
-	http.HandleFunc("/access", conf.frontHandlerRedirectToURL) // Access password protected link
-	http.HandleFunc("/privacy", conf.frontHandlerPrivacyPage)  // Privacy policy information
-	http.HandleFunc("/", conf.apiHandlerRoot)                  // UI for link creation
-
 	// Periodically clean the database
 	go func(duration time.Duration) {
 		for {
-			err := conf.collectGarbage()
+			err := conf.CollectGarbage()
 			if err != nil {
 				log.Println("Could not collect garbage:", err)
 			}
 			time.Sleep(duration)
 		}
-	}(time.Duration(env.timeBetweenCleanups) * time.Minute)
+	}(time.Duration(envVars.TimeBetweenCleanups) * time.Minute)
 
-	// Set the settings for the http servers
-	srv := &http.Server{
-		Addr:              ":" + env.portStr,
-		ReadTimeout:       readTimeout,
-		WriteTimeout:      WriteTimeout,
-		IdleTimeout:       IdleTimeout,
-		ReadHeaderTimeout: ReadHeaderTimeout,
-	}
+	http.Templates = template.Must(template.ParseFiles("static/index.html", "static/add.html",
+		"static/error.html", "static/pass.html", "static/privacy.html"))
 
-	// Start to listen
-	log.Printf("Listening on port : '%s'.", env.portStr)
-	log.Panic(srv.ListenAndServe())
+	httpAdapter := http.NewAdapter(*conf)
+	httpAdapter.Run()
 }
