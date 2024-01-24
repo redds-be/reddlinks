@@ -7,14 +7,9 @@ EXPOSE 8080
 RUN mkdir /opt/reddlinks
 RUN adduser -D rluser
 
+ADD . /opt/reddlinks
 WORKDIR /opt/reddlinks
-
-COPY go.mod .
-COPY go.sum .
-RUN go mod vendor
-RUN go mod tidy
-RUN go mod download
-COPY . .
+RUN go get github.com/redds-be/reddlinks
 
 RUN chown -R rluser:rluser /opt/reddlinks
 RUN git config --global --add safe.directory /opt/reddlinks
