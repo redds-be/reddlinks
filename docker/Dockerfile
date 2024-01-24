@@ -11,8 +11,9 @@ WORKDIR /opt/reddlinks
 
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
 RUN go mod vendor
+RUN go mod tidy
+RUN go mod download
 COPY . .
 
 RUN chown -R rluser:rluser /opt/reddlinks
