@@ -1,0 +1,44 @@
+---
+version: "3.4"
+
+services:
+  postgresql:
+    image: postgres:latest
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - ../database:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${REDDLINKS_PG_PASS:?database password required}
+      POSTGRES_USER: ${REDDLINKS_PG_USER:-rluser}
+      POSTGRES_DB: ${REDDLINKS_PG_DB:-rldb}
+    env_file:
+      - .env
+  reddlinks:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    environment:
+        POSTGRES_PASSWORD: ${REDDLINKS_PG_PASS:?database password required}
+        POSTGRES_USER: ${REDDLINKS_PG_USER:-rluser}
+        POSTGRES_DB: ${REDDLINKS_PG_DB:-rldb}
+    env_file:
+      - .env
+    depends_on:
+      - postgresql
+    ports:
+      - "8080:8080"
+    user: "1000:1000"
+    volumes:
+      - ../static:/opt/reddlinks/static
+      - .env:/opt/reddlinks/.env
+
+volumes:
+  database:
+    driver: local

@@ -8,7 +8,7 @@ prep: fmt mod vet lint test
 
 compile: clean
 	@mkdir -p build/
-	@sed -i "s/noVersion/$(VERSION)/g" main.go
+	@sed "s/noVersion/$(VERSION)/g" main.go > main.go.alt && mv main.go.alt main.go
 	@go build -o build/
 
 fmt:
