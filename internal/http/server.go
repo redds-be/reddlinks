@@ -42,7 +42,7 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 }
 
 // Run starts configures the HTTP server and starts listening and serving.
-func (conf Configuration) Run() {
+func (conf Configuration) Run() error {
 	// Set default timeout time in seconds
 	const readTimeout = 1 * time.Second
 	const WriteTimeout = 1 * time.Second
@@ -72,5 +72,7 @@ func (conf Configuration) Run() {
 
 	// Start to listen
 	log.Printf("Listening on port : '%s'.", conf.PortSTR)
-	log.Panic(srv.ListenAndServe())
+	err := srv.ListenAndServe()
+
+	return err
 }
