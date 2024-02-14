@@ -43,6 +43,10 @@ p {
     font-size: 16px;
 }
 
+.read {
+    font-size: 10px;
+}
+
 p.nav-text {
     word-spacing: 5px;
 }
