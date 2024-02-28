@@ -29,7 +29,6 @@ import (
 	"github.com/alexedwards/argon2id"
 	"github.com/dchest/uniuri"
 	"github.com/google/uuid"
-
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/json"
 	"github.com/redds-be/reddlinks/internal/utils"
@@ -283,10 +282,10 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
-func (conf Configuration) FrontHandlerAdd(
+func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
-) { //nolint:funlen
+) {
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// What to if the form is correct, i.e. the front page form was posted.
@@ -402,10 +401,10 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
-func (conf Configuration) FrontHandlerRedirectToURL(
+func (conf Configuration) FrontHandlerRedirectToURL( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
-) { //nolint:funlen
+) {
 	// Get the time of the request
 	execTime, err := time.Parse(time.ANSIC, req.FormValue("_time"))
 	if err != nil {
