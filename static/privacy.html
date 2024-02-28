@@ -73,7 +73,7 @@
         </p>
 
         <p class="privacy">
-            By default, reddlinks (the web application you are currently using) does not save any of these logs, whether these logs are saved depend on this site's administrator. A good example is when running the application as a <a href="https://www.freedesktop.org/software/systemd/man/latest/daemon.html">systemD daemon</a> where logs are saved by default.<br>
+            By default, reddlinks (the web application you are currently using) does not save any of these logs, whether these logs are saved depend on this site's administrator. A good example is when running the application as a <a href="https://www.freedesktop.org/software/systemd/man/latest/daemon.html" target="_blank">systemD daemon</a> where logs are saved by default.<br>
             <em>Please note that this log policy concerns the logs saved by reddlinks (the web application you are currently using) and not the web server, the extent on which requests are logged depend on the web server's configuration used by this site's administrator.</em>
         </p>
 
@@ -83,7 +83,15 @@
             <em>Please note that reddlinks (the web application you are currently using) does not have the capacity in any way shape or form to force this site's administrator to honor such requests, despite any laws or regulations. It is up to the site's administrator to be contactable and to respect said laws and regulations. A good place to start when contacting this site's administrator is to use a "whois" application to get information about the domain name's registrant.</em>
         </p>
 
-        <h3>Licensing</h3>
+        {{if .ContactEmail}}
+        <h3>Contact via Email</h3>
+        <p class="privacy">
+            Administrator's email address: {{.ContactEmail}}<br>
+            <em>If the provided email address does not look like a normal email address, it is either a false or an <a href="https://spencermortensen.com/articles/email-obfuscation/#text-substitution" target="_blank">obfuscated</a> email address.</em>
+        </p>
+        {{end}}
+
+        <h3>Warranty Notice</h3>
         <p class="privacy">
             reddlinks, a simple link shortener written in Go.<br>
             Copyright (C) 2024 redd<br><br>

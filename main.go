@@ -63,6 +63,7 @@ func main() {
 		DefaultMaxShortLength:  envVars.DefaultMaxLength,
 		DefaultMaxCustomLength: envVars.DefaultMaxCustomLength,
 		DefaultExpiryTime:      envVars.DefaultExpiryTime,
+		ContactEmail:           envVars.ContactEmail,
 		Version:                "noVersion",
 	}
 

@@ -29,6 +29,7 @@ import (
 	"github.com/alexedwards/argon2id"
 	"github.com/dchest/uniuri"
 	"github.com/google/uuid"
+
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/json"
 	"github.com/redds-be/reddlinks/internal/utils"
@@ -58,6 +59,7 @@ type Page struct {
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int
 	DefaultExpiryTime      int
+	ContactEmail           string
 }
 
 // RenderTemplate renders the templates using a given Page struct.
@@ -134,6 +136,7 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, re
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
 		Version:       conf.Version,
+		ContactEmail:  conf.ContactEmail,
 	}
 
 	// Display the front page
@@ -236,7 +239,15 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
 	addInfo := ""
-	err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
+	err = database.CreateLink(
+		conf.DB,
+		uuid.New(),
+		time.Now().UTC(),
+		expireAt,
+		params.URL,
+		params.Path,
+		hash,
+	)
 	if err != nil && !autoGen {
 		log.Println(err)
 
@@ -272,7 +283,10 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
-func (conf Configuration) FrontHandlerAdd(writer http.ResponseWriter, req *http.Request) { //nolint:funlen
+func (conf Configuration) FrontHandlerAdd(
+	writer http.ResponseWriter,
+	req *http.Request,
+) { //nolint:funlen
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// What to if the form is correct, i.e. the front page form was posted.
@@ -293,7 +307,8 @@ func (conf Configuration) FrontHandlerAdd(writer http.ResponseWriter, req *http.
 	}
 
 	// Check if the given token corresponds to the actual token, if not, probably invalid or expired
-	if Token != req.FormValue("_token") && time.Now().UTC().After(execTime.Add(15*time.Minute)) { //nolint:gomnd
+	if Token != req.FormValue("_token") &&
+		time.Now().UTC().After(execTime.Add(15*time.Minute)) { //nolint:gomnd
 		conf.FrontErrorPage(writer, req, http.StatusBadRequest, "Token invalid or expired.")
 
 		return
@@ -387,7 +402,10 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
-func (conf Configuration) FrontHandlerRedirectToURL(writer http.ResponseWriter, req *http.Request) { //nolint:funlen
+func (conf Configuration) FrontHandlerRedirectToURL(
+	writer http.ResponseWriter,
+	req *http.Request,
+) { //nolint:funlen
 	// Get the time of the request
 	execTime, err := time.Parse(time.ANSIC, req.FormValue("_time"))
 	if err != nil {
@@ -398,7 +416,8 @@ func (conf Configuration) FrontHandlerRedirectToURL(writer http.ResponseWriter, 
 	}
 
 	// Check if the given token corresponds to the actual token, if not, probably invalid or expired
-	if Token != req.FormValue("_token") && time.Now().UTC().After(execTime.Add(15*time.Minute)) { //nolint:gomnd
+	if Token != req.FormValue("_token") &&
+		time.Now().UTC().After(execTime.Add(15*time.Minute)) { //nolint:gomnd
 		conf.FrontErrorPage(writer, req, http.StatusBadRequest, "Token invalid or expired.")
 
 		return
