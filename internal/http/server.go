@@ -38,6 +38,7 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 		DefaultMaxShortLength:  configuration.DefaultMaxShortLength,
 		DefaultMaxCustomLength: configuration.DefaultMaxCustomLength,
 		DefaultExpiryTime:      configuration.DefaultExpiryTime,
+		ContactEmail:           configuration.ContactEmail,
 	}
 }
 

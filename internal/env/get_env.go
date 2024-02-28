@@ -33,6 +33,7 @@ type Env struct {
 	InstanceURL            string
 	DBType                 string
 	DBURL                  string
+	ContactEmail           string
 	TimeBetweenCleanups    int
 	DefaultLength          int
 	DefaultMaxLength       int
@@ -111,7 +112,10 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	case env.DefaultMaxLength < env.DefaultLength:
 		return fmt.Errorf("the max default short length %w the default short length", ErrInferior)
 	case env.DefaultMaxLength < env.DefaultMaxCustomLength:
-		return fmt.Errorf("the max default short length %w the default max custom short length", ErrInferior)
+		return fmt.Errorf(
+			"the max default short length %w the default max custom short length",
+			ErrInferior,
+		)
 	case env.DefaultMaxLength > maxString:
 		return fmt.Errorf( //nolint:goerr113
 			"strangely, some database engines don't support strings over %d chars long"+
@@ -187,12 +191,15 @@ func GetEnv(envFile string) Env { //nolint:funlen
 		log.Fatal("the time between database cleanups couldn't be read:", err)
 	}
 
+	contactEmail := os.Getenv("REDDLINKS_CONTACT_EMAIL")
+
 	env := Env{
 		PortStr:                portStr,
 		InstanceName:           instanceName,
 		InstanceURL:            instanceURL,
 		DBType:                 dbType,
 		DBURL:                  dbURL,
+		ContactEmail:           contactEmail,
 		TimeBetweenCleanups:    timeBetweenCleanups,
 		DefaultLength:          defaultLength,
 		DefaultMaxLength:       defaultMaxLength,

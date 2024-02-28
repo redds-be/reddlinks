@@ -40,6 +40,7 @@ type Configuration struct {
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int
 	DefaultExpiryTime      int
+	ContactEmail           string
 }
 
 // Parameters defines the structure of the JSON payload that will be read from the user.
