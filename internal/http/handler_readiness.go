@@ -27,13 +27,6 @@ import (
 func HandlerReadiness(writer http.ResponseWriter, req *http.Request) {
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
-	// Check method
-	if req.Method != http.MethodGet {
-		json.RespondWithError(writer, http.StatusMethodNotAllowed, "Method Not Allowed.")
-
-		return
-	}
-
 	// Define a JSON structure for the status
 	type statusResponse struct {
 		Status string `json:"status"`

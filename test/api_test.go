@@ -27,36 +27,20 @@ import (
 )
 
 func (s *APISuite) TestReadiness() {
-	// Test a POST request on a handler that only accepts GET requests
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "/status", nil)
+	// Test a GET request on the readiness handler
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/status", nil)
 	s.Require().NoError(err)
 	resp := httptest.NewRecorder()
-	HTTP.HandlerReadiness(resp, req)
-	s.Equal(http.StatusMethodNotAllowed, resp.Code)
-	s.Equal("{\"error\":\"405 Method Not Allowed.\"}", resp.Body.String())
-
-	// Test a GET request on the same handler
-	req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, "/status", nil)
-	s.Require().NoError(err)
-	resp = httptest.NewRecorder()
 	HTTP.HandlerReadiness(resp, req)
 	s.Equal(http.StatusOK, resp.Code)
 	s.Equal("{\"status\":\"Alive.\"}", resp.Body.String())
 }
 
 func (s *APISuite) TestErr() {
-	// Test a POST request on a handler that only accepts GET requests
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "/error", nil)
+	// Test a GET request on the generic error handler
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/error", nil)
 	s.Require().NoError(err)
 	resp := httptest.NewRecorder()
-	HTTP.HandlerErr(resp, req)
-	s.Equal(http.StatusMethodNotAllowed, resp.Code)
-	s.Equal("{\"error\":\"405 Method Not Allowed.\"}", resp.Body.String())
-
-	// Test a GET request on the same handler
-	req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, "/error", nil)
-	s.Require().NoError(err)
-	resp = httptest.NewRecorder()
 	HTTP.HandlerErr(resp, req)
 	s.Equal(http.StatusBadRequest, resp.Code)
 	s.Equal("{\"error\":\"400 Something went wrong.\"}", resp.Body.String())

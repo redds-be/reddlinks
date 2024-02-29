@@ -50,25 +50,37 @@ func (conf Configuration) Run() error {
 	const IdleTimeout = 30 * time.Second
 	const ReadHeaderTimeout = 2 * time.Second
 
+	// Create a multiplexer
+	mux := http.NewServeMux()
+
 	// Make use of the assets
 	fs := http.FileServer(http.Dir("static/assets"))
-	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
+	mux.Handle("GET /assets/", http.StripPrefix("/assets/", fs))
 
 	// Assign a handler to these different paths
-	http.HandleFunc("/status", HandlerReadiness)               // Check the status of the server
-	http.HandleFunc("/error", HandlerErr)                      // Check if errors work as intended
-	http.HandleFunc("/add", conf.FrontHandlerAdd)              // Add a link
-	http.HandleFunc("/access", conf.FrontHandlerRedirectToURL) // Access password protected link
-	http.HandleFunc("/privacy", conf.FrontHandlerPrivacyPage)  // Privacy policy information
-	http.HandleFunc("/", conf.APIHandlerRoot)                  // UI for link creation
+	mux.HandleFunc("GET /status", HandlerReadiness) // Check the status of the server
+	mux.HandleFunc(
+		"GET /error",
+		HandlerErr,
+	) // Check if errors work as intended
+	mux.HandleFunc(
+		"POST /add",
+		conf.FrontHandlerAdd,
+	) // Front page for adding a link that returns the basic info
+	mux.HandleFunc("POST /access", conf.FrontHandlerRedirectToURL) // Access a password protected link
+	mux.HandleFunc("GET /privacy", conf.FrontHandlerPrivacyPage)   // Display Privacy policy information page
+	mux.HandleFunc("GET /", conf.FrontHandlerMainPage)             // Main page with the form to create a link
+	mux.HandleFunc("GET /{short}", conf.APIRedirectToURL)          // Access a url
+	mux.HandleFunc("POST /", conf.APICreateLink)                   // Create a link
 
-	// Set the settings for the http servers
+	// Set the settings for the http server
 	srv := &http.Server{
 		Addr:              ":" + conf.PortSTR,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      WriteTimeout,
 		IdleTimeout:       IdleTimeout,
 		ReadHeaderTimeout: ReadHeaderTimeout,
+		Handler:           mux,
 	}
 
 	// Start to listen

@@ -24,7 +24,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"unicode/utf8"
 
 	"github.com/redds-be/reddlinks/internal/database"
 )
@@ -50,13 +49,6 @@ type Parameters struct {
 	Path        string `json:"customPath"`
 	ExpireAfter int    `json:"expireAfter"`
 	Password    string `json:"password"`
-}
-
-// TrimFirstRune removes the first letter of a string (https://go.dev/play/p/ZOZyRORkK82).
-func TrimFirstRune(s string) string {
-	_, i := utf8.DecodeRuneInString(s)
-
-	return s[i:]
 }
 
 // CollectGarbage deletes old expired entries in the database.
