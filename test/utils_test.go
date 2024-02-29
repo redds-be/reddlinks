@@ -31,11 +31,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func (s *UtilsSuite) TestTrimFirstRune() {
-	// Test if trimFirstRune() does in fact, trim the first rune
-	s.Equal("rimmed", utils.TrimFirstRune("trimmed"))
-}
-
 func (s *UtilsSuite) TestRandomToken() {
 	// Test if randomToken returns something
 	s.NotEmpty(utils.RandomToken())

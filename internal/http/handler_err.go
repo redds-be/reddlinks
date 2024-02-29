@@ -27,13 +27,6 @@ import (
 func HandlerErr(writer http.ResponseWriter, req *http.Request) {
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
-	// If the method is wrong, return with an error
-	if req.Method != http.MethodGet {
-		json.RespondWithError(writer, http.StatusMethodNotAllowed, "Method Not Allowed.")
-
-		return
-	}
-
 	// Respond with a generic error at '/error'
 	json.RespondWithError(writer, http.StatusBadRequest, "Something went wrong.")
 }

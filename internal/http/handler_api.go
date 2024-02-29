@@ -33,11 +33,17 @@ import (
 )
 
 // APIRedirectToURL redirects the client to the URL corresponding to given shortened link.
-func (conf Configuration) APIRedirectToURL(writer http.ResponseWriter, req *http.Request) { //nolint:funlen,cyclop
+func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
+	writer http.ResponseWriter,
+	req *http.Request,
+) {
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
+	// Get the requested short
+	requestedShort := req.PathValue("short")
+
 	// Check if there is a hash associated with the short, if there is a hash, we will require a password
-	hash, err := database.GetHashByShort(conf.DB, utils.TrimFirstRune(req.URL.Path))
+	hash, err := database.GetHashByShort(conf.DB, requestedShort)
 	if err != nil {
 		log.Println(err)
 		json.RespondWithError(
@@ -101,7 +107,7 @@ func (conf Configuration) APIRedirectToURL(writer http.ResponseWriter, req *http
 	}
 
 	// Get the URL
-	url, err := database.GetURLByShort(conf.DB, utils.TrimFirstRune(req.URL.Path))
+	url, err := database.GetURLByShort(conf.DB, requestedShort)
 	if err != nil {
 		log.Println(err)
 		json.RespondWithError(
@@ -120,17 +126,31 @@ func (conf Configuration) APIRedirectToURL(writer http.ResponseWriter, req *http
 // APICreateLink create a link entry in the database using given json parameters.
 func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	writer http.ResponseWriter,
-	params utils.Parameters,
-) (database.Link, int, string) {
+	req *http.Request,
+) {
+	log.Printf("%s %s", req.Method, req.URL.Path)
+
+	// Get the JSON parameters
+	params, err := utils.DecodeJSON(req)
+	if err != nil {
+		log.Println(err)
+		json.RespondWithError(writer, http.StatusBadRequest, "Invalid JSON syntax.")
+
+		return
+	}
+
 	// Check if the url is valid
 	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
 	if err != nil {
 		log.Println(err)
+		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to check the URL.")
 
-		return database.Link{}, http.StatusInternalServerError, "Unable to check the URL."
+		return
 	}
 	if !isValid {
-		return database.Link{}, http.StatusBadRequest, "The URL is invalid."
+		json.RespondWithError(writer, http.StatusBadRequest, "The URL is invalid.")
+
+		return
 	}
 
 	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
@@ -160,14 +180,21 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 		)
 		if err != nil {
 			log.Println(err)
+			json.RespondWithError(
+				writer,
+				http.StatusInternalServerError,
+				"Could not check the path.",
+			)
 
-			return database.Link{}, http.StatusInternalServerError, "Could not check the path."
+			return
 		}
 		if reservedMatch {
-			return database.Link{}, http.StatusBadRequest, fmt.Sprintf(
+			json.RespondWithError(writer, http.StatusBadRequest, fmt.Sprintf(
 				"The path '/%s' is reserved.",
 				params.Path,
-			)
+			))
+
+			return
 		}
 
 		// Check the validity of the custom path
@@ -193,10 +220,12 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 		}
 		for _, char := range reservedChars {
 			if match := strings.Contains(params.Path, char); match {
-				return database.Link{}, http.StatusBadRequest, fmt.Sprintf(
+				json.RespondWithError(writer, http.StatusBadRequest, fmt.Sprintf(
 					"The character '%s' is not allowed.",
 					char,
-				)
+				))
+
+				return
 			}
 		}
 	}
@@ -221,17 +250,35 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
 			log.Println(err)
+			json.RespondWithError(
+				writer,
+				http.StatusInternalServerError,
+				"Could not hash the password.",
+			)
 
-			return database.Link{}, http.StatusInternalServerError, "Could not hash the password."
+			return
 		}
 	}
 
 	// Insert the information to the database, error if it can't, most likely that the short is already in use
-	err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
+	err = database.CreateLink(
+		conf.DB,
+		uuid.New(),
+		time.Now().UTC(),
+		expireAt,
+		params.URL,
+		params.Path,
+		hash,
+	)
 	if err != nil && !autoGen {
 		log.Println(err)
+		json.RespondWithError(
+			writer,
+			http.StatusBadRequest,
+			"Could not add link: the path is probably already in use.",
+		)
 
-		return database.Link{}, http.StatusBadRequest, "Could not add link: the path is probably already in use."
+		return
 	} else if err != nil && autoGen {
 	loop:
 		for index := conf.DefaultShortLength; index <= conf.DefaultMaxShortLength; index++ {
@@ -241,7 +288,9 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 			case err != nil:
 				log.Println(err)
 			case err != nil && index == conf.DefaultMaxShortLength:
-				return database.Link{}, http.StatusInternalServerError, "No more space left in the database."
+				json.RespondWithError(writer, http.StatusInternalServerError, "No more space left in the database.")
+
+				return
 			case err == nil && index != params.Length:
 				type informationResponse struct {
 					Information string `json:"information"`
@@ -264,38 +313,5 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	}
 
 	// Return the expiry time, the url and the short to the user
-	return link, 0, ""
-}
-
-// APIHandlerRoot redirects to the correct handler based on the client's request.
-func (conf Configuration) APIHandlerRoot(writer http.ResponseWriter, req *http.Request) {
-	// Check method and decide whether to create or redirect to link
-	switch {
-	case req.Method == http.MethodGet && req.URL.Path == "/favicon.ico":
-		return
-	case req.Method == http.MethodGet && req.URL.Path == "/":
-		conf.FrontHandlerMainPage(writer, req)
-	case req.Method == http.MethodGet:
-		conf.APIRedirectToURL(writer, req)
-	case req.Method == http.MethodPost:
-		log.Printf("%s %s", req.Method, req.URL.Path)
-		params, err := utils.DecodeJSON(req)
-		if err != nil {
-			log.Println(err)
-			json.RespondWithError(writer, http.StatusBadRequest, "Invalid JSON syntax.")
-
-			return
-		}
-		link, code, errMsg := conf.APICreateLink(writer, params)
-		if errMsg != "" {
-			json.RespondWithError(writer, code, errMsg)
-
-			return
-		}
-		json.RespondWithJSON(writer, http.StatusCreated, link)
-	default:
-		json.RespondWithError(writer, http.StatusMethodNotAllowed, "Method Not Allowed.")
-
-		return
-	}
+	json.RespondWithJSON(writer, http.StatusCreated, link)
 }

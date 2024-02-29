@@ -16,7 +16,7 @@
 
 module github.com/redds-be/reddlinks
 
-go 1.21
+go 1.22
 
 require (
 	github.com/alexedwards/argon2id v1.0.0

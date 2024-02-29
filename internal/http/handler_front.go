@@ -390,7 +390,7 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 	page := &Page{
 		InstanceTitle:   conf.InstanceName,
 		InstanceURL:     conf.InstanceURL,
-		Short:           utils.TrimFirstRune(req.URL.Path),
+		Short:           req.PathValue("short"),
 		Version:         conf.Version,
 		Token:           Token,
 		TimeOfExecution: time.Now().UTC().Format(time.ANSIC),
