@@ -36,8 +36,8 @@ services:
       - "8080:8080"
     user: "1000:1000"
     volumes:
-      - ../static:/opt/reddlinks/static
-      - .env:/opt/reddlinks/.env
+      - ../static:/static
+      - .env:/.env
 
 volumes:
   database:
