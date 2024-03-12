@@ -5,7 +5,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/redds-be/reddlinks">
-    <img src="static/assets/img/reddlinks_logo_d.svg" alt="Logo" width="128" height="128">
+    <img src="static/assets/img/reddlinks_logo_d.png" alt="Logo" width="128" height="128">
   </a>
 
 <h3 align="center">reddlinks</h3>
