@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build Docker image
-        run: docker build -t reddlinks -f docker/Dockerfile-ci .
+        run: docker build -t reddlinks -f docker/Dockerfile .
