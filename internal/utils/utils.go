@@ -17,9 +17,7 @@
 package utils
 
 import (
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -83,14 +81,4 @@ func DecodeJSON(r *http.Request) (Parameters, error) {
 	err := decoder.Decode(&params)
 
 	return params, err
-}
-
-// RandomToken creates a random token.
-func RandomToken() string {
-	bytes := make([]byte, 32) //nolint:gomnd
-	if _, err := rand.Read(bytes); err != nil {
-		log.Println(err)
-	}
-
-	return hex.EncodeToString(bytes)
 }
