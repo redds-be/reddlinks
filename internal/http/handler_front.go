@@ -274,7 +274,7 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen
 		Short:    params.Path,
 	}
 
-	return "", 0, addInfo, link
+	return "", http.StatusCreated, addInfo, link
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
@@ -358,6 +358,9 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 		AddInfo:  addInfo,
 		Version:  conf.Version,
 	}
+
+	// At this point, we can confirm that the link is created
+	writer.WriteHeader(http.StatusCreated)
 
 	// Display the add page which will display the information about the added link
 	RenderTemplate(writer, "add", page)
