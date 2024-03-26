@@ -300,7 +300,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 			writer,
 			req,
 			http.StatusInternalServerError,
-			"There was an error trying to read the password.",
+			"There was an error trying to read the length.",
 		)
 
 		return
