@@ -99,6 +99,9 @@ func (conf Configuration) FrontErrorPage(
 		Version:       conf.Version,
 	}
 
+	// Set the return code
+	writer.WriteHeader(code)
+
 	// Display the error page
 	RenderTemplate(writer, "error", page)
 }
