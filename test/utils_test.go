@@ -31,12 +31,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func (s *UtilsSuite) TestRandomToken() {
-	// Test if randomToken returns something
-	s.NotEmpty(utils.RandomToken())
-	s.NotZero(utils.RandomToken())
-}
-
 func (s *UtilsSuite) TestCollectGarbage() {
 	// Prepare the database needed for garbage collection
 	testEnv := env.GetEnv(".env.test")

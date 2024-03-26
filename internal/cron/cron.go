@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/env"
-	"github.com/redds-be/reddlinks/internal/http"
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
@@ -21,12 +20,4 @@ func StartJobs(conf utils.Configuration, envVars env.Env) {
 			time.Sleep(duration)
 		}
 	}(time.Duration(envVars.TimeBetweenCleanups) * time.Minute)
-
-	// Generate a new token every x time
-	go func(duration time.Duration) {
-		for {
-			http.Token = utils.RandomToken()
-			time.Sleep(duration)
-		}
-	}(3 * time.Hour) //nolint:gomnd
 }
