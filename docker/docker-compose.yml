@@ -1,9 +1,6 @@
----
-version: "3.4"
-
 services:
   postgresql:
-    image: postgres:latest
+    image: postgres:16-alpine
     restart: unless-stopped
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
@@ -12,7 +9,7 @@ services:
       retries: 5
       timeout: 5s
     volumes:
-      - ../database:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: ${REDDLINKS_PG_PASS:?database password required}
       POSTGRES_USER: ${REDDLINKS_PG_USER:-rluser}
@@ -36,9 +33,8 @@ services:
       - "8080:8080"
     user: "1000:1000"
     volumes:
-      - ../static:/static
       - .env:/.env
 
 volumes:
-  database:
+  db:
     driver: local
