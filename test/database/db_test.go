@@ -14,7 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package test_test
+package database_test
 
 import (
 	"testing"
@@ -23,19 +23,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/env"
-	"github.com/stretchr/testify/suite"
+	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (s *DBSuite) TestDB() {
+func (suite dbTestSuite) TestDB() {
 	// Testing the creation of the database
-	testEnv := env.GetEnv(".env.test")
+	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "db_test.db"
 	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	// Testing the creation of the links table
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	// Testing the creation of a link entry
 	err = database.CreateLink(
@@ -47,33 +47,44 @@ func (s *DBSuite) TestDB() {
 		"custom",
 		"pass",
 	)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	// Testing the query to get an url by its short
 	URL, err := database.GetURLByShort(dataBase, "custom")
-	s.Require().NoError(err)
-	s.Equal("http://example.com", URL)
+	suite.a.AssertNoErr(err)
+	suite.a.Assert(URL, "http://example.com")
 
 	// Testing the query to get a hash by its short
 	pass, err := database.GetHashByShort(dataBase, "custom")
-	s.Require().NoError(err)
-	s.Equal("pass", pass)
+	suite.a.AssertNoErr(err)
+	suite.a.Assert(pass, "pass")
 
 	// Testing the query to get all the entries
 	links, err := database.GetLinks(dataBase)
-	s.Require().NoError(err)
-	s.NotEmpty(links)
+	suite.a.AssertNoErr(err)
+	suite.a.AssertNotEmpty(links, database.Link{})
 
 	// Testing the removal of an entry
 	err = database.RemoveLink(dataBase, "custom")
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 }
 
-type DBSuite struct {
-	suite.Suite
+// Test suite structure.
+type dbTestSuite struct {
+	t *testing.T
+	a helper.Adapter
 }
 
 func TestDBSuite(t *testing.T) {
+	// Enable parallelism
 	t.Parallel()
-	suite.Run(t, new(DBSuite))
+
+	// Initialize the helper's adapter
+	assertHelper := helper.NewAdapter(t)
+
+	// Initialize the test suite
+	suite := dbTestSuite{t: t, a: assertHelper}
+
+	// Call the tests
+	suite.TestDB()
 }
