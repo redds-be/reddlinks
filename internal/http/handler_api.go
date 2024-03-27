@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/alexedwards/argon2id"
-	"github.com/dchest/uniuri"
 	"github.com/google/uuid"
 	"github.com/redds-be/reddlinks/internal/database" // Local database package
 	"github.com/redds-be/reddlinks/internal/json"
@@ -233,12 +232,10 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	// Check the path, will default to a randomly generated one with specified length,
 	// if its length is over 16, it will be trimmed
 	autoGen := false
-	allowedChars := []byte(
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~",
-	)
+	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
 	if params.Path == "" {
 		autoGen = true
-		params.Path = uniuri.NewLenChars(params.Length, allowedChars)
+		params.Path = utils.GenStr(params.Length, allowedChars)
 	}
 	if len(params.Path) > conf.DefaultMaxCustomLength {
 		params.Path = params.Path[:conf.DefaultMaxCustomLength]
@@ -282,7 +279,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	} else if err != nil && autoGen {
 	loop:
 		for index := conf.DefaultShortLength; index <= conf.DefaultMaxShortLength; index++ {
-			params.Path = uniuri.NewLenChars(index, allowedChars)
+			params.Path = utils.GenStr(index, allowedChars)
 			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
 			switch {
 			case err != nil:
