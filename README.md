@@ -103,8 +103,8 @@ curl -X GET https://ls.redds.be/ag4vb~ -H 'Content-Type: application/json' -d '{
 <!-- ROADMAP -->
 ## Roadmap
 
+- [ ] Add a private mode with authentication
 - [ ] Write documentation
-- [ ] Write tests for main handlers
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
