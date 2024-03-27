@@ -26,12 +26,16 @@ import (
 	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (suite dbTestSuite) TestDB() {
+func (suite dbTestSuite) TestDB() { //nolint:funlen
 	// Testing the creation of the database
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "db_test.db"
 	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
 	suite.a.AssertNoErr(err)
+
+	// Testing the creation of the database with a random driver
+	_, err = database.DBConnect("legitdriver", testEnv.DBURL)
+	suite.a.AssertErr(err)
 
 	// Testing the creation of the links table
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
@@ -49,15 +53,35 @@ func (suite dbTestSuite) TestDB() {
 	)
 	suite.a.AssertNoErr(err)
 
+	// Testing the creation of a link entry that will cause an error
+	err = database.CreateLink(
+		dataBase,
+		uuid.New(),
+		time.Now().UTC(),
+		time.Now().UTC(),
+		"http://example.com",
+		"custom",
+		"pass",
+	)
+	suite.a.AssertErr(err)
+
 	// Testing the query to get an url by its short
 	URL, err := database.GetURLByShort(dataBase, "custom")
 	suite.a.AssertNoErr(err)
 	suite.a.Assert(URL, "http://example.com")
 
+	// Testing the query to get an url by its short that will cause an error
+	_, err = database.GetURLByShort(dataBase, "doesnotexist")
+	suite.a.AssertErr(err)
+
 	// Testing the query to get a hash by its short
 	pass, err := database.GetHashByShort(dataBase, "custom")
 	suite.a.AssertNoErr(err)
 	suite.a.Assert(pass, "pass")
+
+	// Testing the query to get a hash by its short that will cause an error
+	_, err = database.GetHashByShort(dataBase, "doesnotexist")
+	suite.a.AssertErr(err)
 
 	// Testing the query to get all the entries
 	links, err := database.GetLinks(dataBase)
@@ -67,6 +91,10 @@ func (suite dbTestSuite) TestDB() {
 	// Testing the removal of an entry
 	err = database.RemoveLink(dataBase, "custom")
 	suite.a.AssertNoErr(err)
+
+	// Testing the removal of an entry that will cause an error
+	err = database.RemoveLink(dataBase, "doesnotexist")
+	suite.a.AssertErr(err)
 }
 
 // Test suite structure.
