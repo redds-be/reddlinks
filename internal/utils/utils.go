@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -81,4 +82,19 @@ func DecodeJSON(r *http.Request) (Parameters, error) {
 	err := decoder.Decode(&params)
 
 	return params, err
+}
+
+// GenStr generates strings of X length compose of Y characters.
+func GenStr(length int, charset string) string {
+	// Create an empty map for the future string
+	randomByteStr := make([]byte, length)
+
+	// For the length of the empty string, append a random character within the charset
+	for i := range randomByteStr {
+		randomByteStr[i] = charset[rand.New( //nolint:gosec
+			rand.NewSource(time.Now().UnixNano())).Intn(len(charset))]
+	}
+
+	// Convert and return the generated string
+	return string(randomByteStr)
 }

@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -78,6 +79,19 @@ func (s *UtilsSuite) TestDecodeJSON() {
 	decodedParams, err := utils.DecodeJSON(req)
 	s.Require().NoError(err)
 	s.Equal(paramsToEncode, decodedParams)
+}
+
+func (s *UtilsSuite) TestGenStr() {
+	// Test random char generation
+	const testLength = 6
+
+	randStr := utils.GenStr(testLength, "ABC")
+
+	s.Len(randStr, testLength)
+
+	if !strings.Contains(randStr, "A") && !strings.Contains(randStr, "B") && !strings.Contains(randStr, "C") {
+		s.T().Fatalf("%s does not contain either A, B, or C.", randStr)
+	}
 }
 
 type UtilsSuite struct {
