@@ -14,7 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package test_test
+package http_test
 
 import (
 	"bytes"
@@ -30,43 +30,43 @@ import (
 	"github.com/redds-be/reddlinks/internal/env"
 	HTTP "github.com/redds-be/reddlinks/internal/http"
 	"github.com/redds-be/reddlinks/internal/utils"
-	"github.com/stretchr/testify/suite"
+	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (s *APISuite) TestReadiness() {
+func (suite apiTestSuite) TestReadiness() {
 	// Test a GET request on the readiness handler
 	req := httptest.NewRequest(http.MethodGet, "/status", nil)
 	resp := httptest.NewRecorder()
 	HTTP.HandlerReadiness(resp, req)
-	s.Equal(http.StatusOK, resp.Code)
-	s.Equal("{\"status\":\"Alive.\"}", resp.Body.String())
+	suite.a.Assert(resp.Code, http.StatusOK)
+	suite.a.Assert(resp.Body.String(), "{\"status\":\"Alive.\"}")
 }
 
-func (s *APISuite) TestErr() {
+func (suite apiTestSuite) TestErr() {
 	// Test a GET request on the generic error handler
 	req := httptest.NewRequest(http.MethodGet, "/error", nil)
 	resp := httptest.NewRecorder()
 	HTTP.HandlerErr(resp, req)
-	s.Equal(http.StatusBadRequest, resp.Code)
-	s.Equal("{\"error\":\"400 Something went wrong.\"}", resp.Body.String())
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
+	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 Something went wrong.\"}")
 }
 
-func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
-	testEnv := env.GetEnv(".env.test")
+func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
+	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "api_test.db"
 
 	// If the test db already exists, delete it as it will cause errors
 	if _, err := os.Stat(testEnv.DBURL); !errors.Is(err, os.ErrNotExist) {
 		err = os.Remove(testEnv.DBURL)
-		s.Require().NoError(err)
+		suite.a.AssertNoErrf(err)
 	}
 
 	// Prep everything
 	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
-	s.Require().NoError(err)
+	suite.a.AssertNoErrf(err)
 
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
-	s.Require().NoError(err)
+	suite.a.AssertNoErrf(err)
 
 	conf := &utils.Configuration{
 		DB:                     dataBase,
@@ -97,23 +97,23 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req := httptest.NewRequest(http.MethodPost, "/", &buf)
 	resp := httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusCreated, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusCreated)
 
 	decoder := json.NewDecoder(resp.Body)
 	returnedLink := database.Link{}
 	err = decoder.Decode(&returnedLink)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with default values
@@ -122,7 +122,7 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusSeeOther, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusSeeOther)
 	// Test link creation with custom length for random short
 	params = utils.Parameters{
 		URL:         "http://example.com/",
@@ -133,25 +133,24 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req = httptest.NewRequest(http.MethodPost, "/", &buf)
 	resp = httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusCreated, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusCreated)
 
 	decoder = json.NewDecoder(resp.Body)
 	err = decoder.Decode(&returnedLink)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
-	// s.Equal(params.Length, len(returnedLink.Short))
-	s.Len(returnedLink.Short, params.Length)
+	suite.a.Assert(len(returnedLink.Short), params.Length)
 
 	// Test link redirection with custom length for random short
 	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
@@ -159,7 +158,7 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusSeeOther, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusSeeOther)
 
 	// Test link creation with a custom short
 	params = utils.Parameters{
@@ -171,25 +170,25 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req = httptest.NewRequest(http.MethodPost, "/", &buf)
 	resp = httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusCreated, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusCreated)
 
 	decoder = json.NewDecoder(resp.Body)
 	err = decoder.Decode(&returnedLink)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
-	s.Equal(len(params.Path), len(returnedLink.Short))
-	s.Equal(params.Path, returnedLink.Short)
+	suite.a.Assert(len(returnedLink.Short), len(params.Path))
+	suite.a.Assert(returnedLink.Short, params.Path)
 
 	// Test link redirection with a custom short
 	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
@@ -197,7 +196,7 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusSeeOther, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusSeeOther)
 
 	// Test link creation with custom expiration time
 	params = utils.Parameters{
@@ -209,22 +208,22 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req = httptest.NewRequest(http.MethodPost, "/", &buf)
 	resp = httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusCreated, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusCreated)
 
 	decoder = json.NewDecoder(resp.Body)
 	err = decoder.Decode(&returnedLink)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(params.ExpireAfter)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(params.ExpireAfter)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with custom expiration time
@@ -233,7 +232,7 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusSeeOther, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusSeeOther)
 
 	// Test link creation with a password
 	params = utils.Parameters{
@@ -245,22 +244,22 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req = httptest.NewRequest(http.MethodPost, "/", &buf)
 	resp = httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusCreated, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusCreated)
 
 	decoder = json.NewDecoder(resp.Body)
 	err = decoder.Decode(&returnedLink)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with a password
@@ -269,7 +268,7 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, &buf)
 	resp = httptest.NewRecorder()
@@ -277,43 +276,7 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusSeeOther, resp.Code)
-
-	// Test link creation with custom expiration time
-	params = utils.Parameters{
-		URL:         "http://example.com/",
-		Length:      0,
-		Path:        "",
-		ExpireAfter: 5,
-		Password:    "",
-	}
-
-	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
-
-	req = httptest.NewRequest(http.MethodPost, "/", &buf)
-	resp = httptest.NewRecorder()
-	mux.ServeHTTP(resp, req)
-
-	s.Equal(http.StatusCreated, resp.Code)
-
-	decoder = json.NewDecoder(resp.Body)
-	err = decoder.Decode(&returnedLink)
-	s.Require().NoError(err)
-
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(params.ExpireAfter)*time.Minute).Format(time.RFC822),
-		returnedLink.ExpireAt.Format(time.RFC822),
-	)
-
-	// Test link redirection with custom expiration time
-	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
-	resp = httptest.NewRecorder()
-
-	mux.ServeHTTP(resp, req)
-
-	s.Equal(http.StatusSeeOther, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusSeeOther)
 
 	// Test link creation with an invalid url
 	params = utils.Parameters{
@@ -325,14 +288,14 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req = httptest.NewRequest(http.MethodPost, "/", &buf)
 	resp = httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusBadRequest, resp.Code)
-	s.Equal("{\"error\":\"400 The URL is invalid.\"}", resp.Body.String())
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
+	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 The URL is invalid.\"}")
 
 	// Test link creation with an invalid custom path
 	params = utils.Parameters{
@@ -344,14 +307,14 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	err = json.NewEncoder(&buf).Encode(params)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	req = httptest.NewRequest(http.MethodPost, "/", &buf)
 	resp = httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusBadRequest, resp.Code)
-	s.Equal("{\"error\":\"400 The character '*' is not allowed.\"}", resp.Body.String())
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
+	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 The character '*' is not allowed.\"}")
 
 	// Test link redirection with a short that does not exist
 	req = httptest.NewRequest(http.MethodGet, "/idonotexist", nil)
@@ -359,14 +322,27 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	mux.ServeHTTP(resp, req)
 
-	s.Equal(http.StatusNotFound, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusNotFound)
 }
 
-type APISuite struct {
-	suite.Suite
+// Test suite structure.
+type apiTestSuite struct {
+	t *testing.T
+	a helper.Adapter
 }
 
 func TestAPISuite(t *testing.T) {
+	// Enable parallelism
 	t.Parallel()
-	suite.Run(t, new(APISuite))
+
+	// Initialize the helper's adapter
+	assertHelper := helper.NewAdapter(t)
+
+	// Initialize the test suite
+	suite := apiTestSuite{t: t, a: assertHelper}
+
+	// Call the tests
+	suite.TestReadiness()
+	suite.TestErr()
+	suite.TestMainAPIHandlers()
 }

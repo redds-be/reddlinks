@@ -14,22 +14,21 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package test_test
+package env_test
 
 import (
 	"testing"
 
 	"github.com/redds-be/reddlinks/internal/env"
-	"github.com/stretchr/testify/suite"
+	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (s *EnvSuite) TestEmptyOrZeroEnv() {
+func (suite envTestSuite) TestNotEmptyEnv() {
 	// Test if the returned env is empty
-	s.NotEmpty(env.GetEnv(".env.test"))
-	s.NotZero(env.GetEnv(".env.test"))
+	suite.a.AssertNotEmpty(env.GetEnv("../.env.test"), env.Env{})
 }
 
-func (s *EnvSuite) TestAreValuesFromFiles() {
+func (suite envTestSuite) TestAreValuesFromFiles() {
 	ValidEnv := env.Env{
 		PortStr:                "8080",
 		InstanceName:           "tester",
@@ -43,13 +42,13 @@ func (s *EnvSuite) TestAreValuesFromFiles() {
 		DefaultExpiryTime:      2880,
 	}
 
-	envToCheck := env.GetEnv(".env.test")
+	envToCheck := env.GetEnv("../.env.test")
 
 	// Test if the values of the env corresponds to these valid values
-	s.EqualValues(ValidEnv, envToCheck)
+	suite.a.Assert(envToCheck, ValidEnv)
 }
 
-func (s *EnvSuite) TestIsErrorForCorrectEnv() {
+func (suite envTestSuite) TestIsErrorForCorrectEnv() {
 	envToCheck := env.Env{
 		PortStr:                "8080",
 		InstanceName:           "tester",
@@ -64,10 +63,10 @@ func (s *EnvSuite) TestIsErrorForCorrectEnv() {
 	}
 
 	err := envToCheck.EnvCheck()
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 }
 
-func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
+func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 	envToCheck := env.Env{
 		PortStr:                "8080",
 		InstanceName:           "tester",
@@ -84,23 +83,23 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the port errors are correct
 	envToCheck.PortStr = ""
 	err := envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrRead)
+	suite.a.AssertErrIs(err, env.ErrRead)
 
 	envToCheck.PortStr = "hello"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrRead)
+	suite.a.AssertErrIs(err, env.ErrRead)
 
 	envToCheck.PortStr = "65536"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrSuperior)
+	suite.a.AssertErrIs(err, env.ErrSuperior)
 
 	envToCheck.PortStr = "0"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	envToCheck.PortStr = "-3"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	// Reset the port
 	envToCheck.PortStr = "8080"
@@ -108,7 +107,7 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the instance name errors are correct
 	envToCheck.InstanceName = ""
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrEmpty)
+	suite.a.AssertErrIs(err, env.ErrEmpty)
 
 	// Reset the instance name
 	envToCheck.InstanceName = "tester"
@@ -116,31 +115,31 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the instance URL errors are correct
 	envToCheck.InstanceURL = ""
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, env.ErrInvalid)
 
 	envToCheck.InstanceURL = "htt://example"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, env.ErrInvalid)
 
 	envToCheck.InstanceURL = "http://example.com"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, env.ErrInvalid)
 
 	envToCheck.InstanceURL = "http://ls.example.com"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, env.ErrInvalid)
 
 	envToCheck.InstanceURL = "https://example.com"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, env.ErrInvalid)
 
 	envToCheck.InstanceURL = "https://ls.example.com"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, env.ErrInvalid)
 
 	envToCheck.InstanceURL = "magnet://ls.example.com/"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, env.ErrInvalid)
 
 	// Reset the instance URL
 	envToCheck.InstanceURL = "http://127.0.0.1:8080/"
@@ -148,11 +147,11 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the database type errors are correct
 	envToCheck.DBType = ""
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalidOrUnsupported)
+	suite.a.AssertErrIs(err, env.ErrInvalidOrUnsupported)
 
 	envToCheck.DBType = "mssql"
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrInvalidOrUnsupported)
+	suite.a.AssertErrIs(err, env.ErrInvalidOrUnsupported)
 
 	// Reset the database type
 	envToCheck.DBType = "postgres"
@@ -160,7 +159,7 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the database string errors are correct
 	envToCheck.DBURL = ""
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrEmpty)
+	suite.a.AssertErrIs(err, env.ErrEmpty)
 
 	// Reset the database string
 	envToCheck.DBURL = "postgres://user:pass@localhost:5432/db"
@@ -168,11 +167,11 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the time between cleanups errors are correct
 	envToCheck.TimeBetweenCleanups = 0
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	envToCheck.TimeBetweenCleanups = -6
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	// Reset the time between cleanups
 	envToCheck.TimeBetweenCleanups = 1
@@ -180,15 +179,15 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the default length errors are correct
 	envToCheck.DefaultLength = 0
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	envToCheck.DefaultLength = -9
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	envToCheck.DefaultLength = 256
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrSuperior)
+	suite.a.AssertErrIs(err, env.ErrSuperior)
 
 	// Reset the default length
 	envToCheck.DefaultLength = 6
@@ -196,19 +195,19 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the default max length errors are correct, fun fact, 3 of the errors can technically never be encountered
 	envToCheck.DefaultMaxLength = 0
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrSuperior)
+	suite.a.AssertErrIs(err, env.ErrSuperior)
 
 	envToCheck.DefaultMaxLength = -9
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrSuperior)
+	suite.a.AssertErrIs(err, env.ErrSuperior)
 
 	envToCheck.DefaultMaxLength = 20
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrSuperior)
+	suite.a.AssertErrIs(err, env.ErrSuperior)
 
 	envToCheck.DefaultMaxLength = 8001
 	err = envToCheck.EnvCheck()
-	s.Require().Error(err)
+	suite.a.AssertErr(err)
 
 	// Reset the default max length
 	envToCheck.DefaultMaxLength = 255
@@ -216,15 +215,15 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the default max length errors are correct
 	envToCheck.DefaultMaxCustomLength = 0
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	envToCheck.DefaultMaxCustomLength = -9
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	envToCheck.DefaultMaxCustomLength = 300
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrSuperior)
+	suite.a.AssertErrIs(err, env.ErrSuperior)
 
 	// Reset the default max length
 	envToCheck.DefaultMaxCustomLength = 255
@@ -232,18 +231,32 @@ func (s *EnvSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the default expiry time are correct
 	envToCheck.DefaultExpiryTime = 0
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 
 	envToCheck.DefaultExpiryTime = -17
 	err = envToCheck.EnvCheck()
-	s.Require().ErrorIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
 }
 
-type EnvSuite struct {
-	suite.Suite
+// Test suite structure.
+type envTestSuite struct {
+	t *testing.T
+	a helper.Adapter
 }
 
 func TestEnvSuite(t *testing.T) {
+	// Enable parallelism
 	t.Parallel()
-	suite.Run(t, new(EnvSuite))
+
+	// Initialize the helper's adapter
+	assertHelper := helper.NewAdapter(t)
+
+	// Initialize the test suite
+	suite := envTestSuite{t: t, a: assertHelper}
+
+	// Call the tests
+	suite.TestNotEmptyEnv()
+	suite.TestAreValuesFromFiles()
+	suite.TestIsErrorForCorrectEnv()
+	suite.TestAreErrorsCorrect()
 }

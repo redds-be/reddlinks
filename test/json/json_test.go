@@ -14,7 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package test_test
+package json_test
 
 import (
 	"net/http"
@@ -22,32 +22,44 @@ import (
 	"testing"
 
 	"github.com/redds-be/reddlinks/internal/json"
-	"github.com/stretchr/testify/suite"
+	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (s *JSONSuite) TestRespondWithError() {
+func (suite jsonTestSuite) TestRespondWithError() {
 	resp := httptest.NewRecorder()
 	json.RespondWithError(resp, http.StatusBadRequest, "An error.")
-	s.Equal(http.StatusBadRequest, resp.Code)
-	s.Equal("{\"error\":\"400 An error.\"}", resp.Body.String())
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
+	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 An error.\"}")
 }
 
-func (s *JSONSuite) TestRespondWithJSON() {
+func (suite jsonTestSuite) TestRespondWithJSON() {
 	// Testing a JSON response
 	type msg struct {
 		Msg string `json:"msg"`
 	}
 	resp := httptest.NewRecorder()
 	json.RespondWithJSON(resp, http.StatusOK, msg{Msg: "OK"})
-	s.Equal(http.StatusOK, resp.Code)
-	s.Equal("{\"msg\":\"OK\"}", resp.Body.String())
+	suite.a.Assert(resp.Code, http.StatusOK)
+	suite.a.Assert(resp.Body.String(), "{\"msg\":\"OK\"}")
 }
 
-type JSONSuite struct {
-	suite.Suite
+// Test suite structure.
+type jsonTestSuite struct {
+	t *testing.T
+	a helper.Adapter
 }
 
 func TestJSONSuite(t *testing.T) {
+	// Enable parallelism
 	t.Parallel()
-	suite.Run(t, new(JSONSuite))
+
+	// Initialize the helper's adapter
+	assertHelper := helper.NewAdapter(t)
+
+	// Initialize the test suite
+	suite := jsonTestSuite{t: t, a: assertHelper}
+
+	// Call the tests
+	suite.TestRespondWithError()
+	suite.TestRespondWithJSON()
 }

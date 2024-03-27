@@ -14,7 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package test_test
+package http_test
 
 import (
 	"errors"
@@ -31,10 +31,10 @@ import (
 	"github.com/redds-be/reddlinks/internal/env"
 	HTTP "github.com/redds-be/reddlinks/internal/http"
 	"github.com/redds-be/reddlinks/internal/utils"
-	"github.com/stretchr/testify/suite"
+	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (s *frontSuite) TestRenderTemplate() {
+func (suite frontTestSuite) TestRenderTemplate() {
 	HTTP.Templates = template.Must(template.ParseFiles("test.html"))
 
 	page := HTTP.Page{
@@ -60,13 +60,14 @@ func (s *frontSuite) TestRenderTemplate() {
 
 	HTTP.RenderTemplate(resp, "test", &page)
 
-	s.Equal(http.StatusOK, resp.Code)
-	s.Equal("nosniff", resp.Header().Get("X-Content-Type-Options"))
-	s.Equal("text/html; charset=UTF-8", resp.Header().Get("Content-Type"))
-	s.Equal("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; img-src 'self'; "+
+	suite.a.Assert(resp.Code, http.StatusOK)
+	suite.a.Assert(resp.Header().Get("X-Content-Type-Options"), "nosniff")
+	suite.a.Assert(resp.Header().Get("Content-Type"), "text/html; charset=UTF-8")
+	suite.a.Assert(resp.Header().Get("Content-Security-Policy"), "default-src 'self'; script-src 'self' "+
+		"'unsafe-inline'; style-src 'self'; img-src 'self'; "+
 		"connect-src 'self'; frame-src 'self'; font-src 'self'; media-src 'self'; object-src 'self'; manifest-src "+
-		"'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'", resp.Header().Get("Content-Security-Policy"))
-	s.Equal("<p>InstanceTitle: test</p>\n"+
+		"'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'")
+	suite.a.Assert(resp.Body.String(), "<p>InstanceTitle: test</p>\n"+
 		"<p>InstanceURL: test.com</p>\n"+
 		"<p>ShortenedLink: shortenedtest</p>\n"+
 		"<p>Short: shorttest</p>\n"+
@@ -80,28 +81,28 @@ func (s *frontSuite) TestRenderTemplate() {
 		"<p>DefaultMaxShortLength: 2</p>\n"+
 		"<p>DefaultMaxCustomLength: 3</p>\n"+
 		"<p>DefaultExpiryTime: 4</p>\n"+
-		"<p>ContactEmail: test AT test DOT test</p>", resp.Body.String())
+		"<p>ContactEmail: test AT test DOT test</p>")
 }
 
-func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
-	HTTP.Templates = template.Must(template.ParseFiles("../static/index.html", "../static/add.html",
-		"../static/error.html", "../static/pass.html", "../static/privacy.html"))
+func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
+	HTTP.Templates = template.Must(template.ParseFiles("../../static/index.html", "../../static/add.html",
+		"../../static/error.html", "../../static/pass.html", "../../static/privacy.html"))
 
-	testEnv := env.GetEnv(".env.test")
+	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "front_test.db"
 
 	// If the test db already exists, delete it as it will cause errors
 	if _, err := os.Stat(testEnv.DBURL); !errors.Is(err, os.ErrNotExist) {
 		err = os.Remove(testEnv.DBURL)
-		s.Require().NoError(err)
+		suite.a.AssertNoErr(err)
 	}
 
 	// Prep everything
 	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	conf := &utils.Configuration{
 		DB:                     dataBase,
@@ -123,7 +124,7 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 	httpAdapter := HTTP.NewAdapter(*conf)
 	httpAdapter.FrontErrorPage(resp, req, 400, "Something went wrong.")
 
-	s.Equal(http.StatusBadRequest, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
 
 	// Test if the main page works
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
@@ -131,7 +132,7 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	httpAdapter.FrontHandlerMainPage(resp, req)
 
-	s.Equal(http.StatusOK, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusOK)
 
 	// Test if the privacy page works
 	req = httptest.NewRequest(http.MethodGet, "/privacy", nil)
@@ -139,7 +140,7 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	httpAdapter.FrontHandlerPrivacyPage(resp, req)
 
-	s.Equal(http.StatusOK, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusOK)
 
 	// Test if the password asking page works
 	req = httptest.NewRequest(http.MethodGet, "/pass", nil)
@@ -147,7 +148,7 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	httpAdapter.FrontAskForPassword(resp, req)
 
-	s.Equal(http.StatusOK, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusOK)
 
 	// Test link creation with default values
 	params := utils.Parameters{
@@ -160,12 +161,12 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, returnedLink := httpAdapter.FrontCreateLink(params)
 
-	s.Equal("", errMsg)
-	s.Equal(http.StatusCreated, code)
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(errMsg, "")
+	suite.a.Assert(code, http.StatusCreated)
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with custom length for random short
@@ -179,13 +180,13 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
 
-	s.Equal("", errMsg)
-	s.Equal(http.StatusCreated, code)
-	s.Equal(params.URL, returnedLink.URL)
-	s.Len(returnedLink.Short, params.Length)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(errMsg, "")
+	suite.a.Assert(code, http.StatusCreated)
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(len(returnedLink.Short), params.Length)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with a custom short
@@ -199,13 +200,13 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
 
-	s.Equal("", errMsg)
-	s.Equal(http.StatusCreated, code)
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(params.Path, returnedLink.Short)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(errMsg, "")
+	suite.a.Assert(code, http.StatusCreated)
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(returnedLink.Short, params.Path)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with custom expiration time
@@ -219,12 +220,12 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
 
-	s.Equal("", errMsg)
-	s.Equal(http.StatusCreated, code)
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(params.ExpireAfter)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(errMsg, "")
+	suite.a.Assert(code, http.StatusCreated)
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(params.ExpireAfter)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with a password
@@ -238,12 +239,12 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
 
-	s.Equal("", errMsg)
-	s.Equal(http.StatusCreated, code)
-	s.Equal(params.URL, returnedLink.URL)
-	s.Equal(
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	suite.a.Assert(errMsg, "")
+	suite.a.Assert(code, http.StatusCreated)
+	suite.a.Assert(returnedLink.URL, params.URL)
+	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with an invalid custom path
@@ -257,8 +258,8 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, _ = httpAdapter.FrontCreateLink(params)
 
-	s.Equal("The character '*' is not allowed.", errMsg)
-	s.Equal(http.StatusBadRequest, code)
+	suite.a.Assert(errMsg, "The character '*' is not allowed.")
+	suite.a.Assert(code, http.StatusBadRequest)
 
 	// Test link creation with an invalid url
 	params = utils.Parameters{
@@ -271,8 +272,8 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, _ = httpAdapter.FrontCreateLink(params)
 
-	s.Equal("'gopher://example.com/' is not a valid url. (only http and https are supported)", errMsg)
-	s.Equal(http.StatusBadRequest, code)
+	suite.a.Assert(errMsg, "'gopher://example.com/' is not a valid url. (only http and https are supported)")
+	suite.a.Assert(code, http.StatusBadRequest)
 
 	// Test if the front link creation page works
 	addForm := url.Values{
@@ -290,7 +291,7 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	httpAdapter.FrontHandlerAdd(resp, req)
 
-	s.Equal(http.StatusCreated, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusCreated)
 
 	// Test the front link redirection
 	redirectForm := url.Values{
@@ -305,7 +306,7 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	httpAdapter.FrontHandlerRedirectToURL(resp, req)
 
-	s.Equal(http.StatusSeeOther, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusSeeOther)
 
 	// Test the front link redirection with a short that does not exist
 	redirectForm = url.Values{
@@ -320,14 +321,26 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	httpAdapter.FrontHandlerRedirectToURL(resp, req)
 
-	s.Equal(http.StatusNotFound, resp.Code)
+	suite.a.Assert(resp.Code, http.StatusNotFound)
 }
 
-type frontSuite struct {
-	suite.Suite
+// Test suite structure.
+type frontTestSuite struct {
+	t *testing.T
+	a helper.Adapter
 }
 
 func TestFrontSuite(t *testing.T) {
+	// Enable parallelism
 	t.Parallel()
-	suite.Run(t, new(frontSuite))
+
+	// Initialize the helper's adapter
+	assertHelper := helper.NewAdapter(t)
+
+	// Initialize the test suite
+	suite := frontTestSuite{t: t, a: assertHelper}
+
+	// Call the tests
+	suite.TestRenderTemplate()
+	suite.TestMainFrontHandlers()
 }

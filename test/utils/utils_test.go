@@ -14,7 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package test_test
+package utils_test
 
 import (
 	"bytes"
@@ -29,17 +29,18 @@ import (
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/env"
 	"github.com/redds-be/reddlinks/internal/utils"
-	"github.com/stretchr/testify/suite"
+	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (s *UtilsSuite) TestCollectGarbage() {
+func (suite utilsTestSuite) TestCollectGarbage() {
 	// Prepare the database needed for garbage collection
-	testEnv := env.GetEnv(".env.test")
+	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "utils_test.db"
 	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
+
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 	err = database.CreateLink(
 		dataBase,
 		uuid.New(),
@@ -49,15 +50,15 @@ func (s *UtilsSuite) TestCollectGarbage() {
 		"garbage",
 		"pass",
 	)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	// Test the execution of collectGarbage()
 	conf := &utils.Configuration{DB: dataBase}
 	err = conf.CollectGarbage()
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 }
 
-func (s *UtilsSuite) TestDecodeJSON() {
+func (suite utilsTestSuite) TestDecodeJSON() {
 	// Set the parameters to encode, decodeJSON() will be expected to return exactly the same values
 	paramsToEncode := utils.Parameters{
 		URL:         "http://example.com",
@@ -69,36 +70,49 @@ func (s *UtilsSuite) TestDecodeJSON() {
 
 	// Encore de parameters
 	enc, err := json.Marshal(paramsToEncode)
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	// Mock request
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "/", bytes.NewBuffer(enc))
-	s.Require().NoError(err)
+	suite.a.AssertNoErr(err)
 
 	// Test the decodeJSON() function and compare its return value to the expected values
 	decodedParams, err := utils.DecodeJSON(req)
-	s.Require().NoError(err)
-	s.Equal(paramsToEncode, decodedParams)
+	suite.a.AssertNoErr(err)
+	suite.a.Assert(decodedParams, paramsToEncode)
 }
 
-func (s *UtilsSuite) TestGenStr() {
+func (suite utilsTestSuite) TestGenStr() {
 	// Test random char generation
 	const testLength = 6
 
 	randStr := utils.GenStr(testLength, "ABC")
 
-	s.Len(randStr, testLength)
+	suite.a.Assert(len(randStr), testLength)
 
 	if !strings.Contains(randStr, "A") && !strings.Contains(randStr, "B") && !strings.Contains(randStr, "C") {
-		s.T().Fatalf("%s does not contain either A, B, or C.", randStr)
+		suite.t.Errorf("%s does not contain either A, B, or C.", randStr)
 	}
 }
 
-type UtilsSuite struct {
-	suite.Suite
+// Test suite structure.
+type utilsTestSuite struct {
+	t *testing.T
+	a helper.Adapter
 }
 
 func TestUtilsSuite(t *testing.T) {
+	// Enable parallelism
 	t.Parallel()
-	suite.Run(t, new(UtilsSuite))
+
+	// Initialize the helper's adapter
+	assertHelper := helper.NewAdapter(t)
+
+	// Initialize the test suite
+	suite := utilsTestSuite{t: t, a: assertHelper}
+
+	// Call the tests
+	suite.TestCollectGarbage()
+	suite.TestDecodeJSON()
+	suite.TestGenStr()
 }
