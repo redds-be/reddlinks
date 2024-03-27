@@ -17,6 +17,7 @@
 package env
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -134,18 +135,27 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 }
 
 // GetEnv gets the env variables from given .env.
-func GetEnv(envFile string) Env { //nolint:funlen
-	// Load the env file
-	err := godotenv.Load(envFile)
-	if err != nil {
-		log.Fatal(err)
+func GetEnv(envFile string) Env { //nolint:funlen,cyclop
+	// If the envFile exists, load it
+	if _, err := os.Stat(envFile); !errors.Is(err, os.ErrNotExist) {
+		// Load the env file
+		err := godotenv.Load(envFile)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Read the port
 	portStr := os.Getenv("REDDLINKS_PORT")
+	if portStr == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_PORT env variable")
+	}
 
 	// Read the default short length
 	defaultLengthStr := os.Getenv("REDDLINKS_DEF_SHORT_LENGTH")
+	if defaultLengthStr == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DEF_SHORT_LENGTH env variable")
+	}
 	defaultLength, err := strconv.Atoi(defaultLengthStr)
 	if err != nil {
 		log.Fatal("the default length couldn't be read:", err)
@@ -153,6 +163,9 @@ func GetEnv(envFile string) Env { //nolint:funlen
 
 	// Read the default max short length
 	defaultMaxLengthStr := os.Getenv("REDDLINKS_MAX_SHORT_LENGTH")
+	if defaultMaxLengthStr == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_MAX_SHORT_LENGTH env variable")
+	}
 	defaultMaxLength, err := strconv.Atoi(defaultMaxLengthStr)
 	if err != nil {
 		log.Fatal("the default max length couldn't be read:", err)
@@ -160,6 +173,9 @@ func GetEnv(envFile string) Env { //nolint:funlen
 
 	// Read the default max custom short length
 	defaultMaxCustomLengthStr := os.Getenv("REDDLINKS_MAX_CUSTOM_SHORT_LENGTH")
+	if defaultMaxCustomLengthStr == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_MAX_CUSTOM_SHORT_LENGTH env variable")
+	}
 	defaultMaxCustomLength, err := strconv.Atoi(defaultMaxCustomLengthStr)
 	if err != nil {
 		log.Fatal("the default max custom short length couldn't be read:", err)
@@ -167,6 +183,9 @@ func GetEnv(envFile string) Env { //nolint:funlen
 
 	// Read the default expiry time
 	defaultExpiryTimeStr := os.Getenv("REDDLINKS_DEF_EXPIRY_TIME")
+	if defaultExpiryTimeStr == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DEF_EXPIRY_TIME env variable")
+	}
 	defaultExpiryTime, err := strconv.Atoi(defaultExpiryTimeStr)
 	if err != nil {
 		log.Fatal("the default expiry time couldn't be read:", err)
@@ -174,18 +193,33 @@ func GetEnv(envFile string) Env { //nolint:funlen
 
 	// Read the instance name
 	instanceName := os.Getenv("REDDLINKS_INSTANCE_NAME")
+	if instanceName == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_INSTANCE_NAME env variable")
+	}
 
 	// Read the instance URL
 	instanceURL := os.Getenv("REDDLINKS_INSTANCE_URL")
+	if instanceURL == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_INSTANCE_URL env variable")
+	}
 
 	// Read the database type
 	dbType := os.Getenv("REDDLINKS_DB_TYPE")
+	if dbType == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_TYPE env variable")
+	}
 
 	// Read the database URL
 	dbURL := os.Getenv("REDDLINKS_DB_STRING")
+	if dbURL == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_STRING env variable")
+	}
 
 	// Read the time between cleanup and convert it to an int
 	timeBetweenCleanupsStr := os.Getenv("REDDLINKS_TIME_BETWEEN_DB_CLEANUPS")
+	if timeBetweenCleanupsStr == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_TIME_BETWEEN_DB_CLEANUPS env variable")
+	}
 	timeBetweenCleanups, err := strconv.Atoi(timeBetweenCleanupsStr)
 	if err != nil {
 		log.Fatal("the time between database cleanups couldn't be read:", err)
