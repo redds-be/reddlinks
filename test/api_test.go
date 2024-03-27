@@ -307,6 +307,14 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		returnedLink.ExpireAt.Format(time.RFC822),
 	)
 
+	// Test link redirection with custom expiration time
+	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
+	resp = httptest.NewRecorder()
+
+	mux.ServeHTTP(resp, req)
+
+	s.Equal(http.StatusSeeOther, resp.Code)
+
 	// Test link creation with an invalid url
 	params = utils.Parameters{
 		URL:         "gopher://example.com/",
@@ -344,6 +352,14 @@ func (s *APISuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	s.Equal(http.StatusBadRequest, resp.Code)
 	s.Equal("{\"error\":\"400 The character '*' is not allowed.\"}", resp.Body.String())
+
+	// Test link redirection with a short that does not exist
+	req = httptest.NewRequest(http.MethodGet, "/idonotexist", nil)
+	resp = httptest.NewRecorder()
+
+	mux.ServeHTTP(resp, req)
+
+	s.Equal(http.StatusNotFound, resp.Code)
 }
 
 type APISuite struct {
