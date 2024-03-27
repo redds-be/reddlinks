@@ -36,7 +36,7 @@
     <p>Enter a URL to shorten</p>
     <form id="create_link" action="/add" method="post">
         <div class="div-input">
-            <input placeholder="https://example.com" name="url" title="A url" class="url-input" type="url" required>
+            <input placeholder="https://example.com" name="url" title="A url" class="url-input" type="url" pattern="^https?://.*\..*$" required>
         </div>
         <div class="div-input">
             <input placeholder="custom" name="short" title="A custom path" class="oth-input" type="text" maxlength="{{.DefaultMaxCustomLength}}">

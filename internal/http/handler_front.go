@@ -138,9 +138,22 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, re
 }
 
 // FrontCreateLink creates a link entry into the database using the values of the form from the front page.
-func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen
+func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 	params utils.Parameters,
 ) (string, int, string, database.Link) {
+	// Check if the url is valid
+	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
+	if err != nil {
+		return "Unable to check the given URL", http.StatusInternalServerError, "", database.Link{}
+	}
+
+	if !isValid {
+		return fmt.Sprintf(
+			"'%s' is not a valid url. (only http and https are supported)",
+			params.URL,
+		), http.StatusBadRequest, "", database.Link{}
+	}
+
 	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
 	var expireAt time.Time
 	switch {
@@ -219,7 +232,6 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
 	hash := ""
-	var err error
 	if params.Password != "" {
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
