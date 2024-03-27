@@ -246,6 +246,34 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 		returnedLink.ExpireAt.Format(time.RFC822),
 	)
 
+	// Test link creation with an invalid custom path
+	params = utils.Parameters{
+		URL:         "http://example.com/",
+		Length:      0,
+		Path:        "cust*m",
+		ExpireAfter: 0,
+		Password:    "",
+	}
+
+	errMsg, code, _, _ = httpAdapter.FrontCreateLink(params)
+
+	s.Equal("The character '*' is not allowed.", errMsg)
+	s.Equal(http.StatusBadRequest, code)
+
+	// Test link creation with an invalid url
+	params = utils.Parameters{
+		URL:         "gopher://example.com/",
+		Length:      0,
+		Path:        "",
+		ExpireAfter: 0,
+		Password:    "",
+	}
+
+	errMsg, code, _, _ = httpAdapter.FrontCreateLink(params)
+
+	s.Equal("'gopher://example.com/' is not a valid url. (only http and https are supported)", errMsg)
+	s.Equal(http.StatusBadRequest, code)
+
 	// Test if the front link creation page works
 	addForm := url.Values{
 		"add":          {"Add"},
@@ -264,7 +292,7 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	s.Equal(http.StatusCreated, resp.Code)
 
-	// Test if the front link redirection
+	// Test the front link redirection
 	redirectForm := url.Values{
 		"access":   {"Access"},
 		"short":    {"addpagetest"},
@@ -278,6 +306,21 @@ func (s *frontSuite) TestMainFrontHandlers() { //nolint:funlen
 	httpAdapter.FrontHandlerRedirectToURL(resp, req)
 
 	s.Equal(http.StatusSeeOther, resp.Code)
+
+	// Test the front link redirection with a short that does not exist
+	redirectForm = url.Values{
+		"access":   {"Access"},
+		"short":    {"idonotexist"},
+		"password": {"secret"},
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/pass", strings.NewReader(redirectForm.Encode()))
+	resp = httptest.NewRecorder()
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	httpAdapter.FrontHandlerRedirectToURL(resp, req)
+
+	s.Equal(http.StatusNotFound, resp.Code)
 }
 
 type frontSuite struct {
