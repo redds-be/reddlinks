@@ -26,7 +26,7 @@ import (
 	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (suite dbTestSuite) TestDB() {
+func (suite dbTestSuite) TestDB() { //nolint:funlen
 	// Testing the creation of the database
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "db_test.db"
