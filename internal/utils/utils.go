@@ -34,11 +34,15 @@ type Configuration struct {
 	InstanceURL            string
 	Version                string
 	PortSTR                string
+	TLSPortSTR             string
+	ContactEmail           string
+	CertFile               string
+	KeyFile                string
+	TLSEnabled             bool
 	DefaultShortLength     int
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int
 	DefaultExpiryTime      int
-	ContactEmail           string
 }
 
 // Parameters defines the structure of the JSON payload that will be read from the user.

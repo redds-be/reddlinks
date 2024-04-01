@@ -36,6 +36,9 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
+	if conf.TLSEnabled {
+		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+	}
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// Get the requested short
@@ -127,6 +130,9 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
+	if conf.TLSEnabled {
+		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+	}
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// Get the JSON parameters
