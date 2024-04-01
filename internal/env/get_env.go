@@ -30,11 +30,15 @@ import (
 // Env defines a structure for the env variables.
 type Env struct {
 	PortStr                string
+	TLSPortStr             string
 	InstanceName           string
 	InstanceURL            string
 	DBType                 string
 	DBURL                  string
 	ContactEmail           string
+	CertFile               string
+	KeyFile                string
+	TLSEnabled             bool
 	TimeBetweenCleanups    int
 	DefaultLength          int
 	DefaultMaxLength       int
@@ -43,13 +47,7 @@ type Env struct {
 }
 
 // EnvCheck checks the values of the Env struct.
-func (env Env) EnvCheck() error { //nolint:funlen,cyclop
-	// Check the port
-	port, err := strconv.Atoi(env.PortStr)
-	if err != nil {
-		return fmt.Errorf("the port %w", ErrRead)
-	}
-
+func (env Env) EnvCheck() error { //nolint:funlen,cyclop,gocyclo
 	// Check if the instance name isn't null
 	if env.InstanceName == "" {
 		return fmt.Errorf("the instance name %w", ErrEmpty)
@@ -65,6 +63,10 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	}
 
 	// Check if the port is valid
+	port, err := strconv.Atoi(env.PortStr)
+	if err != nil {
+		return fmt.Errorf("the port %w", ErrRead)
+	}
 	const maxPort = 65535
 	if port <= 0 {
 		return fmt.Errorf("the port %w", ErrNullOrNegative)
@@ -128,6 +130,32 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	// Check the default expiry time
 	if env.DefaultExpiryTime <= 0 {
 		return fmt.Errorf("the default expiry time %w", ErrNullOrNegative)
+	}
+
+	// Check if the cert file variable has a value when tls is enabled
+	if env.TLSEnabled && env.CertFile == "" {
+		return fmt.Errorf("the cert file env variable %w", ErrEmpty)
+	}
+
+	// Check if the key file variable has a value when tls is enabled
+	if env.TLSEnabled && env.KeyFile == "" {
+		return fmt.Errorf("the key file env variable %w", ErrEmpty)
+	}
+
+	// Check if the tls port is valid when tls is enabled
+	if env.TLSEnabled {
+		if env.CertFile == "" {
+			return fmt.Errorf("the tls port env variable %w", ErrEmpty)
+		}
+		tlsPort, err := strconv.Atoi(env.TLSPortStr)
+		if err != nil {
+			return fmt.Errorf("the tls port %w", ErrRead)
+		}
+		if tlsPort <= 0 {
+			return fmt.Errorf("the tls port %w", ErrNullOrNegative)
+		} else if tlsPort > maxPort {
+			return fmt.Errorf("the tls port %w '%d'", ErrSuperior, maxPort)
+		}
 	}
 
 	// No errors, since everything is fine
@@ -225,15 +253,39 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 		log.Fatal("the time between database cleanups couldn't be read:", err)
 	}
 
+	// Get the contact email if any
 	contactEmail := os.Getenv("REDDLINKS_CONTACT_EMAIL")
+
+	// Get the cert file if any
+	certFile := os.Getenv("REDDLINKS_TLS_CERT")
+
+	// Get the key file if any
+	keyFile := os.Getenv("REDDLINKS_TLS_KEY")
+
+	// Get the bool value if tls is enabled or not
+	tlsEnabledStr := os.Getenv("REDDLINKS_TLS_ENABLED")
+	if tlsEnabledStr == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_TLS_ENABLED env variable")
+	}
+	tlsEnabled, err := strconv.ParseBool(tlsEnabledStr)
+	if err != nil {
+		log.Fatal("REDDLINKS_TLS_ENABLED could not be read, make sure it is either 'true' or 'false'")
+	}
+
+	// Get the tls port value if any
+	tlsPortStr := os.Getenv("REDDLINKS_TLS_PORT")
 
 	env := Env{
 		PortStr:                portStr,
+		TLSPortStr:             tlsPortStr,
 		InstanceName:           instanceName,
 		InstanceURL:            instanceURL,
 		DBType:                 dbType,
 		DBURL:                  dbURL,
 		ContactEmail:           contactEmail,
+		CertFile:               certFile,
+		KeyFile:                keyFile,
+		TLSEnabled:             tlsEnabled,
 		TimeBetweenCleanups:    timeBetweenCleanups,
 		DefaultLength:          defaultLength,
 		DefaultMaxLength:       defaultMaxLength,

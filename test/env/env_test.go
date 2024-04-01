@@ -35,6 +35,11 @@ func (suite envTestSuite) TestAreValuesFromFiles() {
 		InstanceURL:            "http://127.0.0.1:8080/",
 		DBType:                 "sqlite3",
 		DBURL:                  "test.db",
+		ContactEmail:           "test AT test DOT com",
+		CertFile:               "path/to/cert.crt",
+		KeyFile:                "path/to/key.key",
+		TLSPortStr:             "8443",
+		TLSEnabled:             true,
 		TimeBetweenCleanups:    1,
 		DefaultLength:          6,
 		DefaultMaxLength:       255,
@@ -55,6 +60,11 @@ func (suite envTestSuite) TestIsErrorForCorrectEnv() {
 		InstanceURL:            "http://127.0.0.1:8080/",
 		DBType:                 "sqlite3",
 		DBURL:                  "test.db",
+		ContactEmail:           "test AT test DOT com",
+		CertFile:               "path/to/cert.crt",
+		KeyFile:                "path/to/key.key",
+		TLSPortStr:             "8443",
+		TLSEnabled:             true,
 		TimeBetweenCleanups:    1,
 		DefaultLength:          6,
 		DefaultMaxLength:       255,
@@ -73,6 +83,11 @@ func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 		InstanceURL:            "http://127.0.0.1:8080/",
 		DBType:                 "sqlite3",
 		DBURL:                  "test.db",
+		ContactEmail:           "test AT test DOT com",
+		CertFile:               "path/to/cert.crt",
+		KeyFile:                "path/to/key.key",
+		TLSPortStr:             "8443",
+		TLSEnabled:             true,
 		TimeBetweenCleanups:    1,
 		DefaultLength:          6,
 		DefaultMaxLength:       255,
@@ -236,6 +251,33 @@ func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 	envToCheck.DefaultExpiryTime = -17
 	err = envToCheck.EnvCheck()
 	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
+
+	// Reset the default expiry time
+	envToCheck.DefaultExpiryTime = 2880
+
+	// Test if the cert file error is correct
+	envToCheck.CertFile = ""
+	err = envToCheck.EnvCheck()
+	suite.a.AssertErrIs(err, env.ErrEmpty)
+
+	// Reset the cert file value
+	envToCheck.CertFile = "path/to/cert.crt"
+
+	// Test if the key file error is correct
+	envToCheck.KeyFile = ""
+	err = envToCheck.EnvCheck()
+	suite.a.AssertErrIs(err, env.ErrEmpty)
+
+	// Reset the key file value
+	envToCheck.KeyFile = "path/to/key.key"
+
+	// Test if the TLS port error is correct
+	envToCheck.TLSPortStr = ""
+	err = envToCheck.EnvCheck()
+	suite.a.AssertErrIs(err, env.ErrRead)
+
+	// Reset the tls port value
+	envToCheck.TLSPortStr = "8443"
 }
 
 // Test suite structure.
