@@ -84,9 +84,6 @@ func (conf Configuration) FrontErrorPage(
 	code int,
 	errMsg string,
 ) {
-	if conf.TLSEnabled {
-		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-	}
 	log.Printf("%s %s", req.Method, req.URL.Path)
 	// Set what is going to be displayed on the error page
 	page := &Page{
@@ -105,9 +102,6 @@ func (conf Configuration) FrontErrorPage(
 
 // FrontHandlerMainPage displays the main page with a form used to shorte a link.
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
-	if conf.TLSEnabled {
-		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-	}
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// Set what is going to be displayed on the main page
@@ -129,9 +123,6 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 
 // FrontHandlerPrivacyPage displays the Privacy Policy page.
 func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
-	if conf.TLSEnabled {
-		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-	}
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// Set what is going to be displayed on the privacy page
@@ -300,9 +291,6 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
-	if conf.TLSEnabled {
-		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-	}
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
 	// What to if the form is correct, i.e. the front page form was posted.
@@ -366,26 +354,18 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 		expireAt = link.ExpireAt.Format(time.ANSIC)
 	}
 
-	// Shorten the shortened link to have the shortest link possible,
-	// when using a non-standard port, since the shortened link will use http on a port that only listens for https,
-	// replace the https to the http port, so that the request will be redirected using redirectToHTTPS() from server.go
-	shortenedLink := regexp.MustCompile("^https://|http://").
-		ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, link.Short), "")
-	if conf.TLSEnabled && conf.PortSTR != "80" && conf.TLSPortSTR != "443" {
-		shortenedLink = strings.Replace(shortenedLink, conf.TLSPortSTR, conf.PortSTR, 1)
-	}
-
 	// Set what is going to be displayed on the add page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
-		ShortenedLink: shortenedLink,
-		Short:         link.Short,
-		URL:           link.URL,
-		ExpireAt:      expireAt,
-		Password:      params.Password,
-		AddInfo:       addInfo,
-		Version:       conf.Version,
+		ShortenedLink: regexp.MustCompile("^https://|http://").
+			ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, link.Short), ""),
+		Short:    link.Short,
+		URL:      link.URL,
+		ExpireAt: expireAt,
+		Password: params.Password,
+		AddInfo:  addInfo,
+		Version:  conf.Version,
 	}
 
 	// At this point, we can confirm that the link is created
@@ -397,10 +377,6 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 
 // FrontAskForPassword asks for a password to access a given shortened link.
 func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request) {
-	if conf.TLSEnabled {
-		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-	}
-
 	// Set what is going to be displayed on the pass page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
@@ -414,14 +390,10 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
-func (conf Configuration) FrontHandlerRedirectToURL( //nolint:funlen
+func (conf Configuration) FrontHandlerRedirectToURL(
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
-	if conf.TLSEnabled {
-		writer.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-	}
-
 	// Get the hash corresponding to the short
 	hash, err := database.GetHashByShort(conf.DB, req.FormValue("short"))
 	if err != nil {

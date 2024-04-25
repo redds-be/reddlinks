@@ -57,18 +57,14 @@ func main() {
 	conf := &utils.Configuration{
 		DB:                     dbase,
 		PortSTR:                envVars.PortStr,
-		TLSPortSTR:             envVars.TLSPortStr,
 		InstanceName:           envVars.InstanceName,
 		InstanceURL:            envVars.InstanceURL,
-		ContactEmail:           envVars.ContactEmail,
-		Version:                "noVersion",
-		CertFile:               envVars.CertFile,
-		KeyFile:                envVars.KeyFile,
-		TLSEnabled:             envVars.TLSEnabled,
 		DefaultShortLength:     envVars.DefaultLength,
 		DefaultMaxShortLength:  envVars.DefaultMaxLength,
 		DefaultMaxCustomLength: envVars.DefaultMaxCustomLength,
 		DefaultExpiryTime:      envVars.DefaultExpiryTime,
+		ContactEmail:           envVars.ContactEmail,
+		Version:                "noVersion",
 	}
 
 	cron.StartJobs(*conf, envVars)
