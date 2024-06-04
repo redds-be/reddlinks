@@ -24,6 +24,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="icon" type="image/svg" href="assets/img/reddlinks_logo_t.png">
+    <script type="application/javascript" src="assets/js/add.js"></script>
 </head>
 <body>
 <p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
@@ -36,9 +37,10 @@
     {{if .AddInfo}}
     <p>{{.AddInfo}}</p>
     {{end}}
-    <p>Shortened link: <a href="{{.InstanceURL}}{{.Short}}" target="_blank" id="myInput">{{.ShortenedLink}}</a></p>
+    <p>Shortened link: <a href="{{.InstanceURL}}{{.Short}}" target="_blank" id="short">{{.ShortenedLink}}</a></p>
     <p>Links to: {{.URL}}</p>
     {{if .Password}}
+    <input type="hidden" value="{{.Password}}" id="password">
     <p id="pass">Accessible using password: ********</p>
     <div class="div-input">
         <button onclick="revealPass()" id="reveal">Reveal Password</button>
@@ -46,7 +48,7 @@
     {{end}}
     <p>Will expire on: {{.ExpireAt}} UTC</p>
     <div class="div-input">
-        <button onclick="copyLink()" id="confirmation" onmouseleave="revertCopy()">Copy Link</button>
+        <button onclick="copyLink()" id="copy" onmouseleave="revertCopy()">Copy Link</button>
     </div>
     <form action="/" method="Get">
         <div class="div-input">
@@ -65,28 +67,5 @@
         <a href="https://github.com/redds-be/reddlinks" target="_blank">Source Code</a>.
     </p>
 </div>
-<script>
-    function copyLink() {
-        /* Copy text into clipboard */
-        navigator.clipboard.writeText
-        ("{{.ShortenedLink}}");
-        /* Set the new value for the button */
-        var conf = document.getElementById("confirmation");
-        conf.innerHTML = "Copied Link"
-    }
-    function revertCopy() {
-        /* Reset the value for the button */
-        var conf = document.getElementById("confirmation");
-        conf.innerHTML = "Copy Link"
-    }
-    {{if .Password}}
-    function revealPass() {
-        var pass = document.getElementById("pass")
-        pass.innerHTML = "Accessible using password: {{.Password}}"
-        var rev = document.getElementById("reveal")
-        rev.innerHTML = "Password revealed"
-    }
-    {{end}}
-</script>
 </body>
 </html>
