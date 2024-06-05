@@ -58,7 +58,7 @@ func (suite frontTestSuite) TestRenderTemplate() {
 	// Test if template rendering works
 	resp := httptest.NewRecorder()
 
-	HTTP.RenderTemplate(resp, "test", &page)
+	HTTP.RenderTemplate(resp, "test", &page, http.StatusOK)
 
 	suite.a.Assert(resp.Code, http.StatusOK)
 	suite.a.Assert(resp.Header().Get("X-Content-Type-Options"), "nosniff")
