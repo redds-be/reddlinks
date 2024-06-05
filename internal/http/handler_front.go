@@ -56,7 +56,7 @@ type Page struct {
 }
 
 // RenderTemplate renders the templates using a given Page struct.
-func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page) {
+func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code int) {
 	// Tell that we serve HTML in UTF-8.
 	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	// Tell that all resources comes from here and that only this site can frame itself
@@ -66,6 +66,9 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page) {
 			" object-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'")
 	// Block access to styles and scripts
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
+
+	// Write the header giving a code
+	writer.WriteHeader(code)
 
 	// Render a given template, json error if it can't
 	err := Templates.ExecuteTemplate(writer, tmpl+".html", page)
@@ -93,11 +96,8 @@ func (conf Configuration) FrontErrorPage(
 		Version:       conf.Version,
 	}
 
-	// Set the return code
-	writer.WriteHeader(code)
-
 	// Display the error page
-	RenderTemplate(writer, "error", page)
+	RenderTemplate(writer, "error", page, code)
 }
 
 // FrontHandlerMainPage displays the main page with a form used to shorte a link.
@@ -118,7 +118,7 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 	}
 
 	// Display the front page
-	RenderTemplate(writer, "index", page)
+	RenderTemplate(writer, "index", page, http.StatusOK)
 }
 
 // FrontHandlerPrivacyPage displays the Privacy Policy page.
@@ -134,7 +134,7 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, re
 	}
 
 	// Display the front page
-	RenderTemplate(writer, "privacy", page)
+	RenderTemplate(writer, "privacy", page, http.StatusOK)
 }
 
 // FrontCreateLink creates a link entry into the database using the values of the form from the front page.
@@ -368,11 +368,8 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 		Version:  conf.Version,
 	}
 
-	// At this point, we can confirm that the link is created
-	writer.WriteHeader(http.StatusCreated)
-
 	// Display the add page which will display the information about the added link
-	RenderTemplate(writer, "add", page)
+	RenderTemplate(writer, "add", page, http.StatusCreated)
 }
 
 // FrontAskForPassword asks for a password to access a given shortened link.
@@ -386,7 +383,7 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 	}
 
 	// Display the pass page which will ask the user for a password
-	RenderTemplate(writer, "pass", page)
+	RenderTemplate(writer, "pass", page, http.StatusOK)
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
