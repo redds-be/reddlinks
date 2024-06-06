@@ -33,7 +33,7 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 		InstanceName:           configuration.InstanceName,
 		InstanceURL:            configuration.InstanceURL,
 		Version:                configuration.Version,
-		PortSTR:                configuration.PortSTR,
+		AddrAndPort:            configuration.AddrAndPort,
 		DefaultShortLength:     configuration.DefaultShortLength,
 		DefaultMaxShortLength:  configuration.DefaultMaxShortLength,
 		DefaultMaxCustomLength: configuration.DefaultMaxCustomLength,
@@ -67,15 +67,24 @@ func (conf Configuration) Run() error {
 		"POST /add",
 		conf.FrontHandlerAdd,
 	) // Front page for adding a link that returns the basic info
-	mux.HandleFunc("POST /access", conf.FrontHandlerRedirectToURL) // Access a password protected link
-	mux.HandleFunc("GET /privacy", conf.FrontHandlerPrivacyPage)   // Display Privacy policy information page
-	mux.HandleFunc("GET /", conf.FrontHandlerMainPage)             // Main page with the form to create a link
-	mux.HandleFunc("GET /{short}", conf.APIRedirectToURL)          // Access a url
-	mux.HandleFunc("POST /", conf.APICreateLink)                   // Create a link
+	mux.HandleFunc(
+		"POST /access",
+		conf.FrontHandlerRedirectToURL,
+	) // Access a password protected link
+	mux.HandleFunc(
+		"GET /privacy",
+		conf.FrontHandlerPrivacyPage,
+	) // Display Privacy policy information page
+	mux.HandleFunc(
+		"GET /",
+		conf.FrontHandlerMainPage,
+	) // Main page with the form to create a link
+	mux.HandleFunc("GET /{short}", conf.APIRedirectToURL) // Access a url
+	mux.HandleFunc("POST /", conf.APICreateLink)          // Create a link
 
 	// Set the settings for the http server
 	srv := &http.Server{
-		Addr:              ":" + conf.PortSTR,
+		Addr:              conf.AddrAndPort,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      WriteTimeout,
 		IdleTimeout:       IdleTimeout,
@@ -84,7 +93,7 @@ func (conf Configuration) Run() error {
 	}
 
 	// Start to listen
-	log.Printf("Listening on port : '%s'.", conf.PortSTR)
+	log.Printf("Listening on: '%s'.", conf.AddrAndPort)
 	err := srv.ListenAndServe()
 
 	return err

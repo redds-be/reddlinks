@@ -63,10 +63,13 @@ func (suite frontTestSuite) TestRenderTemplate() {
 	suite.a.Assert(resp.Code, http.StatusOK)
 	suite.a.Assert(resp.Header().Get("X-Content-Type-Options"), "nosniff")
 	suite.a.Assert(resp.Header().Get("Content-Type"), "text/html; charset=UTF-8")
-	suite.a.Assert(resp.Header().Get("Content-Security-Policy"), "default-src 'self'; script-src 'self'; "+
-		"style-src 'self'; img-src 'self'; "+
-		"connect-src 'self'; frame-src 'self'; font-src 'self'; media-src 'self'; object-src 'self'; manifest-src "+
-		"'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'")
+	suite.a.Assert(
+		resp.Header().Get("Content-Security-Policy"),
+		"default-src 'self'; script-src 'self'; "+
+			"style-src 'self'; img-src 'self'; "+
+			"connect-src 'self'; frame-src 'self'; font-src 'self'; media-src 'self'; object-src 'self'; manifest-src "+
+			"'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'",
+	)
 	suite.a.Assert(resp.Body.String(), "<p>InstanceTitle: test</p>\n"+
 		"<p>InstanceURL: test.com</p>\n"+
 		"<p>ShortenedLink: shortenedtest</p>\n"+
@@ -85,8 +88,10 @@ func (suite frontTestSuite) TestRenderTemplate() {
 }
 
 func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
-	HTTP.Templates = template.Must(template.ParseFiles("../../static/index.html", "../../static/add.html",
-		"../../static/error.html", "../../static/pass.html", "../../static/privacy.html"))
+	HTTP.Templates = template.Must(
+		template.ParseFiles("../../static/index.html", "../../static/add.html",
+			"../../static/error.html", "../../static/pass.html", "../../static/privacy.html"),
+	)
 
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "front_test.db"
@@ -109,7 +114,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 		InstanceName:           testEnv.InstanceName,
 		InstanceURL:            testEnv.InstanceURL,
 		Version:                "noVersion",
-		PortSTR:                testEnv.PortStr,
+		AddrAndPort:            testEnv.AddrAndPort,
 		DefaultShortLength:     testEnv.DefaultLength,
 		DefaultMaxShortLength:  testEnv.DefaultMaxLength,
 		DefaultMaxCustomLength: testEnv.DefaultMaxCustomLength,
@@ -272,7 +277,10 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	errMsg, code, _, _ = httpAdapter.FrontCreateLink(params)
 
-	suite.a.Assert(errMsg, "'gopher://example.com/' is not a valid url. (only http and https are supported)")
+	suite.a.Assert(
+		errMsg,
+		"'gopher://example.com/' is not a valid url. (only http and https are supported)",
+	)
 	suite.a.Assert(code, http.StatusBadRequest)
 
 	// Test if the front link creation page works

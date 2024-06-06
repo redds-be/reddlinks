@@ -29,7 +29,7 @@ import (
 
 // Env defines a structure for the env variables.
 type Env struct {
-	PortStr                string
+	AddrAndPort            string
 	InstanceName           string
 	InstanceURL            string
 	DBType                 string
@@ -44,12 +44,6 @@ type Env struct {
 
 // EnvCheck checks the values of the Env struct.
 func (env Env) EnvCheck() error { //nolint:funlen,cyclop
-	// Check the port
-	port, err := strconv.Atoi(env.PortStr)
-	if err != nil {
-		return fmt.Errorf("the port %w", ErrRead)
-	}
-
 	// Check if the instance name isn't null
 	if env.InstanceName == "" {
 		return fmt.Errorf("the instance name %w", ErrEmpty)
@@ -62,14 +56,6 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	}
 	if env.InstanceURL == "" || !instanceURLMatch {
 		return fmt.Errorf("the instance URL %w", ErrInvalid)
-	}
-
-	// Check if the port is valid
-	const maxPort = 65535
-	if port <= 0 {
-		return fmt.Errorf("the port %w", ErrNullOrNegative)
-	} else if port > maxPort {
-		return fmt.Errorf("the port %w '%d'", ErrSuperior, maxPort)
 	}
 
 	// Check if the database type is valid
@@ -145,10 +131,10 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 		}
 	}
 
-	// Read the port
-	portStr := os.Getenv("REDDLINKS_PORT")
-	if portStr == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_PORT env variable")
+	// Read the address and port
+	addrAndPort := os.Getenv("REDDLINKS_LISTEN_ADDR")
+	if addrAndPort == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_LISTEN_ADDR env variable")
 	}
 
 	// Read the default short length
@@ -174,7 +160,9 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the default max custom short length
 	defaultMaxCustomLengthStr := os.Getenv("REDDLINKS_MAX_CUSTOM_SHORT_LENGTH")
 	if defaultMaxCustomLengthStr == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_MAX_CUSTOM_SHORT_LENGTH env variable")
+		log.Fatal(
+			"reddlinks could not find a value for REDDLINKS_MAX_CUSTOM_SHORT_LENGTH env variable",
+		)
 	}
 	defaultMaxCustomLength, err := strconv.Atoi(defaultMaxCustomLengthStr)
 	if err != nil {
@@ -218,7 +206,9 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the time between cleanup and convert it to an int
 	timeBetweenCleanupsStr := os.Getenv("REDDLINKS_TIME_BETWEEN_DB_CLEANUPS")
 	if timeBetweenCleanupsStr == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_TIME_BETWEEN_DB_CLEANUPS env variable")
+		log.Fatal(
+			"reddlinks could not find a value for REDDLINKS_TIME_BETWEEN_DB_CLEANUPS env variable",
+		)
 	}
 	timeBetweenCleanups, err := strconv.Atoi(timeBetweenCleanupsStr)
 	if err != nil {
@@ -228,7 +218,7 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	contactEmail := os.Getenv("REDDLINKS_CONTACT_EMAIL")
 
 	env := Env{
-		PortStr:                portStr,
+		AddrAndPort:            addrAndPort,
 		InstanceName:           instanceName,
 		InstanceURL:            instanceURL,
 		DBType:                 dbType,
