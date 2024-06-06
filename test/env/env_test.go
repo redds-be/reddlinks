@@ -30,7 +30,7 @@ func (suite envTestSuite) TestNotEmptyEnv() {
 
 func (suite envTestSuite) TestAreValuesFromFiles() {
 	ValidEnv := env.Env{
-		PortStr:                "8080",
+		AddrAndPort:            "127.0.0.1:8080",
 		InstanceName:           "tester",
 		InstanceURL:            "http://127.0.0.1:8080/",
 		DBType:                 "sqlite3",
@@ -50,7 +50,7 @@ func (suite envTestSuite) TestAreValuesFromFiles() {
 
 func (suite envTestSuite) TestIsErrorForCorrectEnv() {
 	envToCheck := env.Env{
-		PortStr:                "8080",
+		AddrAndPort:            "127.0.0.1:8080",
 		InstanceName:           "tester",
 		InstanceURL:            "http://127.0.0.1:8080/",
 		DBType:                 "sqlite3",
@@ -68,7 +68,7 @@ func (suite envTestSuite) TestIsErrorForCorrectEnv() {
 
 func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 	envToCheck := env.Env{
-		PortStr:                "8080",
+		AddrAndPort:            "127.0.0.1:8080",
 		InstanceName:           "tester",
 		InstanceURL:            "http://127.0.0.1:8080/",
 		DBType:                 "sqlite3",
@@ -80,33 +80,9 @@ func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 		DefaultExpiryTime:      2880,
 	}
 
-	// Test if the port errors are correct
-	envToCheck.PortStr = ""
-	err := envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrRead)
-
-	envToCheck.PortStr = "hello"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrRead)
-
-	envToCheck.PortStr = "65536"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrSuperior)
-
-	envToCheck.PortStr = "0"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
-
-	envToCheck.PortStr = "-3"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
-
-	// Reset the port
-	envToCheck.PortStr = "8080"
-
 	// Test if the instance name errors are correct
 	envToCheck.InstanceName = ""
-	err = envToCheck.EnvCheck()
+	err := envToCheck.EnvCheck()
 	suite.a.AssertErrIs(err, env.ErrEmpty)
 
 	// Reset the instance name

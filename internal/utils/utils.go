@@ -33,7 +33,7 @@ type Configuration struct {
 	InstanceName           string
 	InstanceURL            string
 	Version                string
-	PortSTR                string
+	AddrAndPort            string
 	DefaultShortLength     int
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int

@@ -73,7 +73,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		InstanceName:           testEnv.InstanceName,
 		InstanceURL:            testEnv.InstanceURL,
 		Version:                "noVersion",
-		PortSTR:                testEnv.PortStr,
+		AddrAndPort:            testEnv.AddrAndPort,
 		DefaultShortLength:     testEnv.DefaultLength,
 		DefaultMaxShortLength:  testEnv.DefaultMaxLength,
 		DefaultMaxCustomLength: testEnv.DefaultMaxCustomLength,

@@ -56,7 +56,7 @@ func main() {
 	// Create a struct to connect to the database and send the instance name and url to the handlers
 	conf := &utils.Configuration{
 		DB:                     dbase,
-		PortSTR:                envVars.PortStr,
+		AddrAndPort:            envVars.AddrAndPort,
 		InstanceName:           envVars.InstanceName,
 		InstanceURL:            envVars.InstanceURL,
 		DefaultShortLength:     envVars.DefaultLength,
