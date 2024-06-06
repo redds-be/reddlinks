@@ -1,4 +1,7 @@
 ---
+run:
+  modules-download-mode: vendor
+
 linters:
   enable-all: true
   disable:
@@ -13,6 +16,8 @@ linters:
     - wrapcheck
 
 linters-settings:
+  errcheck:
+    ignore: ''
   # Packages allowed
   depguard:
     rules:
