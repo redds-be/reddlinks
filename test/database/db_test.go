@@ -65,6 +65,18 @@ func (suite dbTestSuite) TestDB() { //nolint:funlen
 	)
 	suite.a.AssertErr(err)
 
+	// Testing the creation of an expired link
+	err = database.CreateLink(
+		dataBase,
+		uuid.New(),
+		time.Now().UTC(),
+		time.Now().Add(time.Duration(-1)*time.Hour),
+		"http://example.com",
+		"willExpire",
+		"pass",
+	)
+	suite.a.AssertErr(err)
+
 	// Testing the query to get an url by its short
 	URL, err := database.GetURLByShort(dataBase, "custom")
 	suite.a.AssertNoErr(err)
@@ -83,10 +95,10 @@ func (suite dbTestSuite) TestDB() { //nolint:funlen
 	_, err = database.GetHashByShort(dataBase, "doesnotexist")
 	suite.a.AssertErr(err)
 
-	// Testing the query to get all the entries
-	links, err := database.GetLinks(dataBase)
+	// Testing the query to get all the expired entries
+	links, err := database.GetExpiredLinks(dataBase)
 	suite.a.AssertNoErr(err)
-	suite.a.AssertNotEmpty(links, database.Link{})
+	suite.a.AssertNotEmpty(links, database.ExpiredLink{})
 
 	// Testing the removal of an entry
 	err = database.RemoveLink(dataBase, "custom")
