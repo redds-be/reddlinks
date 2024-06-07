@@ -18,6 +18,7 @@ package main
 
 import (
 	"database/sql"
+	"embed"
 	"html/template"
 	"log"
 
@@ -27,6 +28,9 @@ import (
 	"github.com/redds-be/reddlinks/internal/http"
 	"github.com/redds-be/reddlinks/internal/utils"
 )
+
+//go:embed static
+var embeddedStatic embed.FS
 
 // main drives the application.
 func main() {
@@ -64,14 +68,15 @@ func main() {
 		DefaultMaxCustomLength: envVars.DefaultMaxCustomLength,
 		DefaultExpiryTime:      envVars.DefaultExpiryTime,
 		ContactEmail:           envVars.ContactEmail,
+		Static:                 embeddedStatic,
 		Version:                "noVersion",
 	}
 
+	// Start periodic jobs
 	cron.StartJobs(*conf, envVars)
 
 	// Parse html templates
-	http.Templates = template.Must(template.ParseFiles("static/index.html", "static/add.html",
-		"static/error.html", "static/pass.html", "static/privacy.html"))
+	http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/*.html"))
 
 	// Create an adapter for the server
 	httpAdapter := http.NewAdapter(*conf)

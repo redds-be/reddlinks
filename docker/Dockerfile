@@ -12,7 +12,6 @@ RUN mv build/reddlinks /go/bin/reddlinks
 FROM gcr.io/distroless/base-debian12
 
 COPY --from=build /go/bin/reddlinks /reddlinks
-COPY --from=build /go/src/reddlinks/static /static
 
 EXPOSE 8080
 
