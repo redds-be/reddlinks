@@ -28,7 +28,6 @@ import (
 
 	"github.com/alexedwards/argon2id"
 	"github.com/google/uuid"
-
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/json"
 	"github.com/redds-be/reddlinks/internal/utils"
