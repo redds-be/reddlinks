@@ -18,6 +18,7 @@ package utils
 
 import (
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"log"
 	"math/rand"
@@ -39,6 +40,7 @@ type Configuration struct {
 	DefaultMaxCustomLength int
 	DefaultExpiryTime      int
 	ContactEmail           string
+	Static                 embed.FS
 }
 
 // Parameters defines the structure of the JSON payload that will be read from the user.

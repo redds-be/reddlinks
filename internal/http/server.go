@@ -17,6 +17,7 @@
 package http
 
 import (
+	"io/fs"
 	"log"
 	"net/http"
 	"time"
@@ -39,23 +40,32 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 		DefaultMaxCustomLength: configuration.DefaultMaxCustomLength,
 		DefaultExpiryTime:      configuration.DefaultExpiryTime,
 		ContactEmail:           configuration.ContactEmail,
+		Static:                 configuration.Static,
 	}
 }
 
 // Run starts configures the HTTP server and starts listening and serving.
-func (conf Configuration) Run() error {
+func (conf Configuration) Run() error { //nolint:funlen
 	// Set default timeout time in seconds
 	const readTimeout = 1 * time.Second
 	const WriteTimeout = 1 * time.Second
 	const IdleTimeout = 30 * time.Second
 	const ReadHeaderTimeout = 2 * time.Second
 
+	// Create the filesystem for the assets
+	assetsFS, err := fs.Sub(conf.Static, "static/assets")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	// Create a file server using the assets filesystem
+	assetsHTTPFS := http.FileServer(http.FS(assetsFS))
+
 	// Create a multiplexer
 	mux := http.NewServeMux()
 
-	// Make use of the assets
-	fs := http.FileServer(http.Dir("static/assets"))
-	mux.Handle("GET /assets/", http.StripPrefix("/assets/", fs))
+	// Hangle the assets
+	mux.Handle("GET /assets/", http.StripPrefix("/assets/", assetsHTTPFS))
 
 	// Assign a handler to these different paths
 	mux.HandleFunc("GET /status", HandlerReadiness) // Check the status of the server
@@ -94,7 +104,7 @@ func (conf Configuration) Run() error {
 
 	// Start to listen
 	log.Printf("Listening on: '%s'.", conf.AddrAndPort)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 
 	return err
 }
