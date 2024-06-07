@@ -31,6 +31,11 @@ type Link struct {
 	Short    string    `json:"short"`
 }
 
+// ExpiredLink defines the structure of an expired link.
+type ExpiredLink struct {
+	Short string
+}
+
 // CreateLinksTable creates the links table in the database.
 func CreateLinksTable(database *sql.DB, maxShort int) error {
 	sqlCreateTable := fmt.Sprintf(
@@ -81,10 +86,10 @@ func GetHashByShort(db *sql.DB, short string) (string, error) {
 	return password, err
 }
 
-// GetLinks gets all the links entries from the database.
-func GetLinks(db *sql.DB) ([]Link, error) {
-	sqlGetLinks := `SELECT expire_at, url, short FROM links;`
-	var links []Link
+// GetExpiredLinks gets all the expired links entries from the database.
+func GetExpiredLinks(db *sql.DB) ([]ExpiredLink, error) {
+	sqlGetLinks := `SELECT short FROM links WHERE expire_at <= CURRENT_TIMESTAMP;`
+	var links []ExpiredLink
 	rows, err := db.Query(sqlGetLinks) //nolint:sqlclosecheck
 	defer func(rows *sql.Rows) {       // It is in fact, closed...
 		err = rows.Close()
@@ -95,8 +100,8 @@ func GetLinks(db *sql.DB) ([]Link, error) {
 	}
 
 	for rows.Next() {
-		var i Link
-		err = rows.Scan(&i.ExpireAt, &i.URL, &i.Short)
+		var i ExpiredLink
+		err = rows.Scan(&i.Short)
 		links = append(links, i)
 	}
 
