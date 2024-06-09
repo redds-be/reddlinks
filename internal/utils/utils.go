@@ -48,7 +48,8 @@ type Parameters struct {
 	URL         string `json:"url"`
 	Length      int    `json:"length"`
 	Path        string `json:"customPath"`
-	ExpireAfter int    `json:"expireAfter"`
+	ExpireAfter string `json:"expireAfter"`
+	ExpireDate  string `json:"expireDate"`
 	Password    string `json:"password"`
 }
 

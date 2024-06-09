@@ -71,7 +71,7 @@ In case it has been a while since the last commit, no, this project is not dead,
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-To use it in a web browser, follow the instruction on the main site.
+To use it in a web browser, follow the instruction on the front page.
 
 API requests:
 
@@ -85,9 +85,9 @@ curl -X POST https://ls.redds.be -H 'Content-Type: application/json' -d '{"url":
 Available params for link shortening are:
 
 - "url": "URL". A valid URL
-- "length": "Number". A number for an auto-generated short path, defaults to 6. **Optional**
+- "length": "Number". A number for an auto-generated short path, defaults to a pre-configure length. **Optional**
 - "customPath": "Path". A custom path to access the shortened link instead of an auto-generated one **Optional**
-- "expireAfter": "Number in minutes". Number of minutes after which the shortened link will expire, can be -1 for no expiration, defaults to 2880 (48 hours). **Optional**
+- "expireAfter": "1d1h1m1s". 1d = 1 day; 1h = 1 hour; 1m = 1 minute; 1s = 1 second; the format should be entered from greater (1d) to lesser (1s). Defaults to a pre-configured time. Example : "3d5h34m54s" = 3 days, 5 hours, 34 minutes and 54 seconds from now. **Optional**
 - "password": "Password". A password to protect the shortened link with. **Optional**
 
 2. Access password-protected links:

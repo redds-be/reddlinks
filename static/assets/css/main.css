@@ -88,9 +88,7 @@ button:focus {
 input {
     font: inherit;
     outline: 0;
-}
-
-.url-input {
+    width: 98%;
     border-radius: 0.25em;
     border-style: solid;
     border-width: 2px;
@@ -103,13 +101,6 @@ input {
 
 .url-input:valid {
     border-color: forestgreen;
-}
-
-.oth-input {
-    border-radius: 0.25em;
-    border-style: solid;
-    border-width: 2px;
-    font-size: 1rem;
 }
 
 details {

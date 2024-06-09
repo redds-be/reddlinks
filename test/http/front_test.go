@@ -157,11 +157,11 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test link creation with default values
 	params := utils.Parameters{
-		URL:         "http://example.com/",
-		Length:      0,
-		Path:        "",
-		ExpireAfter: 0,
-		Password:    "",
+		URL:        "http://example.com/",
+		Length:     0,
+		Path:       "",
+		ExpireDate: "",
+		Password:   "",
 	}
 
 	errMsg, code, _, returnedLink := httpAdapter.FrontCreateLink(params)
@@ -176,11 +176,11 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test link creation with custom length for random short
 	params = utils.Parameters{
-		URL:         "http://example.com/",
-		Length:      12,
-		Path:        "",
-		ExpireAfter: 0,
-		Password:    "",
+		URL:        "http://example.com/",
+		Length:     12,
+		Path:       "",
+		ExpireDate: "",
+		Password:   "",
 	}
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
@@ -196,11 +196,11 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test link creation with a custom short
 	params = utils.Parameters{
-		URL:         "http://example.com/",
-		Length:      0,
-		Path:        "custom",
-		ExpireAfter: 0,
-		Password:    "",
+		URL:        "http://example.com/",
+		Length:     0,
+		Path:       "custom",
+		ExpireDate: "",
+		Password:   "",
 	}
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
@@ -216,11 +216,11 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test link creation with custom expiration time
 	params = utils.Parameters{
-		URL:         "http://example.com/",
-		Length:      0,
-		Path:        "",
-		ExpireAfter: 5,
-		Password:    "",
+		URL:        "http://example.com/",
+		Length:     0,
+		Path:       "",
+		ExpireDate: "2006-01-02T12:12",
+		Password:   "",
 	}
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
@@ -228,18 +228,20 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	suite.a.Assert(errMsg, "")
 	suite.a.Assert(code, http.StatusCreated)
 	suite.a.Assert(returnedLink.URL, params.URL)
+	expireAt, err := time.Parse("2006-01-02T15:04", params.ExpireDate)
+	suite.a.AssertNoErr(err)
 	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
-		time.Now().UTC().Add(time.Duration(params.ExpireAfter)*time.Minute).Format(time.RFC822),
+		expireAt.Format(time.RFC822),
 	)
 
 	// Test link creation with a password
 	params = utils.Parameters{
-		URL:         "http://example.com/",
-		Length:      0,
-		Path:        "",
-		ExpireAfter: 0,
-		Password:    "secret",
+		URL:        "http://example.com/",
+		Length:     0,
+		Path:       "",
+		ExpireDate: "",
+		Password:   "secret",
 	}
 
 	errMsg, code, _, returnedLink = httpAdapter.FrontCreateLink(params)
@@ -254,11 +256,11 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test link creation with an invalid custom path
 	params = utils.Parameters{
-		URL:         "http://example.com/",
-		Length:      0,
-		Path:        "cust*m",
-		ExpireAfter: 0,
-		Password:    "",
+		URL:        "http://example.com/",
+		Length:     0,
+		Path:       "cust*m",
+		ExpireDate: "",
+		Password:   "",
 	}
 
 	errMsg, code, _, _ = httpAdapter.FrontCreateLink(params)
@@ -268,11 +270,11 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test link creation with an invalid url
 	params = utils.Parameters{
-		URL:         "gopher://example.com/",
-		Length:      0,
-		Path:        "",
-		ExpireAfter: 0,
-		Password:    "",
+		URL:        "gopher://example.com/",
+		Length:     0,
+		Path:       "",
+		ExpireDate: "",
+		Password:   "",
 	}
 
 	errMsg, code, _, _ = httpAdapter.FrontCreateLink(params)
@@ -285,12 +287,12 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test if the front link creation page works
 	addForm := url.Values{
-		"add":          {"Add"},
-		"length":       {"6"},
-		"expire_after": {"2880"},
-		"url":          {"https://example.com"},
-		"short":        {"addpagetest"},
-		"password":     {"secret"},
+		"add":             {"Add"},
+		"length":          {"6"},
+		"expire_datetime": {"2000-01-02T12:12"},
+		"url":             {"https://example.com"},
+		"short":           {"addpagetest"},
+		"password":        {"secret"},
 	}
 
 	req = httptest.NewRequest(http.MethodPost, "/add", strings.NewReader(addForm.Encode()))

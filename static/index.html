@@ -39,7 +39,7 @@
             <input placeholder="https://example.com" name="url" title="A url" class="url-input" type="url" pattern="^https?://.*\..*$" required>
         </div>
         <div class="div-input">
-            <input placeholder="custom" name="short" title="A custom path" class="oth-input" type="text" maxlength="{{.DefaultMaxCustomLength}}">
+            <input placeholder="custom" name="short" title="A custom path" type="text" maxlength="{{.DefaultMaxCustomLength}}">
             <details>
                 <summary>Custom path for your url. <b>Optional</b></summary>
                 Example: {{.ShortenedLink}}<b>custom</b><br>
@@ -49,7 +49,7 @@
         </div>
         <div class="div-input">
             <label>
-                <input placeholder="{{.DefaultShortLength}}" type="number" name="length" min="{{.DefaultShortLength}}" max="{{.DefaultMaxShortLength}}" class="oth-input" value="{{.DefaultShortLength}}">
+                <input placeholder="{{.DefaultShortLength}}" type="number" name="length" min="{{.DefaultShortLength}}" max="{{.DefaultMaxShortLength}}" value="{{.DefaultShortLength}}">
             </label>
             <details>
                 <summary>Length of the randomly generated path. <b>Optional</b></summary>
@@ -59,18 +59,16 @@
         </div>
         <div class="div-input">
             <label>
-                <input placeholder="{{.DefaultExpiryTime}}" type="number" name="expire_after" min="-1" class="oth-input" value="{{.DefaultExpiryTime}}">
+                <input placeholder="{{.DefaultExpiryDate}}" type="datetime-local" name="expire_datetime" value="{{.DefaultExpiryDate}}">
             </label>
             <details>
-                <summary>Expiration time in minutes. <b>Optional</b></summary>
-                Minutes before the link is expired.<br>Input -1 for no expiration time.<br>
-                If the expiration time is -1 and the path is<br>
-                randomly generated, its length will default to 16.<br>
-                Defaults to {{.DefaultExpiryTime}}.
+                <summary>Expiration date (UTC) <b>Optional</b></summary>
+                        Date of expiry of the link, using UTC timezone.<br>
+                Defaults to 48 hours from now. ({{.DefaultExpiryDate}})
             </details>
         </div>
         <div class="div-input">
-            <input placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" name="password" title="Password" class="oth-input" type="password">
+            <input placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" name="password" title="Password" type="password">
             <details>
                 <summary>Password to protect the shortened url. <b>Optional</b></summary>
                 Example: {{.ShortenedLink}}<b>path</b> will ask for a password.

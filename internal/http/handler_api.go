@@ -29,6 +29,7 @@ import (
 	"github.com/redds-be/reddlinks/internal/database" // Local database package
 	"github.com/redds-be/reddlinks/internal/json"
 	"github.com/redds-be/reddlinks/internal/utils"
+	"gitlab.gnous.eu/ada/atp"
 )
 
 // APIRedirectToURL redirects the client to the URL corresponding to given shortened link.
@@ -152,15 +153,19 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 		return
 	}
 
-	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
+	// Check if the expiry time, defaults to now + default, if it's not empty, parse the time and add to now
+	// ex: '1d1m' = now + 1day + 1 minute
 	var expireAt time.Time
-	switch {
-	case params.ExpireAfter == -1:
-		expireAt = time.Date(9999, 12, 31, 23, 59, 59, 59, time.UTC)
-	case params.ExpireAfter <= 0:
+	if params.ExpireAfter == "" {
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
-	default:
-		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(params.ExpireAfter))
+	} else {
+		expireDuration, err := atp.ParseDuration(params.ExpireAfter)
+		if err != nil {
+			json.RespondWithError(writer, http.StatusInternalServerError, "Could not parse the given time. Should look like '1d2H3M4S'")
+
+			return
+		}
+		expireAt = time.Now().UTC().Add(expireDuration)
 	}
 
 	// Check the length, will default to 6 if it's inferior or equal to 0 or will default to 16 if it's over 16
