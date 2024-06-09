@@ -64,7 +64,7 @@ func (suite utilsTestSuite) TestDecodeJSON() {
 		URL:         "http://example.com",
 		Length:      6,
 		Path:        "apath",
-		ExpireAfter: 5,
+		ExpireAfter: "2d",
 		Password:    "pass",
 	}
 

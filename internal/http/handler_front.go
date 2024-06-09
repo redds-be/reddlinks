@@ -52,6 +52,7 @@ type Page struct {
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int
 	DefaultExpiryTime      int
+	DefaultExpiryDate      string
 	ContactEmail           string
 }
 
@@ -104,6 +105,9 @@ func (conf Configuration) FrontErrorPage(
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
 	log.Printf("%s %s", req.Method, req.URL.Path)
 
+	// Convert default expiry time into date
+	defaultExpiryDate := time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
+
 	// Set what is going to be displayed on the main page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
@@ -114,6 +118,7 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 		DefaultMaxShortLength:  conf.DefaultMaxShortLength,
 		DefaultMaxCustomLength: conf.DefaultMaxCustomLength,
 		DefaultExpiryTime:      conf.DefaultExpiryTime,
+		DefaultExpiryDate:      defaultExpiryDate.Format("2006-01-02T15:04"),
 		Version:                conf.Version,
 	}
 
@@ -154,15 +159,15 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 		), http.StatusBadRequest, "", database.Link{}
 	}
 
-	// Check the expiration time and set it to x minute specified by the user, -1 = never, will default to 48 hours
+	// Convert the datetime into a date
 	var expireAt time.Time
-	switch {
-	case params.ExpireAfter == -1:
-		expireAt = time.Date(9999, 12, 31, 23, 59, 59, 59, time.UTC)
-	case params.ExpireAfter <= 0:
+	if params.ExpireDate == "" {
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
-	default:
-		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(params.ExpireAfter))
+	} else {
+		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
+		if err != nil {
+			return "Unable to parse the expiry date", http.StatusInternalServerError, "", database.Link{}
+		}
 	}
 
 	// Check the length, will default to 6 if it's inferior or equal to 0 or will default to 16 if it's over 16
@@ -315,27 +320,13 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 		return
 	}
 
-	// Convert the expiration time to an int, display an error page if it can't
-	expireAfter, err := strconv.Atoi(req.FormValue("expire_after"))
-	if err != nil {
-		log.Println(err)
-		conf.FrontErrorPage(
-			writer,
-			req,
-			http.StatusInternalServerError,
-			"There was an error trying to read the expiration time.",
-		)
-
-		return
-	}
-
 	// Set the values that will be used for the link creation
 	params := utils.Parameters{
-		URL:         req.FormValue("url"),
-		Length:      length,
-		Path:        req.FormValue("short"),
-		ExpireAfter: expireAfter,
-		Password:    req.FormValue("password"),
+		URL:        req.FormValue("url"),
+		Length:     length,
+		Path:       req.FormValue("short"),
+		ExpireDate: req.FormValue("expire_datetime"),
+		Password:   req.FormValue("password"),
 	}
 
 	// Create a link entry into the database, display an error page if it can't
@@ -347,12 +338,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	}
 
 	// Format the expiration date that will be displayed to the user
-	var expireAt string
-	if params.ExpireAfter == -1 {
-		expireAt = "never"
-	} else {
-		expireAt = link.ExpireAt.Format(time.ANSIC)
-	}
+	expireAt := link.ExpireAt.Format(time.ANSIC)
 
 	// Set what is going to be displayed on the add page
 	page := &Page{

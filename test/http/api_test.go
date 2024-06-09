@@ -91,7 +91,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		URL:         "http://example.com/",
 		Length:      0,
 		Path:        "",
-		ExpireAfter: 0,
+		ExpireAfter: "",
 		Password:    "",
 	}
 
@@ -128,7 +128,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		URL:         "http://example.com/",
 		Length:      12,
 		Path:        "",
-		ExpireAfter: 0,
+		ExpireAfter: "",
 		Password:    "",
 	}
 
@@ -165,7 +165,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		URL:         "http://example.com/",
 		Length:      0,
 		Path:        "custom",
-		ExpireAfter: 0,
+		ExpireAfter: "",
 		Password:    "",
 	}
 
@@ -203,7 +203,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		URL:         "http://example.com/",
 		Length:      0,
 		Path:        "",
-		ExpireAfter: 5,
+		ExpireAfter: "5m",
 		Password:    "",
 	}
 
@@ -223,7 +223,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.RFC822),
-		time.Now().UTC().Add(time.Duration(params.ExpireAfter)*time.Minute).Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(5)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with custom expiration time
@@ -239,7 +239,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		URL:         "http://example.com/",
 		Length:      0,
 		Path:        "",
-		ExpireAfter: 0,
+		ExpireAfter: "",
 		Password:    "secret",
 	}
 
@@ -283,7 +283,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		URL:         "gopher://example.com/",
 		Length:      0,
 		Path:        "",
-		ExpireAfter: 0,
+		ExpireAfter: "",
 		Password:    "",
 	}
 
@@ -302,7 +302,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		URL:         "http://example.com/",
 		Length:      0,
 		Path:        "cust*m",
-		ExpireAfter: 0,
+		ExpireAfter: "",
 		Password:    "",
 	}
 
