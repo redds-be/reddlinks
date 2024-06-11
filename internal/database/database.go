@@ -19,8 +19,8 @@ package database
 import (
 	"database/sql"
 
-	_ "github.com/lib/pq"           // Driver for postgresql
-	_ "github.com/mattn/go-sqlite3" // Driver for sqlite3
+	_ "github.com/lib/pq"  // Driver for postgresql
+	_ "modernc.org/sqlite" // Driver for sqlite3
 )
 
 // DBConnect tries to connect to database using given driver and db url, error if it can't.

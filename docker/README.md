@@ -1,7 +1,5 @@
 # Deploy reddlinks with docker
 
-It is strongly recommended to use [docker compose](#docker-compose), using only the Dockerfile is broken on purpose.
-
 ## Docker compose
 
 `docker compose` can be used to automate the build and run step reddlinks.
@@ -21,7 +19,7 @@ You can also use the `-d` option to run reddlinks as a daemon:
 docker compose up -d
 ```
 
-In case of errors, you can use `docker compose logs -f` to see the logs (it is recommended to use it when you start reddlinks manually):
+In case of errors, you can use `docker compose logs -f` to see the logs (it is recommended to use it when you start reddlinks for the first time to see if everything works):
 
 ```console
 docker compose up -d && docker compose logs -f
