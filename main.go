@@ -29,7 +29,7 @@ import (
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
-// Variable for the version set by ldflags.
+// Version is a variable for the version set by ldflags.
 var Version string //nolint:gochecknoglobals
 
 //go:embed static
