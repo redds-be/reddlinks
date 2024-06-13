@@ -56,18 +56,11 @@ type Parameters struct {
 // CollectGarbage deletes old expired entries in the database.
 func (conf Configuration) CollectGarbage() error {
 	log.Println("Collecting garbage...")
-	// Get the expired links
-	expiredLinks, err := database.GetExpiredLinks(conf.DB)
+
+	// Delete expired links
+	err := database.RemoveExpiredLinks(conf.DB)
 	if err != nil {
 		return err
-	}
-
-	for _, link := range expiredLinks {
-		log.Printf("Link : %s is expired, deleting it...", link.Short)
-		err := database.RemoveLink(conf.DB, link.Short)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

@@ -86,32 +86,10 @@ func GetHashByShort(db *sql.DB, short string) (string, error) {
 	return password, err
 }
 
-// GetExpiredLinks gets all the expired links entries from the database.
-func GetExpiredLinks(db *sql.DB) ([]ExpiredLink, error) {
-	sqlGetLinks := `SELECT short FROM links WHERE expire_at <= CURRENT_TIMESTAMP;`
-	var links []ExpiredLink
-	rows, err := db.Query(sqlGetLinks) //nolint:sqlclosecheck
-	defer func(rows *sql.Rows) {       // It is in fact, closed...
-		err = rows.Close()
-	}(rows)
-
-	if rows.Err() != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		var i ExpiredLink
-		err = rows.Scan(&i.Short)
-		links = append(links, i)
-	}
-
-	return links, err
-}
-
-// RemoveLink removes a link entry from the links table by its value of the short column.
-func RemoveLink(db *sql.DB, short string) error {
-	sqlRemoveLink := `DELETE FROM links WHERE short = $1;`
-	_, err := db.Exec(sqlRemoveLink, short)
+// RemoveExpiredLinks removes an expired link entry from the links table.
+func RemoveExpiredLinks(db *sql.DB) error {
+	sqlRemoveLink := `DELETE FROM links WHERE expire_at <= CURRENT_TIMESTAMP;`
+	_, err := db.Exec(sqlRemoveLink)
 
 	return err
 }
