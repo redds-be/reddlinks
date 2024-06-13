@@ -59,7 +59,7 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	}
 
 	// Check if the database type is valid
-	dbTypeMatch, err := regexp.MatchString(`^postgres$|^sqlite3$`, env.DBType)
+	dbTypeMatch, err := regexp.MatchString(`^postgres$|^sqlite$`, env.DBType)
 	if err != nil {
 		return fmt.Errorf("the database type %w: %w", ErrNotChecked, err)
 	}

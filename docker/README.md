@@ -1,10 +1,8 @@
 # Deploy reddlinks with docker
 
-It is strongly recommended to use [docker compose](#docker-compose), using only the Dockerfile is broken on purpose.
-
 ## Docker compose
 
-`docker compose` can be used to automate the build and run step reddlinks.
+`docker compose` can be used to automate the building and running of reddlinks.
 
 By default, the docker-compose file uses the port 8080 (- "8080:8080"), feel free to change it for a more convenient one.
 /!\ Only change the first part of the ports statement (ex: "8081:8080").
