@@ -1,13 +1,13 @@
 FROM golang:1.22-alpine3.19 as build
 
-RUN apk update && apk add --no-cache build-base git
+ARG tag_version=noVersion
+ENV tag_version=$tag_version
 
 WORKDIR /go/src/reddlinks
 COPY . .
 
-RUN go mod download
-RUN CGO_ENABLED=0 make
-RUN mv build/reddlinks /go/bin/reddlinks
+RUN go mod download 
+RUN CGO_ENABLED=0 go build -ldflags="-X 'main.Version=$tag_version'" -o /go/bin/reddlinks
 
 FROM gcr.io/distroless/base-debian12
 

@@ -29,6 +29,9 @@ import (
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
+// Variable for the version set by ldflags.
+var Version string //nolint:gochecknoglobals
+
 //go:embed static
 var embeddedStatic embed.FS
 
@@ -69,7 +72,7 @@ func main() {
 		DefaultExpiryTime:      envVars.DefaultExpiryTime,
 		ContactEmail:           envVars.ContactEmail,
 		Static:                 embeddedStatic,
-		Version:                "noVersion",
+		Version:                Version,
 	}
 
 	// Start periodic jobs
