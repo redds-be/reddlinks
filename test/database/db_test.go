@@ -95,18 +95,9 @@ func (suite dbTestSuite) TestDB() { //nolint:funlen
 	_, err = database.GetHashByShort(dataBase, "doesnotexist")
 	suite.a.AssertErr(err)
 
-	// Testing the query to get all the expired entries
-	links, err := database.GetExpiredLinks(dataBase)
+	// Testing the removal of expired entries
+	err = database.RemoveExpiredLinks(dataBase)
 	suite.a.AssertNoErr(err)
-	suite.a.AssertNotEmpty(links, database.ExpiredLink{})
-
-	// Testing the removal of an entry
-	err = database.RemoveLink(dataBase, "custom")
-	suite.a.AssertNoErr(err)
-
-	// Testing the removal of an entry that will cause an error
-	err = database.RemoveLink(dataBase, "doesnotexist")
-	suite.a.AssertErr(err)
 }
 
 // Test suite structure.
