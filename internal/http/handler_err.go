@@ -17,16 +17,13 @@
 package http
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/redds-be/reddlinks/internal/json"
 )
 
 // HandlerErr returns a dummy JSON error to the client.
-func HandlerErr(writer http.ResponseWriter, req *http.Request) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
-
+func HandlerErr(writer http.ResponseWriter, _ *http.Request) {
 	// Respond with a generic error at '/error'
 	json.RespondWithError(writer, http.StatusBadRequest, "Something went wrong.")
 }
