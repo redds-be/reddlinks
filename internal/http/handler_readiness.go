@@ -17,16 +17,13 @@
 package http
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/redds-be/reddlinks/internal/json"
 )
 
 // HandlerReadiness returns a positive JSON response to indicate its readiness.
-func HandlerReadiness(writer http.ResponseWriter, req *http.Request) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
-
+func HandlerReadiness(writer http.ResponseWriter, _ *http.Request) {
 	// Define a JSON structure for the status
 	type statusResponse struct {
 		Status string `json:"status"`

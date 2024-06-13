@@ -20,7 +20,6 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -55,8 +54,6 @@ type Parameters struct {
 
 // CollectGarbage deletes old expired entries in the database.
 func (conf Configuration) CollectGarbage() error {
-	log.Println("Collecting garbage...")
-
 	// Delete expired links
 	err := database.RemoveExpiredLinks(conf.DB)
 	if err != nil {

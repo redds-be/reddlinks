@@ -18,7 +18,6 @@ package http
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -37,15 +36,12 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
-
 	// Get the requested short
 	requestedShort := req.PathValue("short")
 
 	// Check if there is a hash associated with the short, if there is a hash, we will require a password
 	hash, err := database.GetHashByShort(conf.DB, requestedShort)
 	if err != nil {
-		log.Println(err)
 		json.RespondWithError(
 			writer,
 			http.StatusNotFound,
@@ -74,7 +70,6 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 		case isJSON:
 			params, err := utils.DecodeJSON(req)
 			if err != nil {
-				log.Println(err)
 				json.RespondWithError(
 					writer,
 					http.StatusBadRequest,
@@ -99,7 +94,6 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 
 			return
 		} else if err != nil {
-			log.Println(err)
 			json.RespondWithError(writer, http.StatusInternalServerError, "Could not compare the password against corresponding hash.")
 
 			return
@@ -109,7 +103,6 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	// Get the URL
 	url, err := database.GetURLByShort(conf.DB, requestedShort)
 	if err != nil {
-		log.Println(err)
 		json.RespondWithError(
 			writer,
 			http.StatusNotFound,
@@ -128,12 +121,9 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
-
 	// Get the JSON parameters
 	params, err := utils.DecodeJSON(req)
 	if err != nil {
-		log.Println(err)
 		json.RespondWithError(writer, http.StatusBadRequest, "Invalid JSON syntax.")
 
 		return
@@ -142,7 +132,6 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	// Check if the url is valid
 	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
 	if err != nil {
-		log.Println(err)
 		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to check the URL.")
 
 		return
@@ -183,7 +172,6 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 			params.Path,
 		)
 		if err != nil {
-			log.Println(err)
 			json.RespondWithError(
 				writer,
 				http.StatusInternalServerError,
@@ -251,7 +239,6 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	if params.Password != "" {
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
-			log.Println(err)
 			json.RespondWithError(
 				writer,
 				http.StatusInternalServerError,
@@ -273,7 +260,6 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 		hash,
 	)
 	if err != nil && !autoGen {
-		log.Println(err)
 		json.RespondWithError(
 			writer,
 			http.StatusBadRequest,
@@ -287,8 +273,6 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 			params.Path = utils.GenStr(index, allowedChars)
 			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
 			switch {
-			case err != nil:
-				log.Println(err)
 			case err != nil && index == conf.DefaultMaxShortLength:
 				json.RespondWithError(writer, http.StatusInternalServerError, "No more space left in the database.")
 

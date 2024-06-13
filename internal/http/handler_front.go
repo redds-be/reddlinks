@@ -19,7 +19,6 @@ package http
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -74,7 +73,6 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	// Render a given template, json error if it can't
 	err := Templates.ExecuteTemplate(writer, tmpl+".html", page)
 	if err != nil {
-		log.Println(err)
 		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to load the page.")
 
 		return
@@ -84,11 +82,10 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 // FrontErrorPage returns an error page to the user.
 func (conf Configuration) FrontErrorPage(
 	writer http.ResponseWriter,
-	req *http.Request,
+	_ *http.Request,
 	code int,
 	errMsg string,
 ) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
 	// Set what is going to be displayed on the error page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
@@ -102,9 +99,7 @@ func (conf Configuration) FrontErrorPage(
 }
 
 // FrontHandlerMainPage displays the main page with a form used to shorte a link.
-func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
-
+func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, _ *http.Request) {
 	// Convert default expiry time into date
 	defaultExpiryDate := time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
 
@@ -127,9 +122,7 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 }
 
 // FrontHandlerPrivacyPage displays the Privacy Policy page.
-func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
-
+func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, _ *http.Request) {
 	// Set what is going to be displayed on the privacy page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
@@ -240,8 +233,6 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 	if params.Password != "" {
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
-			log.Println(err)
-
 			return "Could not hash the password.", http.StatusInternalServerError, "", database.Link{}
 		}
 	}
@@ -258,8 +249,6 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 		hash,
 	)
 	if err != nil && !autoGen {
-		log.Println(err)
-
 		return "Could not add link: the path is probably already in use.", http.StatusBadRequest, "", database.Link{}
 	} else if err != nil && autoGen {
 	loop:
@@ -267,8 +256,6 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 			params.Path = utils.GenStr(index, allowedChars)
 			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
 			switch {
-			case err != nil:
-				log.Println(err)
 			case err != nil && index == conf.DefaultMaxShortLength:
 				return "No more space left in the database.", http.StatusInternalServerError, "", database.Link{}
 			case err == nil && index != params.Length:
@@ -292,12 +279,10 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
-func (conf Configuration) FrontHandlerAdd( //nolint:funlen
+func (conf Configuration) FrontHandlerAdd(
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
-	log.Printf("%s %s", req.Method, req.URL.Path)
-
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
 	if req.FormValue("add") != "Add" {
@@ -309,7 +294,6 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	// Convert the length to an int, display an error page if it can't
 	length, err := strconv.Atoi(req.FormValue("length"))
 	if err != nil {
-		log.Println(err)
 		conf.FrontErrorPage(
 			writer,
 			req,
@@ -380,7 +364,6 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	// Get the hash corresponding to the short
 	hash, err := database.GetHashByShort(conf.DB, req.FormValue("short"))
 	if err != nil {
-		log.Println(err)
 		conf.FrontErrorPage(
 			writer,
 			req,
@@ -404,12 +387,10 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	// Check if the password matches the hash
 	if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil &&
 		!match {
-		log.Println(err)
 		conf.FrontErrorPage(writer, req, http.StatusBadRequest, "The password is incorrect.")
 
 		return
 	} else if err != nil {
-		log.Println(err)
 		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to compare the password against the hash.")
 
 		return
@@ -418,7 +399,6 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	// Get the URL corresponding to the short
 	url, err := database.GetURLByShort(conf.DB, req.FormValue("short"))
 	if err != nil {
-		log.Println(err)
 		conf.FrontErrorPage(
 			writer,
 			req,
