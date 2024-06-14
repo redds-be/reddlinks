@@ -35,7 +35,7 @@ import (
 )
 
 func (suite frontTestSuite) TestRenderTemplate() {
-	HTTP.Templates = template.Must(template.ParseFiles("test.html"))
+	HTTP.Templates = template.Must(template.ParseFiles("test.tmpl"))
 
 	page := HTTP.Page{
 		InstanceTitle:          "test",
@@ -89,8 +89,9 @@ func (suite frontTestSuite) TestRenderTemplate() {
 
 func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	HTTP.Templates = template.Must(
-		template.ParseFiles("../../static/index.html", "../../static/add.html",
-			"../../static/error.html", "../../static/pass.html", "../../static/privacy.html"),
+		template.ParseFiles("../../static/index.tmpl", "../../static/add.tmpl",
+			"../../static/error.tmpl", "../../static/pass.tmpl", "../../static/privacy.tmpl",
+			"../../static/footer.tmpl", "../../static/head.tmpl", "../../static/nav.tmpl"),
 	)
 
 	testEnv := env.GetEnv("../.env.test")
