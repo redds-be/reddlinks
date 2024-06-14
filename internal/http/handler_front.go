@@ -71,7 +71,7 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	writer.WriteHeader(code)
 
 	// Render a given template, json error if it can't
-	err := Templates.ExecuteTemplate(writer, tmpl+".html", page)
+	err := Templates.ExecuteTemplate(writer, tmpl+".tmpl", page)
 	if err != nil {
 		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to load the page.")
 

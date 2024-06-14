@@ -79,7 +79,7 @@ func main() {
 	cron.StartJobs(*conf, envVars)
 
 	// Parse html templates
-	http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/*.html"))
+	http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/*.tmpl"))
 
 	// Create an adapter for the server
 	httpAdapter := http.NewAdapter(*conf)

@@ -16,22 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Shorten link | {{.InstanceTitle}}</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="assets/css/main.css">
-    <link rel="icon" type="image/svg" href="assets/img/reddlinks_logo_t.png">
-</head>
-<body>
-<p class="nav-text"><a href="{{.InstanceURL}}" class="nav-text nav-link">{{.InstanceTitle}}</a>
-    <a href="https://github.com/redds-be/reddlinks" target="_blank" class="nav-text nav-link">
-        <img src="assets/img/github_logo.svg" width="16" height="16" alt="Github Logo" class="svg">Source
-    </a>
-</p>
-
+{{template "head.tmpl" .}}
+{{template "nav.tmpl" .}}
 <div class="main">
     <p>Enter a URL to shorten</p>
     <form id="create_link" action="/add" method="post">
@@ -79,16 +65,4 @@
         </div>
     </form>
 </div>
-
-<div class="footer">
-    <p>
-        <a href="/privacy">Privacy Policy</a> | Version: {{.Version}}
-    </p>
-    <p>Developed by <a href="https://github.com/redds-be" target="_blank">redd</a>. Licensed under the
-        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPLv3</a>
-        © 2024. Get the
-        <a href="https://github.com/redds-be/reddlinks" target="_blank">Source Code</a>.
-    </p>
-</div>
-</body>
-</html>
+{{template "footer.tmpl" .}}
