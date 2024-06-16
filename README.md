@@ -31,6 +31,7 @@
 ![GitHub issues](https://img.shields.io/github/issues/redds-be/reddlinks)
 ![GitHub License](https://img.shields.io/github/license/redds-be/reddlinks)
 ![GitHub go.mod Go version (subdirectory of monorepo)](https://img.shields.io/github/go-mod/go-version/redds-be/reddlinks)
+[![Go Reference](https://pkg.go.dev/badge/github.com/redds-be/reddlinks.svg)](https://pkg.go.dev/github.com/redds-be/reddlinks)
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -104,7 +105,6 @@ curl -X GET https://ls.redds.be/ag4vb~ -H 'Content-Type: application/json' -d '{
 ## Roadmap
 
 - [ ] Add a private mode with authentication
-- [ ] Write documentation
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

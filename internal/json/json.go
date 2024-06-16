@@ -14,6 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package json is used to handle json responses to a client.
 package json
 
 import (
@@ -33,7 +34,10 @@ func RespondWithError(writer http.ResponseWriter, code int, msg string) {
 	RespondWithJSON(writer, code, ErrResponse{Error: fmt.Sprintf("%d %s", code, msg)})
 }
 
-// RespondWithJSON creates a JSON response, internal error if it can't.
+// RespondWithJSON sends a JSON response to a client, internal error if it can't.
+//
+// The JSON payload is Marshaled using [json.Marshal], the proper header is then set along with the response code,
+// the JSON message is then sent to the client.
 func RespondWithJSON(writer http.ResponseWriter, code int, payload interface{}) {
 	dat, err := json.Marshal(payload)
 	if err != nil {

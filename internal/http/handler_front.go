@@ -36,6 +36,23 @@ import (
 var Templates *template.Template //nolint:gochecknoglobals
 
 // Page defines the structure of what can be displayed on a page.
+//
+// InstanceTitle is the title of the instance,
+// InstanceURL is the URL of the instance,
+// ShortenedLink is the shortened URL,
+// Short is the short path linked to the URL,
+// URL is the URL to be shortened,
+// ExpireAt is the formatted date of expiration of a link,
+// Password is the password used by the user to create a link,
+// Error is an error message,
+// AddInfo is an information to be displayed to the user after link creation,
+// Version is the version of reddlinks used by this instance,
+// DefaultShortLength refers to the default length of generated strings for a short URL,
+// DefaultMaxShortLength refers to the maximum length of generated strings for a short URL,
+// DefaultMaxCustomLength refers to the maximum length of custom strings for a short URL,
+// DefaultExpiryTime refers to the default expiry time of links records,
+// DefaultExpiryDate refers to the default expiry date,
+// ContactEmail refers to an optional admin's contact email.
 type Page struct {
 	InstanceTitle          string
 	InstanceURL            string
@@ -56,6 +73,9 @@ type Page struct {
 }
 
 // RenderTemplate renders the templates using a given Page struct.
+//
+// It starts by setting the appropriate headers using [http.Header.Set] and [http.WriteHeader], then
+// the requested template is rendered using a given page struct using [template.ExecuteTemplate].
 func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code int) {
 	// Tell that we serve HTML in UTF-8.
 	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
@@ -79,7 +99,7 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	}
 }
 
-// FrontErrorPage returns an error page to the user.
+// FrontErrorPage returns an error page to the user using a given code and message with [RenderTemplate].
 func (conf Configuration) FrontErrorPage(
 	writer http.ResponseWriter,
 	_ *http.Request,
@@ -98,7 +118,9 @@ func (conf Configuration) FrontErrorPage(
 	RenderTemplate(writer, "error", page, code)
 }
 
-// FrontHandlerMainPage displays the main page with a form used to shorte a link.
+// FrontHandlerMainPage displays the main page with a form used to shorten a link.
+//
+// An expiry date is created by adding DefaultExpiryTime to now, this date will be used as the default expiry date in the form.
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, _ *http.Request) {
 	// Convert default expiry time into date
 	defaultExpiryDate := time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
@@ -136,6 +158,16 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, _ 
 }
 
 // FrontCreateLink creates a link entry into the database using the values of the form from the front page.
+//
+// It firsts checks using a regexp if the URL from the payload has http/https as its protocol, it then checks the expiration time,
+// if there is none, DefaultExpiryTime will be added to now, if there's one, the time will be parsed using
+// [atp.ParseDuration] and this time will be added to now. the length provided will be checked and fixed
+// according to min and max settings. the custom path provided will be checked if there's one,
+// endpoints and some characters are blacklisted, if the path exceeds the length of DefaultMaxCustomLength,
+// it will be trimmed. If there's no custom path provided, a random one will generated using either DefaultShortLength or
+// the provided length with [utils.GenStr]. If there's a password provided, it will be hashed using [argon2id.CreateHash].
+// After all is done, a link entry will be created in the database using [database.CreateLink].
+// If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
 func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 	params utils.Parameters,
 ) (string, int, string, database.Link) {
@@ -279,6 +311,10 @@ func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
+//
+// It starts by gathering the form values given by the front page into a [utils.Parameters] struct
+// and uses that to call [FrontCreateLink], after the link is created, the useful informations will be
+// displayed to the user.
 func (conf Configuration) FrontHandlerAdd(
 	writer http.ResponseWriter,
 	req *http.Request,
@@ -357,6 +393,11 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
+//
+// It starts by getting the hash of the short using [database.GetHashByShort],
+// then it gets the password from [FrontAskForPassword],
+// it then compares the hash of the given password with the short's hash using [argon2id.ComparePasswordAndHash],
+// if the password matches, it uses [database.GetURLByShort] to get the URL to redirect to before redirect to said URL.
 func (conf Configuration) FrontHandlerRedirectToURL(
 	writer http.ResponseWriter,
 	req *http.Request,

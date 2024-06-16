@@ -14,6 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package database is used to handle the database connection and queries.
 package database
 
 import (
@@ -23,13 +24,18 @@ import (
 	_ "modernc.org/sqlite" // Driver for sqlite3
 )
 
-// DBConnect tries to connect to database using given driver and db url, error if it can't.
+// DBConnect returns a pointer to a database connection.
+//
+// It connects to the database using [sql.Open] with the database type and the connection string,
+// it then tests the connection before returning it.
 func DBConnect(dbType, dbURL string) (*sql.DB, error) {
+	// Connect to the database
 	dbase, err := sql.Open(dbType, dbURL)
 	if err != nil {
 		return nil, err
 	}
 
+	// Test the connection
 	err = dbase.Ping()
 
 	return dbase, err

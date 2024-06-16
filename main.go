@@ -14,6 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package main is the package that will drive the program.
 package main
 
 import (
@@ -32,15 +33,26 @@ import (
 // Version is a variable for the version set by ldflags.
 var Version string //nolint:gochecknoglobals
 
+// embeddedStatic is the variable that will hold the assets within the binary.
+//
 //go:embed static
 var embeddedStatic embed.FS
 
-// main drives the application.
+// main function drives the application.
+//
+// It starts by loading the environnement variables using [env.GetEnv],
+// then it connects to the dabaase using [database.DBConnect] and creates the links table using [database.CreateLinksTable],
+// following that, the env vars and the database are gathered into a configuration struct [utils.Configuration].
+// It then calls [cron.StartJobs] to start go routines like [utils.CollectGarbage].
+// Following that, HTML templates stored in [embeddedStatic] (containing the 'static/' dir) are parsed using [template.Must].
+// At then end, an adapter for the internal HTTP package is created using [http.NewAdapter],
+// lastly, the HTTP server gets started using [http.Run].
 func main() {
 	// Load the env file
 	envFile := ".env"
 	envVars := env.GetEnv(envFile)
 
+	// Connect to the database
 	dbase, err := database.DBConnect(envVars.DBType, envVars.DBURL)
 	if err != nil {
 		log.Fatal(err)

@@ -32,6 +32,14 @@ import (
 )
 
 // APIRedirectToURL redirects the client to the URL corresponding to given shortened link.
+//
+// It first starts by getting the short from the request (GET /{short}), then it gets
+// its password's hash using [database.GetHashByShort], if there is one,
+// it firsts checks if there's a json payload to get a password from,
+// if not, redirect to /access handled by FrontAskForPassword which is going to ask for a password using a form.
+// Once the JSON payload is decoded using [utils.DecodeJSON], if there's a password, its hash will be compared to the hash corresponding
+// to the short using [argon2id.ComparePasswordAndHash], if it's the case, the client will be redirected.
+// If there's no hash associated with the short, the client will be redirected.
 func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	writer http.ResponseWriter,
 	req *http.Request,
@@ -116,7 +124,18 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	http.Redirect(writer, req, url, http.StatusSeeOther)
 }
 
-// APICreateLink create a link entry in the database using given json parameters.
+// APICreateLink creates a link entry in the database using given json parameters.
+//
+// It firsts decodes the JSON payload from the client using [utils.DecodeJSON], it then checks using a regexp
+// if the URL from the payload has http/https as its protocol, it then checks the expiration time,
+// if there is none, DefaultExpiryTime will be added to now, if there's one, the time will be parsed using
+// [atp.ParseDuration] and this time will be added to now. the length provided will be checked and fixed
+// according to min and max settings. the custom path provided will be checked if there's one,
+// endpoints and some characters are blacklisted, if the path exceeds the length of DefaultMaxCustomLength,
+// it will be trimmed. If there's no custom path provided, a random one will generated using either DefaultShortLength or
+// the provided length with [utils.GenStr]. If there's a password provided, it will be hashed using [argon2id.CreateHash].
+// After all is done, a link entry will be created in the database using [database.CreateLink].
+// If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
 func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	writer http.ResponseWriter,
 	req *http.Request,
@@ -157,7 +176,8 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 		expireAt = time.Now().UTC().Add(expireDuration)
 	}
 
-	// Check the length, will default to 6 if it's inferior or equal to 0 or will default to 16 if it's over 16
+	// Check the length, will default to DefaultShortLength,
+	// if it's inferior or equal to 0 or will default to DefaultMaxShortLength if it's over DefaultMaxShortLength
 	if params.Length <= 0 {
 		params.Length = conf.DefaultShortLength
 	} else if params.Length > conf.DefaultMaxShortLength {
@@ -223,7 +243,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 	}
 
 	// Check the path, will default to a randomly generated one with specified length,
-	// if its length is over 16, it will be trimmed
+	// if its length is over DefaultMaxCustomLength, it will be trimmed
 	autoGen := false
 	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
 	if params.Path == "" {

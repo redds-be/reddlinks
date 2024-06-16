@@ -25,6 +25,10 @@ import (
 )
 
 // Link defines the structure of a link entry that will be served to the client in json.
+//
+// ExpireAt is the date at which the link will expire,
+// URL is the original URL,
+// Short is the shortened path.
 type Link struct {
 	ExpireAt time.Time `json:"expireAt"`
 	URL      string    `json:"url"`
@@ -32,11 +36,15 @@ type Link struct {
 }
 
 // ExpiredLink defines the structure of an expired link.
+// This is unused and should be removed in a future commit.
 type ExpiredLink struct {
 	Short string
 }
 
 // CreateLinksTable creates the links table in the database.
+//
+// An SQL statement is prepared using the max short length as the max for the short column,
+// the statement is then executed which should create the links table if it doesn't exist.
 func CreateLinksTable(database *sql.DB, maxShort int) error {
 	sqlCreateTable := fmt.Sprintf(
 		"CREATE TABLE IF NOT EXISTS links ("+
@@ -54,6 +62,9 @@ func CreateLinksTable(database *sql.DB, maxShort int) error {
 }
 
 // CreateLink inserts a link entry in the links table.
+//
+// An SQL statement is prepared, it will insert a record into the links table
+// giving a uuid, a creation time, an expiration time, a url, a short and a password.
 func CreateLink(
 	database *sql.DB,
 	identifier uuid.UUID,
