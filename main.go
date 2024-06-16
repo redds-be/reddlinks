@@ -22,8 +22,8 @@ import (
 	"embed"
 	"html/template"
 	"log"
+	"time"
 
-	"github.com/redds-be/reddlinks/internal/cron"
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/env"
 	"github.com/redds-be/reddlinks/internal/http"
@@ -43,11 +43,11 @@ var embeddedStatic embed.FS
 // It starts by loading the environnement variables using [env.GetEnv],
 // then it connects to the dabaase using [database.DBConnect] and creates the links table using [database.CreateLinksTable],
 // following that, the env vars and the database are gathered into a configuration struct [utils.Configuration].
-// It then calls [cron.StartJobs] to start go routines like [utils.CollectGarbage].
+// It starts a go routines that calls [utils.CollectGarbage] inside an infinite loop with a sleep period defines in the config.
 // Following that, HTML templates stored in [embeddedStatic] (containing the 'static/' dir) are parsed using [template.Must].
 // At then end, an adapter for the internal HTTP package is created using [http.NewAdapter],
 // lastly, the HTTP server gets started using [http.Run].
-func main() {
+func main() { //nolint:funlen
 	// Load the env file
 	envFile := ".env"
 	envVars := env.GetEnv(envFile)
@@ -87,8 +87,16 @@ func main() {
 		Version:                Version,
 	}
 
-	// Start periodic jobs
-	cron.StartJobs(*conf, envVars)
+	// Periodically clean the database
+	go func(duration time.Duration) {
+		for {
+			err := conf.CollectGarbage()
+			if err != nil {
+				log.Println("Could not collect garbage:", err)
+			}
+			time.Sleep(duration)
+		}
+	}(time.Duration(envVars.TimeBetweenCleanups) * time.Minute)
 
 	// Parse html templates
 	http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/*.tmpl"))

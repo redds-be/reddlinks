@@ -51,7 +51,7 @@ func (suite frontTestSuite) TestRenderTemplate() {
 		DefaultShortLength:     1,
 		DefaultMaxShortLength:  2,
 		DefaultMaxCustomLength: 3,
-		DefaultExpiryTime:      4,
+		DefaultExpiryDate:      "2006-01-02T15:04",
 		ContactEmail:           "test AT test DOT test",
 	}
 
@@ -83,8 +83,8 @@ func (suite frontTestSuite) TestRenderTemplate() {
 		"<p>DefaultShortLength: 1</p>\n"+
 		"<p>DefaultMaxShortLength: 2</p>\n"+
 		"<p>DefaultMaxCustomLength: 3</p>\n"+
-		"<p>DefaultExpiryTime: 4</p>\n"+
-		"<p>ContactEmail: test AT test DOT test</p>")
+		"<p>DefaultExpiryDate: 2006-01-02T15:04</p>\n"+
+		"<p>ContactEmail: test AT test DOT test</p>\n")
 }
 
 func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen

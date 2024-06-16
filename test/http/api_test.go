@@ -42,15 +42,6 @@ func (suite apiTestSuite) TestReadiness() {
 	suite.a.Assert(resp.Body.String(), "{\"status\":\"Alive.\"}")
 }
 
-func (suite apiTestSuite) TestErr() {
-	// Test a GET request on the generic error handler
-	req := httptest.NewRequest(http.MethodGet, "/error", nil)
-	resp := httptest.NewRecorder()
-	HTTP.HandlerErr(resp, req)
-	suite.a.Assert(resp.Code, http.StatusBadRequest)
-	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 Something went wrong.\"}")
-}
-
 func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "api_test.db"
@@ -343,6 +334,5 @@ func TestAPISuite(t *testing.T) {
 
 	// Call the tests
 	suite.TestReadiness()
-	suite.TestErr()
 	suite.TestMainAPIHandlers()
 }

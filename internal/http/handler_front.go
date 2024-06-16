@@ -67,7 +67,6 @@ type Page struct {
 	DefaultShortLength     int
 	DefaultMaxShortLength  int
 	DefaultMaxCustomLength int
-	DefaultExpiryTime      int
 	DefaultExpiryDate      string
 	ContactEmail           string
 }
@@ -134,7 +133,6 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, _ *ht
 		DefaultShortLength:     conf.DefaultShortLength,
 		DefaultMaxShortLength:  conf.DefaultMaxShortLength,
 		DefaultMaxCustomLength: conf.DefaultMaxCustomLength,
-		DefaultExpiryTime:      conf.DefaultExpiryTime,
 		DefaultExpiryDate:      defaultExpiryDate.Format("2006-01-02T15:04"),
 		Version:                conf.Version,
 	}
