@@ -19,6 +19,15 @@ package env
 import "errors"
 
 // Define all the errors for the env package.
+//
+// ErrEmpty defines an error for empty variables,
+// ErrRead defines an error for variables that couldn't be read,
+// ErrNotChecked defines an error for variables where a value couldn't be checked,
+// ErrInvalid defines an error for variables where a value is invalid,
+// ErrInvalidOrUnsupported defines an error for variables where a value is either invalid or unsupported,
+// ErrNullOrNegative defines an error for variables where a value is either null or negative,
+// ErrSuperior defines an error for variables where a value can't be superior to another one,
+// ErrInferior defines an error for variables where a value can't be inferior to another one.
 var (
 	ErrEmpty                = errors.New("can't be empty")
 	ErrRead                 = errors.New("couldn't be read")

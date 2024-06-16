@@ -14,6 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package env is used to get and check env variables from .env or exported env variables.
 package env
 
 import (
@@ -28,6 +29,18 @@ import (
 )
 
 // Env defines a structure for the env variables.
+//
+// AddrAndPort refers to the listening address and port of the instance,
+// InstanceName refers to the name of the instance,
+// InstanceURL refers to the URL of the instance,
+// DBType refers to the type of the database (postgres or sqlite),
+// DBURL refers to the connection string for the database,
+// ContactEmail refers to the admin's contact email,
+// TimeBetweenCleanups refers to the time between garbage collections,
+// DefaultLength refers to the default length of generated strings for a short URL,
+// DefaultMaxLength refers to the maximum length of generated strings for a short URL,
+// DefaultMaxCustomLength refers to the maximum length of custom strings for a short URL,
+// DefaultExpiryTime refers to the default expiry time of links records.
 type Env struct {
 	AddrAndPort            string
 	InstanceName           string
@@ -43,6 +56,17 @@ type Env struct {
 }
 
 // EnvCheck checks the values of the Env struct.
+//
+// InstanceName is checked for emptyness,
+// InstanceURL is checked with a regexp for having http/https and trailing '/',
+// DBType is checked for being either 'postgres' or 'sqlite' with a regexp,
+// DBURL is checked for emptyness,
+// TimeBetweenCleanups is checked for being positive,
+// DefaultLength is checked for being positive and not being superior to DefaultMaxLength,
+// DefaultMaxCustomLength is checked for being positive and not being superior to DefaultMaxLength,
+// DefaultMaxLength is checked for being positive,
+// being superior or equal to DefaultLength and DefaultMaxCustomLength and for being inferior to 8000
+// DefaultExpiryTime is checked for being positive.
 func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	// Check if the instance name isn't null
 	if env.InstanceName == "" {
@@ -72,7 +96,7 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 		return fmt.Errorf("the database access string %w", ErrEmpty)
 	}
 
-	// Check the time between cleanups, can be any time really, so only checking if it's 0
+	// Check the time between cleanups, can be any time really, so only checking if it's 0 or less
 	if env.TimeBetweenCleanups <= 0 {
 		return fmt.Errorf("the time between database cleanups %w", ErrNullOrNegative)
 	}
@@ -120,7 +144,12 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	return nil
 }
 
-// GetEnv gets the env variables from given .env.
+// GetEnv returns the env variables read from .env or from exported env variables.
+//
+// It checks if there's an env file in the working directory, if not, it assumes env variables are exported.
+// For each needed env variables, they are read using [os.Getenv], if they are mendatory and not present, the program exits.
+// Since they all are read as string, those that need to be integers are converted using [strconv.Atoi].
+// In the end, the env variables are gathered into a [env.Env] struct and checked using [env.EnvCheck].
 func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// If the envFile exists, load it
 	if _, err := os.Stat(envFile); !errors.Is(err, os.ErrNotExist) {
@@ -215,8 +244,10 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 		log.Fatal("the time between database cleanups couldn't be read:", err)
 	}
 
+	// Read the contact email
 	contactEmail := os.Getenv("REDDLINKS_CONTACT_EMAIL")
 
+	// Store everything in an Env struct
 	env := Env{
 		AddrAndPort:            addrAndPort,
 		InstanceName:           instanceName,

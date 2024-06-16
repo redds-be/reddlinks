@@ -22,7 +22,7 @@ import (
 	"github.com/redds-be/reddlinks/internal/json"
 )
 
-// HandlerErr returns a dummy JSON error to the client.
+// HandlerErr sends a dummy JSON error to the client.
 func HandlerErr(writer http.ResponseWriter, _ *http.Request) {
 	// Respond with a generic error at '/error'
 	json.RespondWithError(writer, http.StatusBadRequest, "Something went wrong.")

@@ -22,7 +22,7 @@ import (
 	"github.com/redds-be/reddlinks/internal/json"
 )
 
-// HandlerReadiness returns a positive JSON response to indicate its readiness.
+// HandlerReadiness sends a positive JSON response to indicate its readiness.
 func HandlerReadiness(writer http.ResponseWriter, _ *http.Request) {
 	// Define a JSON structure for the status
 	type statusResponse struct {

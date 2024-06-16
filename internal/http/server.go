@@ -14,6 +14,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package http listen and serves clients using its handlers,
+// there is a set of handlers for the REST API and a set of handlers for the front-facing website.
 package http
 
 import (
@@ -25,9 +27,11 @@ import (
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
+// Configuration is redefines [utils.Configuration] to be used for methods within the package.
 type Configuration utils.Configuration
 
-// NewAdapter returns a configuration to be used by Run() and the handlers.
+// NewAdapter returns a configuration to be used by Run and the handlers.
+// Check [utils.Configuration] to know about these fields.
 func NewAdapter(configuration utils.Configuration) Configuration {
 	return Configuration{
 		DB:                     configuration.DB,
@@ -45,6 +49,23 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 }
 
 // Run starts configures the HTTP server and starts listening and serving.
+//
+// It starts by setting constants for the timeouts, after that,
+// a filesystem is created for the assets, followed by the creation of
+// a file server using the new filesystem. It is followed by the creation of a multiplexer
+// which will handle the endpoints.
+// GET /assets/ if for serving the assets,
+// GET /status calls [HandlerReadiness] for health check,
+// GET /error calls [HandlerErr], should be removed at some point,
+// POST /add calls FrontHandlerAdd, which creates a link and displays the information in a browser,
+// POST /access calls FrontHandlerRedirectToURL, which is used to access a password protected link,
+// GET /privacy calls FrontHandlerPrivacyPage, which is used to display the privacy policy,
+// GET / calls FrontHandlerMainPage, which is used to serve a form to shorten a link,
+// GET /{short} calls APIRedirectToURL, which is used to access a url based on the give short,
+// POST / calls APICreateLink, which is used to create a link record in the database.
+// After the multiplexer is configured, the HTTP server needs to be configured with the address and port,
+// the timeouts constants and the multiplexer as the handler. After the configuration is set,
+// [http.ListenAndServe] is called.
 func (conf Configuration) Run() error { //nolint:funlen
 	// Set default timeout time in seconds
 	const readTimeout = 1 * time.Second
@@ -64,7 +85,7 @@ func (conf Configuration) Run() error { //nolint:funlen
 	// Create a multiplexer
 	mux := http.NewServeMux()
 
-	// Hangle the assets
+	// Handle the assets
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", assetsHTTPFS))
 
 	// Assign a handler to these different paths
