@@ -35,12 +35,6 @@ type Link struct {
 	Short    string    `json:"short"`
 }
 
-// ExpiredLink defines the structure of an expired link.
-// This is unused and should be removed in a future commit.
-type ExpiredLink struct {
-	Short string
-}
-
 // CreateLinksTable creates the links table in the database.
 //
 // An SQL statement is prepared using the max short length as the max for the short column,

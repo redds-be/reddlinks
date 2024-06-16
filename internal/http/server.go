@@ -56,7 +56,6 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 // which will handle the endpoints.
 // GET /assets/ if for serving the assets,
 // GET /status calls [HandlerReadiness] for health check,
-// GET /error calls [HandlerErr], should be removed at some point,
 // POST /add calls FrontHandlerAdd, which creates a link and displays the information in a browser,
 // POST /access calls FrontHandlerRedirectToURL, which is used to access a password protected link,
 // GET /privacy calls FrontHandlerPrivacyPage, which is used to display the privacy policy,
@@ -66,7 +65,7 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 // After the multiplexer is configured, the HTTP server needs to be configured with the address and port,
 // the timeouts constants and the multiplexer as the handler. After the configuration is set,
 // [http.ListenAndServe] is called.
-func (conf Configuration) Run() error { //nolint:funlen
+func (conf Configuration) Run() error {
 	// Set default timeout time in seconds
 	const readTimeout = 1 * time.Second
 	const WriteTimeout = 1 * time.Second
@@ -90,10 +89,6 @@ func (conf Configuration) Run() error { //nolint:funlen
 
 	// Assign a handler to these different paths
 	mux.HandleFunc("GET /status", HandlerReadiness) // Check the status of the server
-	mux.HandleFunc(
-		"GET /error",
-		HandlerErr,
-	) // Check if errors work as intended
 	mux.HandleFunc(
 		"POST /add",
 		conf.FrontHandlerAdd,
