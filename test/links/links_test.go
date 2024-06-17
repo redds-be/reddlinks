@@ -131,7 +131,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		URL:        "http://example.com/",
 		Length:     0,
 		Path:       "",
-		ExpireDate: "",
+		ExpireDate: "2006-01-02T12:12",
 		Password:   "secret",
 	}
 
@@ -142,7 +142,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
 		returnedLink.ExpireAt.Format(time.ANSIC),
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		expireAt.Format(time.ANSIC),
 	)
 
 	// Test link creation with an invalid custom path
