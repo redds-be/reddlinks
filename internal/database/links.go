@@ -24,17 +24,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Link defines the structure of a link entry that will be served to the client in json.
-//
-// ExpireAt is the date at which the link will expire,
-// URL is the original URL,
-// Short is the shortened path.
-type Link struct {
-	ExpireAt time.Time `json:"expireAt"`
-	URL      string    `json:"url"`
-	Short    string    `json:"short"`
-}
-
 // CreateLinksTable creates the links table in the database.
 //
 // An SQL statement is prepared using the max short length as the max for the short column,

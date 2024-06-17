@@ -22,13 +22,12 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
-	"github.com/google/uuid"
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/json"
+	"github.com/redds-be/reddlinks/internal/links"
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
@@ -155,165 +154,13 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, _ 
 	RenderTemplate(writer, "privacy", page, http.StatusOK)
 }
 
-// FrontCreateLink creates a link entry into the database using the values of the form from the front page.
-//
-// It firsts checks using a regexp if the URL from the payload has http/https as its protocol, it then checks the expiration time,
-// if there is none, DefaultExpiryTime will be added to now, if there's one, the time will be parsed using
-// [atp.ParseDuration] and this time will be added to now. the length provided will be checked and fixed
-// according to min and max settings. the custom path provided will be checked if there's one,
-// endpoints and some characters are blacklisted, if the path exceeds the length of DefaultMaxCustomLength,
-// it will be trimmed. If there's no custom path provided, a random one will generated using either DefaultShortLength or
-// the provided length with [utils.GenStr]. If there's a password provided, it will be hashed using [argon2id.CreateHash].
-// After all is done, a link entry will be created in the database using [database.CreateLink].
-// If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
-func (conf Configuration) FrontCreateLink( //nolint:cyclop,funlen,gocognit
-	params utils.Parameters,
-) (string, int, string, database.Link) {
-	// Check if the url is valid
-	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
-	if err != nil {
-		return "Unable to check the given URL", http.StatusInternalServerError, "", database.Link{}
-	}
-
-	if !isValid {
-		return fmt.Sprintf(
-			"'%s' is not a valid url. (only http and https are supported)",
-			params.URL,
-		), http.StatusBadRequest, "", database.Link{}
-	}
-
-	// Convert the datetime into a date
-	var expireAt time.Time
-	if params.ExpireDate == "" {
-		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
-	} else {
-		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
-		if err != nil {
-			return "Unable to parse the expiry date", http.StatusInternalServerError, "", database.Link{}
-		}
-	}
-
-	// Check the length, will default to 6 if it's inferior or equal to 0 or will default to 16 if it's over 16
-	if params.Length <= 0 {
-		params.Length = conf.DefaultShortLength
-	} else if params.Length > conf.DefaultMaxShortLength {
-		params.Length = conf.DefaultMaxShortLength
-	}
-
-	if params.Path != "" {
-		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access, privacy and assets are used for the front.
-		reservedMatch, err := regexp.MatchString(
-			`^status$|^error$|^add$|^access$|^privacy$|^assets.*$`,
-			params.Path,
-		)
-		if err != nil {
-			return "The path could not be checked.", http.StatusInternalServerError, "", database.Link{}
-		}
-		if reservedMatch {
-			return fmt.Sprintf(
-				"The path '/%s' is reserved.",
-				params.Path,
-			), http.StatusBadRequest, "", database.Link{}
-		}
-
-		// Check the validity of the custom path
-		reservedChars := []string{
-			":",
-			"/",
-			"?",
-			"#",
-			"[",
-			"]",
-			"@",
-			"!",
-			"$",
-			"&",
-			"'",
-			"(",
-			")",
-			"*",
-			"+",
-			",",
-			";",
-			"=",
-		}
-		for _, char := range reservedChars {
-			if match := strings.Contains(params.Path, char); match {
-				return fmt.Sprintf(
-					"The character '%s' is not allowed.",
-					char,
-				), http.StatusBadRequest, "", database.Link{}
-			}
-		}
-	}
-
-	// Check the path, will default to a randomly generated one with specified length, if its length is over 16, it will be trimmed
-	autoGen := false
-	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-	if params.Path == "" {
-		autoGen = true
-		params.Path = utils.GenStr(params.Length, allowedChars)
-	}
-	if len(params.Path) > conf.DefaultMaxCustomLength {
-		params.Path = params.Path[:conf.DefaultMaxCustomLength]
-	}
-
-	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
-	hash := ""
-	if params.Password != "" {
-		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
-		if err != nil {
-			return "Could not hash the password.", http.StatusInternalServerError, "", database.Link{}
-		}
-	}
-
-	// Insert the information to the database, error if it can't, most likely that the short is already in use
-	addInfo := ""
-	err = database.CreateLink(
-		conf.DB,
-		uuid.New(),
-		time.Now().UTC(),
-		expireAt,
-		params.URL,
-		params.Path,
-		hash,
-	)
-	if err != nil && !autoGen {
-		return "Could not add link: the path is probably already in use.", http.StatusBadRequest, "", database.Link{}
-	} else if err != nil && autoGen {
-	loop:
-		for index := conf.DefaultShortLength; index <= conf.DefaultMaxShortLength; index++ {
-			params.Path = utils.GenStr(index, allowedChars)
-			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
-			switch {
-			case err != nil && index == conf.DefaultMaxShortLength:
-				return "No more space left in the database.", http.StatusInternalServerError, "", database.Link{}
-			case err == nil && index != params.Length:
-				addInfo = "The length of your auto-generated path had to be changed due to space limitations in the database."
-
-				break loop
-			case err == nil:
-				break loop
-			}
-		}
-	}
-
-	// Define what is to be returned to the user as a successful response
-	link := database.Link{
-		ExpireAt: expireAt,
-		URL:      params.URL,
-		Short:    params.Path,
-	}
-
-	return "", http.StatusCreated, addInfo, link
-}
-
 // FrontHandlerAdd displays the information about the newly added link to the user.
 //
-// It starts by gathering the form values given by the front page into a [utils.Parameters] struct
-// and uses that to call [FrontCreateLink], after the link is created, the useful informations will be
-// displayed to the user.
-func (conf Configuration) FrontHandlerAdd(
+// It starts by gathering the form values given by the front page into a [utils.Parameters] struct,
+// it then creates an adapter for links using [links.NewAdapter] then calls [links.CreateLink]
+// to create a link entry giving it the deocded params, the information is then formatted and returned to the client
+// on a web page.
+func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
@@ -340,15 +187,34 @@ func (conf Configuration) FrontHandlerAdd(
 
 	// Set the values that will be used for the link creation
 	params := utils.Parameters{
-		URL:        req.FormValue("url"),
-		Length:     length,
-		Path:       req.FormValue("short"),
-		ExpireDate: req.FormValue("expire_datetime"),
-		Password:   req.FormValue("password"),
+		URL:         req.FormValue("url"),
+		Length:      length,
+		Path:        req.FormValue("short"),
+		ExpireDate:  req.FormValue("expire_datetime"),
+		ExpireAfter: req.FormValue("expire_after"),
+		Password:    req.FormValue("password"),
 	}
 
+	// Create a configuration struct for the links adapter
+	linksConf := utils.Configuration{
+		DB:                     conf.DB,
+		InstanceName:           conf.InstanceName,
+		InstanceURL:            conf.InstanceURL,
+		Version:                conf.Version,
+		AddrAndPort:            conf.AddrAndPort,
+		DefaultShortLength:     conf.DefaultShortLength,
+		DefaultMaxShortLength:  conf.DefaultMaxShortLength,
+		DefaultMaxCustomLength: conf.DefaultMaxCustomLength,
+		DefaultExpiryTime:      conf.DefaultExpiryTime,
+		ContactEmail:           conf.ContactEmail,
+		Static:                 conf.Static,
+	}
+
+	// Create an adapter using the configuration struct
+	linksAdapter := links.NewAdapter(linksConf)
+
 	// Create a link entry into the database, display an error page if it can't
-	errMsg, code, addInfo, link := conf.FrontCreateLink(params)
+	link, code, addInfo, errMsg := linksAdapter.CreateLink(params)
 	if errMsg != "" {
 		conf.FrontErrorPage(writer, req, code, errMsg)
 

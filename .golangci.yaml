@@ -38,6 +38,7 @@ linters-settings:
           - github.com/redds-be/reddlinks/internal/http
           - github.com/redds-be/reddlinks/internal/json
           - github.com/redds-be/reddlinks/internal/utils
+          - github.com/redds-be/reddlinks/internal/links
           - github.com/redds-be/reddlinks/test/helper
           - github.com/lib/pq
           - github.com/mattn/go-sqlite3
