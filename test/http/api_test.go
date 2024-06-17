@@ -110,7 +110,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
 		returnedLink.ExpireAt,
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with default values
@@ -149,7 +149,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
 		returnedLink.ExpireAt,
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 	suite.a.Assert(len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")), params.Length)
 
@@ -190,7 +190,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
 		returnedLink.ExpireAt,
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 	suite.a.Assert(len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")), len(params.Path))
 	suite.a.Assert(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""), params.Path)
@@ -232,7 +232,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
 		returnedLink.ExpireAt,
-		time.Now().UTC().Add(time.Duration(5)*time.Minute).Format(time.ANSIC),
+		time.Now().UTC().Add(time.Duration(5)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with custom expiration time
@@ -272,7 +272,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
 		returnedLink.ExpireAt,
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with a password

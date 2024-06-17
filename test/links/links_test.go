@@ -61,8 +61,8 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	suite.a.Assert(code, http.StatusCreated)
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.ANSIC),
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with custom length for random short
@@ -81,8 +81,8 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(len(returnedLink.Short), params.Length)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.ANSIC),
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with a custom short
@@ -101,8 +101,8 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(returnedLink.Short, params.Path)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.ANSIC),
-		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.ANSIC),
+		returnedLink.ExpireAt.Format(time.RFC822),
+		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link creation with custom expiration time
@@ -122,8 +122,8 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	expireAt, err := time.Parse("2006-01-02T15:04", params.ExpireDate)
 	suite.a.AssertNoErr(err)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.ANSIC),
-		expireAt.Format(time.ANSIC),
+		returnedLink.ExpireAt.Format(time.RFC822),
+		expireAt.Format(time.RFC822),
 	)
 
 	// Test link creation with a password
@@ -141,8 +141,8 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	suite.a.Assert(code, http.StatusCreated)
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.ANSIC),
-		expireAt.Format(time.ANSIC),
+		returnedLink.ExpireAt.Format(time.RFC822),
+		expireAt.Format(time.RFC822),
 	)
 
 	// Test link creation with an invalid custom path

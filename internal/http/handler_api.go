@@ -179,7 +179,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 		ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, link.Short), "")
 
 	// Format the expiration date that will be displayed to the user
-	expireAt := link.ExpireAt.Format(time.ANSIC)
+	expireAt := link.ExpireAt.Format(time.RFC822)
 
 	// If there's a password return links.PassJSONLink, if there's none return links.SimpleJSONLink
 	if params.Password != "" {

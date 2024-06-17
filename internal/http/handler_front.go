@@ -222,7 +222,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	}
 
 	// Format the expiration date that will be displayed to the user
-	expireAt := link.ExpireAt.Format(time.ANSIC)
+	expireAt := link.ExpireAt.Format(time.RFC822)
 
 	// Set what is going to be displayed on the add page
 	page := &Page{
