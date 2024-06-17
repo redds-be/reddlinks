@@ -27,7 +27,7 @@ import (
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
-// Configuration is redefines [utils.Configuration] to be used for methods within the package.
+// Configuration redefines [utils.Configuration] to be used for methods within the package.
 type Configuration utils.Configuration
 
 // NewAdapter returns a configuration to be used by Run and the handlers.

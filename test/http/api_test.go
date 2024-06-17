@@ -23,12 +23,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/redds-be/reddlinks/internal/env"
 	HTTP "github.com/redds-be/reddlinks/internal/http"
+	"github.com/redds-be/reddlinks/internal/links"
 	"github.com/redds-be/reddlinks/internal/utils"
 	"github.com/redds-be/reddlinks/test/helper"
 )
@@ -72,6 +75,9 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		ContactEmail:           testEnv.ContactEmail,
 	}
 
+	instanceURLWithoutProto := regexp.MustCompile("^https://|http://").
+		ReplaceAllString(conf.InstanceURL, "")
+
 	httpAdapter := HTTP.NewAdapter(*conf)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /", httpAdapter.APICreateLink)
@@ -97,18 +103,22 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(resp.Code, http.StatusCreated)
 
 	decoder := json.NewDecoder(resp.Body)
-	returnedLink := database.Link{}
+	returnedLink := links.SimpleJSONLink{}
 	err = decoder.Decode(&returnedLink)
 	suite.a.AssertNoErr(err)
 
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.RFC822),
+		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with default values
-	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
+	req = httptest.NewRequest(
+		http.MethodGet,
+		"/"+strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+		nil,
+	)
 	resp = httptest.NewRecorder()
 
 	mux.ServeHTTP(resp, req)
@@ -138,13 +148,17 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.RFC822),
+		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
-	suite.a.Assert(len(returnedLink.Short), params.Length)
+	suite.a.Assert(len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")), params.Length)
 
 	// Test link redirection with custom length for random short
-	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
+	req = httptest.NewRequest(
+		http.MethodGet,
+		"/"+strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+		nil,
+	)
 	resp = httptest.NewRecorder()
 
 	mux.ServeHTTP(resp, req)
@@ -175,14 +189,18 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.RFC822),
+		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
-	suite.a.Assert(len(returnedLink.Short), len(params.Path))
-	suite.a.Assert(returnedLink.Short, params.Path)
+	suite.a.Assert(len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")), len(params.Path))
+	suite.a.Assert(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""), params.Path)
 
 	// Test link redirection with a custom short
-	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
+	req = httptest.NewRequest(
+		http.MethodGet,
+		"/"+strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+		nil,
+	)
 	resp = httptest.NewRecorder()
 
 	mux.ServeHTTP(resp, req)
@@ -213,12 +231,16 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.RFC822),
+		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(5)*time.Minute).Format(time.RFC822),
 	)
 
 	// Test link redirection with custom expiration time
-	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, nil)
+	req = httptest.NewRequest(
+		http.MethodGet,
+		"/"+strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+		nil,
+	)
 	resp = httptest.NewRecorder()
 
 	mux.ServeHTTP(resp, req)
@@ -249,7 +271,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 
 	suite.a.Assert(returnedLink.URL, params.URL)
 	suite.a.Assert(
-		returnedLink.ExpireAt.Format(time.RFC822),
+		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
@@ -261,7 +283,11 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	err = json.NewEncoder(&buf).Encode(params)
 	suite.a.AssertNoErr(err)
 
-	req = httptest.NewRequest(http.MethodGet, "/"+returnedLink.Short, &buf)
+	req = httptest.NewRequest(
+		http.MethodGet,
+		"/"+strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+		&buf,
+	)
 	resp = httptest.NewRecorder()
 	req.Header.Add("Content-Type", "application/json")
 

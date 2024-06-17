@@ -20,15 +20,13 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
-	"github.com/google/uuid"
 	"github.com/redds-be/reddlinks/internal/database" // Local database package
 	"github.com/redds-be/reddlinks/internal/json"
+	"github.com/redds-be/reddlinks/internal/links"
 	"github.com/redds-be/reddlinks/internal/utils"
-	"gitlab.gnous.eu/ada/atp"
 )
 
 // APIRedirectToURL redirects the client to the URL corresponding to given shortened link.
@@ -126,17 +124,11 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 
 // APICreateLink creates a link entry in the database using given json parameters.
 //
-// It firsts decodes the JSON payload from the client using [utils.DecodeJSON], it then checks using a regexp
-// if the URL from the payload has http/https as its protocol, it then checks the expiration time,
-// if there is none, DefaultExpiryTime will be added to now, if there's one, the time will be parsed using
-// [atp.ParseDuration] and this time will be added to now. the length provided will be checked and fixed
-// according to min and max settings. the custom path provided will be checked if there's one,
-// endpoints and some characters are blacklisted, if the path exceeds the length of DefaultMaxCustomLength,
-// it will be trimmed. If there's no custom path provided, a random one will generated using either DefaultShortLength or
-// the provided length with [utils.GenStr]. If there's a password provided, it will be hashed using [argon2id.CreateHash].
-// After all is done, a link entry will be created in the database using [database.CreateLink].
-// If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
-func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
+// It firsts decodes the JSON payload from the client using [utils.DecodeJSON], hen creates an adapter for links using
+// [links.NewAdapter] then calls [links.CreateLink] to create a link entry giving it the deocded params,
+// the information is then formatted and returned to the client with two versions, [links.PassJSONLink] if there's a password and
+// [links.SimpleJSONLink] if there's not a password.
+func (conf Configuration) APICreateLink( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
@@ -148,176 +140,66 @@ func (conf Configuration) APICreateLink( //nolint:funlen,cyclop,gocognit
 		return
 	}
 
-	// Check if the url is valid
-	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
-	if err != nil {
-		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to check the URL.")
+	// Create a configuration struct for the links adapter
+	linksConf := utils.Configuration{
+		DB:                     conf.DB,
+		InstanceName:           conf.InstanceName,
+		InstanceURL:            conf.InstanceURL,
+		Version:                conf.Version,
+		AddrAndPort:            conf.AddrAndPort,
+		DefaultShortLength:     conf.DefaultShortLength,
+		DefaultMaxShortLength:  conf.DefaultMaxShortLength,
+		DefaultMaxCustomLength: conf.DefaultMaxCustomLength,
+		DefaultExpiryTime:      conf.DefaultExpiryTime,
+		ContactEmail:           conf.ContactEmail,
+		Static:                 conf.Static,
+	}
+
+	// Create an adapter using the configuration struct
+	linksAdapter := links.NewAdapter(linksConf)
+
+	// Create the link entry
+	link, code, addInfo, errMsg := linksAdapter.CreateLink(params)
+	if errMsg != "" {
+		json.RespondWithError(writer, code, errMsg)
 
 		return
 	}
-	if !isValid {
-		json.RespondWithError(writer, http.StatusBadRequest, "The URL is invalid.")
 
-		return
-	}
-
-	// Check if the expiry time, defaults to now + default, if it's not empty, parse the time and add to now
-	// ex: '1d1m' = now + 1day + 1 minute
-	var expireAt time.Time
-	if params.ExpireAfter == "" {
-		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
-	} else {
-		expireDuration, err := atp.ParseDuration(params.ExpireAfter)
-		if err != nil {
-			json.RespondWithError(writer, http.StatusInternalServerError, "Could not parse the given time. Should look like '1d2H3M4S'")
-
-			return
+	// If there's additional information, display it
+	if addInfo != "" {
+		type informationResponse struct {
+			Information string `json:"information"`
 		}
-		expireAt = time.Now().UTC().Add(expireDuration)
+		json.RespondWithJSON(writer, http.StatusContinue, informationResponse{Information: addInfo})
 	}
 
-	// Check the length, will default to DefaultShortLength,
-	// if it's inferior or equal to 0 or will default to DefaultMaxShortLength if it's over DefaultMaxShortLength
-	if params.Length <= 0 {
-		params.Length = conf.DefaultShortLength
-	} else if params.Length > conf.DefaultMaxShortLength {
-		params.Length = conf.DefaultMaxShortLength
-	}
+	// Format the shortedned link
+	shortenedLink := regexp.MustCompile("^https://|http://").
+		ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, link.Short), "")
 
-	// Check the validity of a custom path
-	if params.Path != "" {
-		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access, privacy and assets are used for the front.
-		reservedMatch, err := regexp.MatchString(
-			`^status$|^error$|^add$|^access$|^privacy$|^assets.*$`,
-			params.Path,
-		)
-		if err != nil {
-			json.RespondWithError(
-				writer,
-				http.StatusInternalServerError,
-				"Could not check the path.",
-			)
+	// Format the expiration date that will be displayed to the user
+	expireAt := link.ExpireAt.Format(time.RFC822)
 
-			return
-		}
-		if reservedMatch {
-			json.RespondWithError(writer, http.StatusBadRequest, fmt.Sprintf(
-				"The path '/%s' is reserved.",
-				params.Path,
-			))
-
-			return
-		}
-
-		// Check the validity of the custom path
-		reservedChars := []string{
-			":",
-			"/",
-			"?",
-			"#",
-			"[",
-			"]",
-			"@",
-			"!",
-			"$",
-			"&",
-			"'",
-			"(",
-			")",
-			"*",
-			"+",
-			",",
-			";",
-			"=",
-		}
-		for _, char := range reservedChars {
-			if match := strings.Contains(params.Path, char); match {
-				json.RespondWithError(writer, http.StatusBadRequest, fmt.Sprintf(
-					"The character '%s' is not allowed.",
-					char,
-				))
-
-				return
-			}
-		}
-	}
-
-	// Check the path, will default to a randomly generated one with specified length,
-	// if its length is over DefaultMaxCustomLength, it will be trimmed
-	autoGen := false
-	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-	if params.Path == "" {
-		autoGen = true
-		params.Path = utils.GenStr(params.Length, allowedChars)
-	}
-	if len(params.Path) > conf.DefaultMaxCustomLength {
-		params.Path = params.Path[:conf.DefaultMaxCustomLength]
-	}
-
-	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
-	hash := ""
+	// If there's a password return links.PassJSONLink, if there's none return links.SimpleJSONLink
 	if params.Password != "" {
-		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
-		if err != nil {
-			json.RespondWithError(
-				writer,
-				http.StatusInternalServerError,
-				"Could not hash the password.",
-			)
-
-			return
+		linkToReturn := links.PassJSONLink{
+			ShortenedLink: shortenedLink,
+			Password:      params.Password,
+			ExpireAt:      expireAt,
+			URL:           link.URL,
 		}
-	}
 
-	// Insert the information to the database, error if it can't, most likely that the short is already in use
-	err = database.CreateLink(
-		conf.DB,
-		uuid.New(),
-		time.Now().UTC(),
-		expireAt,
-		params.URL,
-		params.Path,
-		hash,
-	)
-	if err != nil && !autoGen {
-		json.RespondWithError(
-			writer,
-			http.StatusBadRequest,
-			"Could not add link: the path is probably already in use.",
-		)
-
-		return
-	} else if err != nil && autoGen {
-	loop:
-		for index := conf.DefaultShortLength; index <= conf.DefaultMaxShortLength; index++ {
-			params.Path = utils.GenStr(index, allowedChars)
-			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
-			switch {
-			case err != nil && index == conf.DefaultMaxShortLength:
-				json.RespondWithError(writer, http.StatusInternalServerError, "No more space left in the database.")
-
-				return
-			case err == nil && index != params.Length:
-				type informationResponse struct {
-					Information string `json:"information"`
-				}
-				json.RespondWithJSON(writer, http.StatusContinue, informationResponse{Information: "The length of your auto-generated path" +
-					" had to be changed due to space limitations in the database."})
-
-				break loop
-			case err == nil:
-				break loop
-			}
+		// Return the expiry time, the url and the short to the user
+		json.RespondWithJSON(writer, code, linkToReturn)
+	} else {
+		linkToReturn := links.SimpleJSONLink{
+			ShortenedLink: shortenedLink,
+			ExpireAt:      expireAt,
+			URL:           link.URL,
 		}
-	}
 
-	// Define what is to be returned to the user as a successful response
-	link := database.Link{
-		ExpireAt: expireAt,
-		URL:      params.URL,
-		Short:    params.Path,
+		// Return the expiry time, the url and the short to the user
+		json.RespondWithJSON(writer, code, linkToReturn)
 	}
-
-	// Return the expiry time, the url and the short to the user
-	json.RespondWithJSON(writer, http.StatusCreated, link)
 }
