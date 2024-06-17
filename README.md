@@ -16,6 +16,8 @@
     <br />
     <a href="https://ls.redds.be">View Demo</a>
     ·
+    <a href="https://github.com/redds-be/reddlinks/wiki">Wiki</a>
+    ·
     <a href="https://github.com/redds-be/reddlinks/issues">Report Bug</a>
     ·
     <a href="https://github.com/redds-be/reddlinks/issues">Request Feature</a>
@@ -99,7 +101,13 @@ Use your favorite http client to make a GET request whilst posting JSON, example
 curl -X GET https://ls.redds.be/ag4vb~ -H 'Content-Type: application/json' -d '{"password":"secret123"}'
 ```
 
+More information in the [wiki](https://github.com/redds-be/reddlinks/wiki/Usage).
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Installation
+
+Read the configuration and installation instructions in the [wiki](https://github.com/redds-be/reddlinks/wiki/Installation).
 
 <!-- ROADMAP -->
 ## Roadmap
