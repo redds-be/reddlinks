@@ -8,7 +8,7 @@ prep: fmt mod vet lint test
 
 compile: clean
 	@mkdir -p build/
-	@go build -ldflags="-X 'main.Version=$(VERSION)'" -o build/
+	@go build -ldflags="-X 'main.version=$(VERSION)'" -o build/
 
 fmt:
 	golines --max-len=120 --base-formatter=gofumpt -w $(GOFILES)

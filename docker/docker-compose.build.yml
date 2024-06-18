@@ -17,7 +17,9 @@ services:
     env_file:
       - .env
   reddlinks:
-    image: ghcr.io/redds-be/reddlinks:latest
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
         POSTGRES_PASSWORD: ${REDDLINKS_PG_PASS:?database password required}

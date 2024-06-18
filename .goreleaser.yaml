@@ -1,0 +1,47 @@
+version: 2
+
+project_name: reddlinks
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - homepage: https://github.com/redds-be/reddlinks
+    maintainer: redd <redd@redds.be> 
+    description: |-
+      A simple link shortener written in Go.
+    license: GPL-3.0
+    formats:
+      - apk
+      - deb
+      - rpm
+      - archlinux
+
+dockers:
+  - image_templates: ["ghcr.io/redds-be/{{ .ProjectName }}:{{ .Version }}"]
+    dockerfile: "docker/Dockerfile-ci"
