@@ -21,10 +21,6 @@ services:
       context: ../
       dockerfile: docker/Dockerfile
     restart: unless-stopped
-    environment:
-        POSTGRES_PASSWORD: ${REDDLINKS_PG_PASS:?database password required}
-        POSTGRES_USER: ${REDDLINKS_PG_USER:-rluser}
-        POSTGRES_DB: ${REDDLINKS_PG_DB:-rldb}
     env_file:
       - .env
     depends_on:
