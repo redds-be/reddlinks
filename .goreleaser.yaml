@@ -37,10 +37,18 @@ nfpms:
       A simple link shortener written in Go.
     license: GPL-3.0
     formats:
-      - apk
       - deb
       - rpm
       - archlinux
+    scripts:
+      preinstall: "scripts/preinstall.sh"
+      postinstall: "scripts/postinstall.sh"
+      postremove: "scripts/postremove.sh"
+    contents:
+      - src: systemd/reddlinks.service
+        dst: /etc/systemd/system/reddlinks.service
+      - src: .env.example
+        dst: /opt/reddlinks/.env
 
 dockers:
   - image_templates:
