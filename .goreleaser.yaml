@@ -43,5 +43,7 @@ nfpms:
       - archlinux
 
 dockers:
-  - image_templates: ["ghcr.io/redds-be/{{ .ProjectName }}:{{ .Version }}"]
+  - image_templates:
+      - "ghcr.io/redds-be/{{ .ProjectName }}:{{ .Version }}"
+      - "ghcr.io/redds-be/{{ .ProjectName }}:latest"
     dockerfile: "docker/Dockerfile-ci"
