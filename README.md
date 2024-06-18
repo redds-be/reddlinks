@@ -39,9 +39,10 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#about-reddlinks">About The Project</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#usage">Usage</a></li>
+    <li><a href="#installation">Installation</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
@@ -61,11 +62,11 @@ In case it has been a while since the last commit, no, this project is not dead,
 
 ## Features
 
-- URL shortening (duh.)
+- URL shortening
+- Front-facing website
 - API endpoints
-- Random path generation (ex: ls.redds.be/**ag4vb~**, defaults to 6)
+- Random path generation (ex: ls.redds.be/**ag4vb~**, defaults to a pre-configured value)
 - Custom path (ex: ls.redds.be/**custom**, overrides path generation)
-- expiry time (ex: never or any time in minutes, defaults to 48 hours (2880 minutes))
 - Password protected links using argon2
 - PostgreSQL and SQLite
 
