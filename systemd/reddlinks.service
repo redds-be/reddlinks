@@ -1,0 +1,15 @@
+[Unit]
+Description=A simple link shortener
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/reddlinks
+EnvironmentFile=/opt/reddlinks/.env
+ExecStart=/usr/bin/reddlinks
+User=reddlinks
+Group=reddlinks
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
