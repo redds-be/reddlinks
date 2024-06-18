@@ -110,6 +110,8 @@ More information in the [wiki](https://github.com/redds-be/reddlinks/wiki/Usage)
 
 Read the configuration and installation instructions in the [wiki](https://github.com/redds-be/reddlinks/wiki/Installation).
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 <!-- ROADMAP -->
 ## Roadmap
 

@@ -30,8 +30,8 @@ import (
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
-// Version is a variable for the version set by ldflags.
-var Version string //nolint:gochecknoglobals
+// version is a variable for the version set by ldflags.
+var version string
 
 // embeddedStatic is the variable that will hold the assets within the binary.
 //
@@ -84,7 +84,7 @@ func main() { //nolint:funlen
 		DefaultExpiryTime:      envVars.DefaultExpiryTime,
 		ContactEmail:           envVars.ContactEmail,
 		Static:                 embeddedStatic,
-		Version:                Version,
+		Version:                version,
 	}
 
 	// Periodically clean the database
