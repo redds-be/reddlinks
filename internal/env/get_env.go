@@ -24,6 +24,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -74,7 +75,7 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	}
 
 	// Check if the instance URL is valid
-	instanceURLMatch, err := regexp.MatchString(`^https?://.*\..*/$`, env.InstanceURL)
+	instanceURLMatch, err := regexp.MatchString(`^https?://.*\..*$`, env.InstanceURL)
 	if err != nil {
 		return fmt.Errorf("the instance URL %w", ErrNotChecked)
 	}
@@ -218,6 +219,11 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	instanceURL := os.Getenv("REDDLINKS_INSTANCE_URL")
 	if instanceURL == "" {
 		log.Fatal("reddlinks could not find a value for REDDLINKS_INSTANCE_URL env variable")
+	}
+
+	// Add suffix to the instance URL if there's none
+	if !strings.HasSuffix(instanceURL, "/") {
+		instanceURL += "/"
 	}
 
 	// Read the database type

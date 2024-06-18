@@ -97,22 +97,6 @@ func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 	err = envToCheck.EnvCheck()
 	suite.a.AssertErrIs(err, env.ErrInvalid)
 
-	envToCheck.InstanceURL = "http://example.com"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrInvalid)
-
-	envToCheck.InstanceURL = "http://ls.example.com"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrInvalid)
-
-	envToCheck.InstanceURL = "https://example.com"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrInvalid)
-
-	envToCheck.InstanceURL = "https://ls.example.com"
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrInvalid)
-
 	envToCheck.InstanceURL = "magnet://ls.example.com/"
 	err = envToCheck.EnvCheck()
 	suite.a.AssertErrIs(err, env.ErrInvalid)
