@@ -25,6 +25,10 @@ services:
       REDDLINKS_DB_HOST: ${REDDLINKS_DB_HOST:-postgresql}
       REDDLINKS_DB_PORT: ${REDDLINKS_DB_PORT:-5432}
       REDDLINKS_DB_TYPE: ${REDDLINKS_DB_TYPE:-postgres}
+      REDDLINKS_DB_PASSWORD: ${REDDLINKS_DB_PASSWORD:?database password required}
+      REDDLINKS_DB_USERNAME: ${REDDLINKS_DB_USERNAME:-rluser}
+      REDDLINKS_DB_NAME: ${REDDLINKS_DB_NAME:-rldb}
+      REDDLINKS_INSTANCE_URL: ${REDDLINKS_INSTANCE_URL:?instance url (public FQDN) required}
     env_file:
       - .env
     depends_on:
