@@ -98,7 +98,7 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 // the provided length with [utils.GenStr]. If there's a password provided, it will be hashed using [argon2id.CreateHash].
 // After all is done, a link entry will be created in the database using [database.CreateLink].
 // If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
-func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop
+func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 	params utils.Parameters,
 ) (Link, int, string, string) {
 	// Check if the url is valid
@@ -110,21 +110,30 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop
 		return Link{}, http.StatusBadRequest, "", "The URL is invalid."
 	}
 
-	// Check if the expiry time, defaults to now + default, if it's not empty, parse the time and add to now
-	// ex: '1d1m' = now + 1day + 1 minute
+	// Set the expiry date, if there is none and the default expiry time is 0, the time will be set to the max for sqlite,
+	// if there is none and there is a default expiry time, add the default expiry time to now, if there is a "1d2h3m4s" time format,
+	// parse it and add it to now, if there's a date, parse the date ans set it as the expiry date
 	var expireAt time.Time
-	if params.ExpireAfter == "" {
+	switch {
+	case params.ExpireAfter == "" && conf.DefaultExpiryTime == 0 && params.ExpireDate == "":
+		expireAt, err = time.Parse("2006-01-02", "9999-12-31")
+		if err != nil {
+			return Link{}, http.StatusInternalServerError, "", "Unable to tell when the end of the world will be."
+		}
+	case params.ExpireAfter == "" && params.ExpireDate == "":
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
-	} else {
+	case params.ExpireAfter != "" && params.ExpireDate == "":
 		expireDuration, err := atp.ParseDuration(params.ExpireAfter)
 		if err != nil {
 			return Link{}, http.StatusInternalServerError, "", "Could not parse the given time. Should look like '1d2h3m4s'."
 		}
 		expireAt = time.Now().UTC().Add(expireDuration)
-	}
-
-	// If there's an expiry date, use it instead of using atp.
-	if params.ExpireDate != "" {
+	case params.ExpireDate != "" && params.ExpireAfter == "":
+		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
+		if err != nil {
+			return Link{}, http.StatusInternalServerError, "", "Unable to parse the expiry date."
+		}
+	case params.ExpireDate != "" && params.ExpireAfter != "":
 		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
 		if err != nil {
 			return Link{}, http.StatusInternalServerError, "", "Unable to parse the expiry date."

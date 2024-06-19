@@ -36,7 +36,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	)
 	suite.a.AssertNoErr(err)
 
-	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
+	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
 	suite.a.AssertNoErr(err)
 
 	conf := &utils.Configuration{

@@ -71,7 +71,7 @@ type Env struct {
 // DefaultMaxCustomLength is checked for being positive and not being superior to DefaultMaxLength,
 // DefaultMaxLength is checked for being positive,
 // being superior or equal to DefaultLength and DefaultMaxCustomLength and for being inferior to 8000
-// DefaultExpiryTime is checked for being positive.
+// DefaultExpiryTime is checked for being null or positive.
 func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	// Check if the instance name isn't null
 	if env.InstanceName == "" {
@@ -136,8 +136,8 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	}
 
 	// Check the default expiry time
-	if env.DefaultExpiryTime <= 0 {
-		return fmt.Errorf("the default expiry time %w", ErrNullOrNegative)
+	if env.DefaultExpiryTime < 0 {
+		return fmt.Errorf("the default expiry time %w", ErrNegative)
 	}
 
 	// No errors, since everything is fine

@@ -180,14 +180,10 @@ func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Reset the default max length
 	envToCheck.DefaultMaxCustomLength = 255
 
-	// Test if the default expiry time are correct
-	envToCheck.DefaultExpiryTime = 0
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
-
+	// Test if the default expiry time errors are correct
 	envToCheck.DefaultExpiryTime = -17
 	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrNullOrNegative)
+	suite.a.AssertErrIs(err, env.ErrNegative)
 }
 
 // Test suite structure.

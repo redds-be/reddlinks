@@ -47,7 +47,7 @@ func (suite utilsTestSuite) TestCollectGarbage() {
 	)
 	suite.a.AssertNoErr(err)
 
-	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
+	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
 	suite.a.AssertNoErr(err)
 	err = database.CreateLink(
 		dataBase,
@@ -81,7 +81,12 @@ func (suite utilsTestSuite) TestDecodeJSON() {
 	suite.a.AssertNoErr(err)
 
 	// Mock request
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "/", bytes.NewBuffer(enc))
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		"/",
+		bytes.NewBuffer(enc),
+	)
 	suite.a.AssertNoErr(err)
 
 	// Test the decodeJSON() function and compare its return value to the expected values
@@ -98,7 +103,8 @@ func (suite utilsTestSuite) TestGenStr() {
 
 	suite.a.Assert(len(randStr), testLength)
 
-	if !strings.Contains(randStr, "A") && !strings.Contains(randStr, "B") && !strings.Contains(randStr, "C") {
+	if !strings.Contains(randStr, "A") && !strings.Contains(randStr, "B") &&
+		!strings.Contains(randStr, "C") {
 		suite.t.Errorf("%s does not contain either A, B, or C.", randStr)
 	}
 }

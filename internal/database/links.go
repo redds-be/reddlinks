@@ -28,7 +28,7 @@ import (
 //
 // An SQL statement is prepared using the max short length as the max for the short column,
 // the statement is then executed which should create the links table if it doesn't exist.
-func CreateLinksTable(database *sql.DB, maxShort int) error {
+func CreateLinksTable(database *sql.DB, dbType string, maxShort int) error {
 	sqlCreateTable := fmt.Sprintf(
 		"CREATE TABLE IF NOT EXISTS links ("+
 			"id UUID PRIMARY KEY, "+
@@ -40,6 +40,65 @@ func CreateLinksTable(database *sql.DB, maxShort int) error {
 		maxShort,
 	)
 	_, err := database.Exec(sqlCreateTable)
+	if err != nil {
+		return err
+	}
+
+	// Update links database for compatibility reasons
+	err = updateLinksTable(database, dbType, maxShort)
+
+	return err
+}
+
+// updateLinksTable updates some values of the links table, used to be able to change the max short length and to not break compatibility with older databases.
+func updateLinksTable(database *sql.DB, dbType string, maxShort int) error {
+	var err error
+	switch {
+	case dbType == "postgres":
+		// Modify the max length of a short
+		sqlUpdateMaxShort := fmt.Sprintf(
+			"ALTER TABLE links ALTER COLUMN short TYPE varchar(%d);",
+			maxShort,
+		)
+		_, err = database.Exec(sqlUpdateMaxShort)
+	case dbType == "sqlite":
+		// Create a temp links table
+		sqlCreateTempTable := fmt.Sprintf(
+			"CREATE TABLE tmp_links ("+
+				"id UUID PRIMARY KEY, "+
+				"created_at TIMESTAMP NOT NULL, "+
+				"expire_at TIMESTAMP NOT NULL, "+
+				"url varchar NOT NULL, "+
+				"short varchar(%d) UNIQUE NOT NULL, "+
+				"password varchar(97));",
+			maxShort,
+		)
+
+		_, err = database.Exec(sqlCreateTempTable)
+		if err != nil {
+			return err
+		}
+
+		// Copy the content of the old table to the new table
+		sqlCopyOldToNew := `INSERT INTO tmp_links 
+        (id, created_at, expire_at, url, short, password) SELECT 
+        id, created_at, expire_at, url, short, password FROM links;`
+		_, err = database.Exec(sqlCopyOldToNew)
+		if err != nil {
+			return err
+		}
+
+		// Drop the old table
+		sqlDropOldTable := `DROP TABLE links;`
+		_, err = database.Exec(sqlDropOldTable)
+		if err != nil {
+			return err
+		}
+
+		// Rename the new table to pose as the old table
+		sqlRenNewTable := `ALTER TABLE tmp_links RENAME TO links;`
+		_, err = database.Exec(sqlRenNewTable)
+	}
 
 	return err
 }
