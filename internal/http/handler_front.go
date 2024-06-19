@@ -120,8 +120,14 @@ func (conf Configuration) FrontErrorPage(
 //
 // An expiry date is created by adding DefaultExpiryTime to now, this date will be used as the default expiry date in the form.
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, _ *http.Request) {
-	// Convert default expiry time into date
-	defaultExpiryDate := time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
+	var defaultExpiryDate string
+	if conf.DefaultExpiryTime != 0 {
+		// Convert default expiry time into date
+		defaultExpiryDate = time.Now().
+			UTC().
+			Add(time.Minute * time.Duration(conf.DefaultExpiryTime)).
+			Format("2006-01-02T15:04")
+	}
 
 	// Set what is going to be displayed on the main page
 	page := &Page{
@@ -132,7 +138,7 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, _ *ht
 		DefaultShortLength:     conf.DefaultShortLength,
 		DefaultMaxShortLength:  conf.DefaultMaxShortLength,
 		DefaultMaxCustomLength: conf.DefaultMaxCustomLength,
-		DefaultExpiryDate:      defaultExpiryDate.Format("2006-01-02T15:04"),
+		DefaultExpiryDate:      defaultExpiryDate,
 		Version:                conf.Version,
 	}
 
@@ -222,7 +228,12 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	}
 
 	// Format the expiration date that will be displayed to the user
-	expireAt := link.ExpireAt.Format(time.RFC822)
+	var expireAt string
+	if params.ExpireDate == "" && params.ExpireAfter == "" && conf.DefaultExpiryTime == 0 {
+		expireAt = "Never"
+	} else {
+		expireAt = link.ExpireAt.Format(time.RFC822)
+	}
 
 	// Set what is going to be displayed on the add page
 	page := &Page{

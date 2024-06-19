@@ -67,7 +67,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	)
 	suite.a.AssertNoErrf(err)
 
-	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
+	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
 	suite.a.AssertNoErrf(err)
 
 	conf := &utils.Configuration{
@@ -159,7 +159,10 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
-	suite.a.Assert(len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")), params.Length)
+	suite.a.Assert(
+		len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")),
+		params.Length,
+	)
 
 	// Test link redirection with custom length for random short
 	req = httptest.NewRequest(
@@ -200,8 +203,14 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
-	suite.a.Assert(len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")), len(params.Path))
-	suite.a.Assert(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""), params.Path)
+	suite.a.Assert(
+		len(strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")),
+		len(params.Path),
+	)
+	suite.a.Assert(
+		strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+		params.Path,
+	)
 
 	// Test link redirection with a custom short
 	req = httptest.NewRequest(

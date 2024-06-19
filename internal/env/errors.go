@@ -26,6 +26,7 @@ import "errors"
 // ErrInvalid defines an error for variables where a value is invalid,
 // ErrInvalidOrUnsupported defines an error for variables where a value is either invalid or unsupported,
 // ErrNullOrNegative defines an error for variables where a value is either null or negative,
+// ErrNegative defines an error for variables where a value is negative,
 // ErrSuperior defines an error for variables where a value can't be superior to another one,
 // ErrInferior defines an error for variables where a value can't be inferior to another one.
 var (
@@ -35,6 +36,7 @@ var (
 	ErrInvalid              = errors.New("is invalid")
 	ErrInvalidOrUnsupported = errors.New("is invalid or unsupported")
 	ErrNullOrNegative       = errors.New("can't be null or negative")
+	ErrNegative             = errors.New("can't be negative")
 	ErrSuperior             = errors.New("can't be superior to")
 	ErrInferior             = errors.New("can't be inferior to")
 )

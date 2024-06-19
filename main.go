@@ -75,7 +75,7 @@ func main() { //nolint:funlen
 	}(dbase)
 
 	// Create the links table if it doesn't exist
-	err = database.CreateLinksTable(dbase, envVars.DefaultMaxLength)
+	err = database.CreateLinksTable(dbase, envVars.DBType, envVars.DefaultMaxLength)
 	if err != nil {
 		log.Panic(err)
 	}
