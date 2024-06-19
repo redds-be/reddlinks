@@ -163,13 +163,13 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the address and port
 	addrAndPort := os.Getenv("REDDLINKS_LISTEN_ADDR")
 	if addrAndPort == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_LISTEN_ADDR env variable")
+		addrAndPort = "0.0.0.0:8080"
 	}
 
 	// Read the default short length
 	defaultLengthStr := os.Getenv("REDDLINKS_DEF_SHORT_LENGTH")
 	if defaultLengthStr == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DEF_SHORT_LENGTH env variable")
+		defaultLengthStr = "3"
 	}
 	defaultLength, err := strconv.Atoi(defaultLengthStr)
 	if err != nil {
@@ -179,7 +179,7 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the default max short length
 	defaultMaxLengthStr := os.Getenv("REDDLINKS_MAX_SHORT_LENGTH")
 	if defaultMaxLengthStr == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_MAX_SHORT_LENGTH env variable")
+		defaultMaxLengthStr = "12"
 	}
 	defaultMaxLength, err := strconv.Atoi(defaultMaxLengthStr)
 	if err != nil {
@@ -189,9 +189,7 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the default max custom short length
 	defaultMaxCustomLengthStr := os.Getenv("REDDLINKS_MAX_CUSTOM_SHORT_LENGTH")
 	if defaultMaxCustomLengthStr == "" {
-		log.Fatal(
-			"reddlinks could not find a value for REDDLINKS_MAX_CUSTOM_SHORT_LENGTH env variable",
-		)
+		defaultMaxCustomLengthStr = defaultMaxLengthStr
 	}
 	defaultMaxCustomLength, err := strconv.Atoi(defaultMaxCustomLengthStr)
 	if err != nil {
@@ -201,7 +199,7 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the default expiry time
 	defaultExpiryTimeStr := os.Getenv("REDDLINKS_DEF_EXPIRY_TIME")
 	if defaultExpiryTimeStr == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DEF_EXPIRY_TIME env variable")
+		defaultExpiryTimeStr = "2880"
 	}
 	defaultExpiryTime, err := strconv.Atoi(defaultExpiryTimeStr)
 	if err != nil {
@@ -211,7 +209,7 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the instance name
 	instanceName := os.Getenv("REDDLINKS_INSTANCE_NAME")
 	if instanceName == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_INSTANCE_NAME env variable")
+		instanceName = "reddlinks"
 	}
 
 	// Read the instance URL
@@ -267,9 +265,7 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 	// Read the time between cleanup and convert it to an int
 	timeBetweenCleanupsStr := os.Getenv("REDDLINKS_TIME_BETWEEN_DB_CLEANUPS")
 	if timeBetweenCleanupsStr == "" {
-		log.Fatal(
-			"reddlinks could not find a value for REDDLINKS_TIME_BETWEEN_DB_CLEANUPS env variable",
-		)
+		timeBetweenCleanupsStr = "1"
 	}
 	timeBetweenCleanups, err := strconv.Atoi(timeBetweenCleanupsStr)
 	if err != nil {
