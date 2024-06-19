@@ -25,7 +25,15 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 	}
 
 	// Prep everything
-	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
+	dataBase, err := database.DBConnect(
+		testEnv.DBType,
+		testEnv.DBURL,
+		testEnv.DBUser,
+		testEnv.DBPass,
+		testEnv.DBHost,
+		testEnv.DBPort,
+		testEnv.DBName,
+	)
 	suite.a.AssertNoErr(err)
 
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)

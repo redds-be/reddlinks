@@ -47,6 +47,11 @@ type Env struct {
 	InstanceName           string
 	InstanceURL            string
 	DBType                 string
+	DBUser                 string
+	DBPass                 string
+	DBHost                 string
+	DBPort                 string
+	DBName                 string
 	DBURL                  string
 	ContactEmail           string
 	TimeBetweenCleanups    int
@@ -61,7 +66,6 @@ type Env struct {
 // InstanceName is checked for emptyness,
 // InstanceURL is checked with a regexp for having http/https and trailing '/',
 // DBType is checked for being either 'postgres' or 'sqlite' with a regexp,
-// DBURL is checked for emptyness,
 // TimeBetweenCleanups is checked for being positive,
 // DefaultLength is checked for being positive and not being superior to DefaultMaxLength,
 // DefaultMaxCustomLength is checked for being positive and not being superior to DefaultMaxLength,
@@ -90,11 +94,6 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	}
 	if env.DBType == "" || !dbTypeMatch {
 		return fmt.Errorf("the database type %w", ErrInvalidOrUnsupported)
-	}
-
-	// Check if the database access string is empty or not.
-	if env.DBURL == "" {
-		return fmt.Errorf("the database access string %w", ErrEmpty)
 	}
 
 	// Check the time between cleanups, can be any time really, so only checking if it's 0 or less
@@ -234,8 +233,35 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 
 	// Read the database URL
 	dbURL := os.Getenv("REDDLINKS_DB_STRING")
-	if dbURL == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_STRING env variable")
+
+	// Read the database username
+	dbUser := os.Getenv("REDDLINKS_DB_USERNAME")
+	if dbUser == "" && dbURL == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_USERNAME env variable")
+	}
+
+	// Read the database password
+	dbPass := os.Getenv("REDDLINKS_DB_PASSWORD")
+	if dbPass == "" && dbURL == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_PASSWORD env variable")
+	}
+
+	// Read the database host
+	dbHost := os.Getenv("REDDLINKS_DB_HOST")
+	if dbHost == "" && dbURL == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_HOST env variable")
+	}
+
+	// Read the database port
+	dbPort := os.Getenv("REDDLINKS_DB_PORT")
+	if dbPort == "" && dbURL == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_PORT env variable")
+	}
+
+	// Read the database name
+	dbName := os.Getenv("REDDLINKS_DB_NAME")
+	if dbName == "" && dbURL == "" {
+		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_NAME env variable")
 	}
 
 	// Read the time between cleanup and convert it to an int
@@ -259,6 +285,11 @@ func GetEnv(envFile string) Env { //nolint:funlen,cyclop
 		InstanceName:           instanceName,
 		InstanceURL:            instanceURL,
 		DBType:                 dbType,
+		DBUser:                 dbUser,
+		DBPass:                 dbPass,
+		DBHost:                 dbHost,
+		DBPort:                 dbPort,
+		DBName:                 dbName,
 		DBURL:                  dbURL,
 		ContactEmail:           contactEmail,
 		TimeBetweenCleanups:    timeBetweenCleanups,

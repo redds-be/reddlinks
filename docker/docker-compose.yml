@@ -11,14 +11,18 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
     environment:
-      POSTGRES_PASSWORD: ${REDDLINKS_PG_PASS:?database password required}
-      POSTGRES_USER: ${REDDLINKS_PG_USER:-rluser}
-      POSTGRES_DB: ${REDDLINKS_PG_DB:-rldb}
+      POSTGRES_PASSWORD: ${REDDLINKS_DB_PASSWORD:?database password required}
+      POSTGRES_USER: ${REDDLINKS_DB_USERNAME:-rluser}
+      POSTGRES_DB: ${REDDLINKS_DB_NAME:-rldb}
     env_file:
       - .env
   reddlinks:
     image: ghcr.io/redds-be/reddlinks:latest
     restart: unless-stopped
+    environment:
+      - REDDLINKS_DB_HOST: ${REDDLINKS_DB_HOST:-postgresql}
+      - REDDLINKS_DB_PORT: ${REDDLINKS_DB_PORT:-5432}
+      - REDDLINKS_DB_TYPE: ${REDDLINKS_DB_TYPE:-postgres}
     env_file:
       - .env
     depends_on:

@@ -7,7 +7,7 @@ WORKDIR /go/src/reddlinks
 COPY . .
 
 RUN go mod download
-RUN CGO_ENABLED=0 go build -ldflags="-X 'main.Version=$tag_version'" -o /go/bin/reddlinks
+RUN CGO_ENABLED=0 go build -ldflags="-X 'main.version=$tag_version'" -o /go/bin/reddlinks
 
 FROM gcr.io/distroless/base-debian12
 

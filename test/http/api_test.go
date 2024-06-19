@@ -56,7 +56,15 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	}
 
 	// Prep everything
-	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
+	dataBase, err := database.DBConnect(
+		testEnv.DBType,
+		testEnv.DBURL,
+		testEnv.DBUser,
+		testEnv.DBPass,
+		testEnv.DBHost,
+		testEnv.DBPort,
+		testEnv.DBName,
+	)
 	suite.a.AssertNoErrf(err)
 
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)
