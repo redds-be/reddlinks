@@ -53,7 +53,15 @@ func main() { //nolint:funlen
 	envVars := env.GetEnv(envFile)
 
 	// Connect to the database
-	dbase, err := database.DBConnect(envVars.DBType, envVars.DBURL)
+	dbase, err := database.DBConnect(
+		envVars.DBType,
+		envVars.DBURL,
+		envVars.DBUser,
+		envVars.DBPass,
+		envVars.DBHost,
+		envVars.DBPort,
+		envVars.DBName,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

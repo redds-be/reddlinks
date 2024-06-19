@@ -36,7 +36,15 @@ func (suite utilsTestSuite) TestCollectGarbage() {
 	// Prepare the database needed for garbage collection
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "utils_test.db"
-	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
+	dataBase, err := database.DBConnect(
+		testEnv.DBType,
+		testEnv.DBURL,
+		testEnv.DBUser,
+		testEnv.DBPass,
+		testEnv.DBHost,
+		testEnv.DBPort,
+		testEnv.DBName,
+	)
 	suite.a.AssertNoErr(err)
 
 	err = database.CreateLinksTable(dataBase, testEnv.DefaultMaxLength)

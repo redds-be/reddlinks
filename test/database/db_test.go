@@ -30,11 +30,27 @@ func (suite dbTestSuite) TestDB() { //nolint:funlen
 	// Testing the creation of the database
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "db_test.db"
-	dataBase, err := database.DBConnect(testEnv.DBType, testEnv.DBURL)
+	dataBase, err := database.DBConnect(
+		testEnv.DBType,
+		testEnv.DBURL,
+		testEnv.DBUser,
+		testEnv.DBPass,
+		testEnv.DBHost,
+		testEnv.DBPort,
+		testEnv.DBName,
+	)
 	suite.a.AssertNoErr(err)
 
 	// Testing the creation of the database with a random driver
-	_, err = database.DBConnect("legitdriver", testEnv.DBURL)
+	_, err = database.DBConnect(
+		"legitdriver",
+		testEnv.DBURL,
+		testEnv.DBUser,
+		testEnv.DBPass,
+		testEnv.DBHost,
+		testEnv.DBPort,
+		testEnv.DBName,
+	)
 	suite.a.AssertErr(err)
 
 	// Testing the creation of the links table

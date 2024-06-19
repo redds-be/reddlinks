@@ -19,8 +19,10 @@ package database
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 
-	_ "github.com/lib/pq"  // Driver for postgresql
+	"github.com/lib/pq"    // Driver for postgresql
 	_ "modernc.org/sqlite" // Driver for sqlite3
 )
 
@@ -28,15 +30,59 @@ import (
 //
 // It connects to the database using [sql.Open] with the database type and the connection string,
 // it then tests the connection before returning it.
-func DBConnect(dbType, dbURL string) (*sql.DB, error) {
-	// Connect to the database
-	dbase, err := sql.Open(dbType, dbURL)
-	if err != nil {
-		return nil, err
-	}
+func DBConnect(dbType, dbURL, dbUser, dbPass, dbHost, dbPort, dbName string) (*sql.DB, error) {
+	var err error
+	var dbase *sql.DB
+	switch {
+	case dbURL != "":
+		// Connect to the database
+		dbase, err = sql.Open(dbType, dbURL)
+		if err != nil {
+			return nil, err
+		}
 
-	// Test the connection
-	err = dbase.Ping()
+		// Test the connection
+		err = dbase.Ping()
+
+		// If the postgres server doesn't support ssl, disable it
+		if errors.Is(err, pq.ErrSSLNotSupported) {
+			dbURL += "?sslmode=disable"
+			dbase, err = sql.Open(dbType, dbURL)
+			if err != nil {
+				return nil, err
+			}
+
+			err = dbase.Ping()
+		}
+	case dbURL == "":
+		dbURL = fmt.Sprintf(
+			"user=%s dbname=%s password=%s host=%s port=%s",
+			dbUser,
+			dbName,
+			dbPass,
+			dbHost,
+			dbPort,
+		)
+		// Connect to the database
+		dbase, err = sql.Open(dbType, dbURL)
+		if err != nil {
+			return nil, err
+		}
+
+		// Test the connection
+		err = dbase.Ping()
+
+		// If the postgres server doesn't support ssl, disable it
+		if errors.Is(err, pq.ErrSSLNotSupported) {
+			dbURL += " sslmode=disable"
+			dbase, err = sql.Open(dbType, dbURL)
+			if err != nil {
+				return nil, err
+			}
+
+			err = dbase.Ping()
+		}
+	}
 
 	return dbase, err
 }

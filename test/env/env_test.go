@@ -116,14 +116,6 @@ func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Reset the database type
 	envToCheck.DBType = "postgres"
 
-	// Test if the database string errors are correct
-	envToCheck.DBURL = ""
-	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrEmpty)
-
-	// Reset the database string
-	envToCheck.DBURL = "postgres://user:pass@localhost:5432/db"
-
 	// Test if the time between cleanups errors are correct
 	envToCheck.TimeBetweenCleanups = 0
 	err = envToCheck.EnvCheck()
