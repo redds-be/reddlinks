@@ -64,7 +64,7 @@ func (suite frontTestSuite) TestRenderTemplate() {
 	suite.a.Assert(resp.Header().Get("Content-Type"), "text/html; charset=UTF-8")
 	suite.a.Assert(
 		resp.Header().Get("Content-Security-Policy"),
-		"default-src 'self'; script-src 'self' 'unsafe-inline'; "+
+		"default-src 'self'; script-src 'self'; "+
 			"style-src 'self'; img-src 'self'; "+
 			"connect-src 'self'; frame-src 'self'; font-src 'self'; media-src 'self'; object-src 'self'; manifest-src "+
 			"'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'self'",

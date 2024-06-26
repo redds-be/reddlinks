@@ -18,7 +18,6 @@
 
 {{template "head.tmpl" .}}
 {{template "nav.tmpl" .}}
-<script type="application/javascript" src="assets/js/add.js"></script>
 <div class="main">
     {{if .AddInfo}}
     <p>{{.AddInfo}}</p>
@@ -29,12 +28,12 @@
     <input type="hidden" value="{{.Password}}" id="password">
     <p id="pass">Accessible using password: ********</p>
     <div class="div-input">
-        <button onclick="revealPass()" id="reveal">Reveal Password</button>
+        <button id="reveal">Reveal Password</button>
     </div>
     {{end}}
     <p>Will expire on: {{.ExpireAt}}</p>
     <div class="div-input">
-        <button onclick="copyLink()" id="copy" onmouseleave="revertCopy()">Copy Link</button>
+        <button id="copy">Copy Link</button>
     </div>
     <form action="/" method="Get">
         <div class="div-input">
@@ -42,4 +41,5 @@
         </div>
     </form>
 </div>
+<script type="application/javascript" src="assets/js/add.js"></script>
 {{template "footer.tmpl" .}}

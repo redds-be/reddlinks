@@ -17,3 +17,7 @@ function revealPass() {
     /* Tell that the password is revealed */
     document.getElementById("reveal").innerHTML = "Password revealed";
 }
+
+document.getElementById("copy").addEventListener("click", copyLink); 
+document.getElementById("copy").addEventListener("mouseout", revertCopy); 
+document.getElementById("reveal").addEventListener("click", revealPass); 
