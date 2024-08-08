@@ -24,7 +24,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	gitlab.gnous.eu/ada/atp v1.0.0
-	modernc.org/sqlite v1.31.1
+	modernc.org/sqlite v1.32.0
 )
 
 require (
