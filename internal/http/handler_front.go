@@ -102,6 +102,7 @@ func (conf Configuration) FrontErrorPage(
 	_ *http.Request,
 	code int,
 	errMsg string,
+	url string,
 ) {
 	// Set what is going to be displayed on the error page
 	page := &Page{
@@ -109,6 +110,7 @@ func (conf Configuration) FrontErrorPage(
 		InstanceURL:   conf.InstanceURL,
 		Error:         fmt.Sprintf("Error %d: %s", code, errMsg),
 		Version:       conf.Version,
+		URL:           url,
 	}
 
 	// Display the error page
@@ -172,7 +174,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
 	if req.FormValue("add") != "Add" {
-		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the form.")
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the form.", req.URL.Path)
 
 		return
 	}
@@ -185,6 +187,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 			req,
 			http.StatusInternalServerError,
 			"There was an error trying to read the length.",
+			req.URL.Path,
 		)
 
 		return
@@ -221,7 +224,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	// Create a link entry into the database, display an error page if it can't
 	link, code, addInfo, errMsg := linksAdapter.CreateLink(params)
 	if errMsg != "" {
-		conf.FrontErrorPage(writer, req, code, errMsg)
+		conf.FrontErrorPage(writer, req, code, errMsg, req.URL.Path)
 
 		return
 	}
@@ -284,17 +287,20 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 			req,
 			http.StatusNotFound,
 			"There is no link associated with this path, it is probably invalid or expired.",
+			"/",
 		)
 
 		return
 	}
+
+	returnURL := req.FormValue("short")
 
 	// Get the password from the form, throw an error page if the form doesn't have a value
 	var password string
 	if req.FormValue("access") == "Access" {
 		password = req.FormValue("password")
 	} else {
-		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the password.")
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the password.", returnURL)
 
 		return
 	}
@@ -302,11 +308,11 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	// Check if the password matches the hash
 	if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil &&
 		!match {
-		conf.FrontErrorPage(writer, req, http.StatusBadRequest, "The password is incorrect.")
+		conf.FrontErrorPage(writer, req, http.StatusBadRequest, "The password is incorrect.", returnURL)
 
 		return
 	} else if err != nil {
-		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to compare the password against the hash.")
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to compare the password against the hash.", returnURL)
 
 		return
 	}
@@ -319,6 +325,7 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 			req,
 			http.StatusNotFound,
 			"There is no link associated with this path, it is probably invalid or expired.",
+			req.URL.Path,
 		)
 
 		return
