@@ -109,6 +109,23 @@ func (suite utilsTestSuite) TestGenStr() {
 	}
 }
 
+func (suite utilsTestSuite) TestIsURL() {
+	err := utils.IsURL("http://example.com")
+	suite.a.AssertNoErr(err)
+
+	err = utils.IsURL("https://example.com")
+	suite.a.AssertNoErr(err)
+
+	err = utils.IsURL("https://localhost")
+	suite.a.AssertNoErr(err)
+
+	err = utils.IsURL("hts://example.com")
+	suite.a.AssertErr(err)
+
+	err = utils.IsURL("ko")
+	suite.a.AssertErr(err)
+}
+
 // Test suite structure.
 type utilsTestSuite struct {
 	t *testing.T
@@ -129,4 +146,5 @@ func TestUtilsSuite(t *testing.T) {
 	suite.TestCollectGarbage()
 	suite.TestDecodeJSON()
 	suite.TestGenStr()
+	suite.TestIsURL()
 }

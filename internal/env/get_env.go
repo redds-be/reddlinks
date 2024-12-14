@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/redds-be/reddlinks/internal/utils"
 )
 
 // Env defines a structure for the env variables.
@@ -79,12 +80,10 @@ func (env Env) EnvCheck() error { //nolint:funlen,cyclop
 	}
 
 	// Check if the instance URL is valid
-	instanceURLMatch, err := regexp.MatchString(`^https?://.*\..*$`, env.InstanceURL)
+	instanceURLMatch := env.InstanceURL
+	err := utils.IsURL(instanceURLMatch)
 	if err != nil {
-		return fmt.Errorf("the instance URL %w", ErrNotChecked)
-	}
-	if env.InstanceURL == "" || !instanceURLMatch {
-		return fmt.Errorf("the instance URL %w", ErrInvalid)
+		return err
 	}
 
 	// Check if the database type is valid
