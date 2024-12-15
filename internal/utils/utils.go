@@ -18,14 +18,19 @@
 package utils
 
 import (
+	"bytes"
 	"database/sql"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
+	"io"
 	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/database"
+	"github.com/yeqown/go-qrcode/v2"
+	"github.com/yeqown/go-qrcode/writer/standard"
 )
 
 // Configuration defines what is going to be sent to the handlers.
@@ -117,3 +122,29 @@ func GenStr(length int, charset string) string {
 	// Convert and return the generated string
 	return string(randomByteStr)
 }
+
+// TextToB64QR transform the source text into a base64 encoded QR.
+func TextToB64QR(content string) (string, error) {
+	qrc, err := qrcode.NewWith(content,
+		qrcode.WithEncodingMode(qrcode.EncModeByte),
+		qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionQuart),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	buf := bytes.NewBuffer(nil)
+	writer := emptyCloser{buf}
+	image := standard.NewWithWriter(writer, standard.WithQRWidth(40)) //nolint:mnd
+	if err := qrc.Save(image); err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+}
+
+type emptyCloser struct {
+	io.Writer
+}
+
+func (emptyCloser) Close() error { return nil }

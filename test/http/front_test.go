@@ -65,7 +65,7 @@ func (suite frontTestSuite) TestRenderTemplate() {
 	suite.a.Assert(
 		resp.Header().Get("Content-Security-Policy"),
 		"default-src 'none'; script-src 'self';"+
-			"style-src 'self'; img-src 'self';",
+			"style-src 'self'; img-src 'self' data: ;",
 	)
 	suite.a.Assert(resp.Body.String(), "<p>InstanceTitle: test</p>\n"+
 		"<p>InstanceURL: test.com</p>\n"+

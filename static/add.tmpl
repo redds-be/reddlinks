@@ -20,18 +20,19 @@
 {{template "nav.tmpl" .}}
 <div class="main">
     {{if .AddInfo}}
-    <p>{{.AddInfo}}</p>
+        <p>{{.AddInfo}}</p>
     {{end}}
     <p>Shortened link: <a href="{{.InstanceURL}}{{.Short}}" target="_blank" id="short">{{.ShortenedLink}}</a></p>
     <p>Links to: {{.URL}}</p>
     {{if .Password}}
-    <input type="hidden" value="{{.Password}}" id="password">
-    <p id="pass">Accessible using password: ********</p>
-    <div class="div-input">
-        <button id="reveal">Reveal Password</button>
-    </div>
+        <input type="hidden" value="{{.Password}}" id="password">
+        <p id="pass">Accessible using password: ********</p>
+        <div class="div-input">
+            <button id="reveal">Reveal Password</button>
+        </div>
     {{end}}
     <p>Will expire on: {{.ExpireAt}}</p>
+    <img class="qr-image" src="data:image/png;base64, {{.ShortenedQR}}" alt="QR code for shortened link" />
     <div class="div-input">
         <button id="copy">Copy Link</button>
     </div>
