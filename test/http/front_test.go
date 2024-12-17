@@ -133,7 +133,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	resp := httptest.NewRecorder()
 
 	httpAdapter := HTTP.NewAdapter(*conf)
-	httpAdapter.FrontErrorPage(resp, req, 400, "Something went wrong.")
+	httpAdapter.FrontErrorPage(resp, req, 400, "Something went wrong.", "/")
 
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
 
