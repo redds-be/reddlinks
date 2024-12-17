@@ -240,7 +240,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 
 	qr, err := utils.TextToB64QR(conf.InstanceURL + link.Short) //nolint:varnamelen // The name is self-explanatory
 	if err != nil {
-		conf.FrontErrorPage(writer, req, code, errMsg)
+		conf.FrontErrorPage(writer, req, code, errMsg, "/")
 
 		return
 	}
