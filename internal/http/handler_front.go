@@ -56,6 +56,7 @@ type Page struct {
 	InstanceTitle          string
 	InstanceURL            string
 	ShortenedLink          string
+	ShortenedQR            string
 	Short                  string
 	URL                    string
 	ExpireAt               string
@@ -80,7 +81,7 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	// Tell that all resources comes from here and that only this site can frame itself
 	writer.Header().
 		Set("Content-Security-Policy", "default-src 'none'; script-src 'self';"+
-			"style-src 'self'; img-src 'self';")
+			"style-src 'self'; img-src 'self' data: ;")
 	// Block access to styles and scripts
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
 
@@ -237,18 +238,26 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 		expireAt = link.ExpireAt.Format(time.RFC822)
 	}
 
+	qr, err := utils.TextToB64QR(conf.InstanceURL + link.Short) //nolint:varnamelen // The name is self-explanatory
+	if err != nil {
+		conf.FrontErrorPage(writer, req, code, errMsg)
+
+		return
+	}
+
 	// Set what is going to be displayed on the add page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
 		ShortenedLink: regexp.MustCompile("^https://|http://").
 			ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, link.Short), ""),
-		Short:    link.Short,
-		URL:      link.URL,
-		ExpireAt: expireAt,
-		Password: params.Password,
-		AddInfo:  addInfo,
-		Version:  conf.Version,
+		Short:       link.Short,
+		URL:         link.URL,
+		ExpireAt:    expireAt,
+		Password:    params.Password,
+		AddInfo:     addInfo,
+		Version:     conf.Version,
+		ShortenedQR: qr,
 	}
 
 	// Display the add page which will display the information about the added link

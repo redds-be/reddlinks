@@ -18,9 +18,12 @@
 package utils
 
 import (
+	"bytes"
 	"database/sql"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
+	"io"
 	"errors"
 	"math/rand"
 	"net"
@@ -29,6 +32,8 @@ import (
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/database"
+	"github.com/yeqown/go-qrcode/v2"
+	"github.com/yeqown/go-qrcode/writer/standard"
 )
 
 var (
@@ -149,3 +154,29 @@ func IsURL(source string) error {
 
 	return nil
 }
+
+// TextToB64QR transforms the source string into a base64 encoded QR.
+func TextToB64QR(content string) (string, error) {
+	qrc, err := qrcode.NewWith(content,
+		qrcode.WithEncodingMode(qrcode.EncModeByte),
+		qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionQuart),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	buf := bytes.NewBuffer(nil)
+	writer := emptyCloser{buf}
+	image := standard.NewWithWriter(writer, standard.WithQRWidth(40)) //nolint:mnd
+	if err := qrc.Save(image); err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+}
+
+type emptyCloser struct {
+	io.Writer
+}
+
+func (emptyCloser) Close() error { return nil }
