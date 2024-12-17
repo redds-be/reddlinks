@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine3.19 as build
+FROM golang:1.23-alpine3.21 as build
 
 ARG tag_version=noVersion
 ENV tag_version=$tag_version
