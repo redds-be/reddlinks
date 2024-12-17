@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/redds-be/reddlinks/internal/env"
+	"github.com/redds-be/reddlinks/internal/utils"
 	"github.com/redds-be/reddlinks/test/helper"
 )
 
@@ -91,15 +92,15 @@ func (suite envTestSuite) TestAreErrorsCorrect() { //nolint:funlen
 	// Test if the instance URL errors are correct
 	envToCheck.InstanceURL = ""
 	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, utils.ErrEmpty)
 
 	envToCheck.InstanceURL = "htt://example"
 	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, utils.ErrInvalidURLScheme)
 
 	envToCheck.InstanceURL = "magnet://ls.example.com/"
 	err = envToCheck.EnvCheck()
-	suite.a.AssertErrIs(err, env.ErrInvalid)
+	suite.a.AssertErrIs(err, utils.ErrInvalidURLScheme)
 
 	// Reset the instance URL
 	envToCheck.InstanceURL = "http://127.0.0.1:8080/"

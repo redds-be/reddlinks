@@ -24,13 +24,22 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"errors"
 	"math/rand"
+	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
+)
+
+var (
+	ErrInvalidURLScheme = errors.New("URL scheme is invalid")
+	errInvalidHost      = errors.New("URL host is invalid")
+	ErrEmpty            = errors.New("can't be empty")
 )
 
 // Configuration defines what is going to be sent to the handlers.
@@ -123,7 +132,30 @@ func GenStr(length int, charset string) string {
 	return string(randomByteStr)
 }
 
-// TextToB64QR transform the source text into a base64 encoded QR.
+// IsURL verifies if an input string is a valid HTTP(s) URL.
+func IsURL(source string) error {
+	if source == "" {
+		return ErrEmpty
+	}
+
+	URL, err := url.ParseRequestURI(source)
+	if err != nil {
+		return err
+	}
+
+	if URL.Scheme != "http" && URL.Scheme != "https" {
+		return ErrInvalidURLScheme
+	}
+
+	address := net.ParseIP(URL.Host)
+	if address != nil {
+		return errInvalidHost
+	}
+
+	return nil
+}
+
+// TextToB64QR transforms the source string into a base64 encoded QR.
 func TextToB64QR(content string) (string, error) {
 	qrc, err := qrcode.NewWith(content,
 		qrcode.WithEncodingMode(qrcode.EncModeByte),
