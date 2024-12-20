@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/utils"
@@ -65,21 +66,30 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 // After the multiplexer is configured, the HTTP server needs to be configured with the address and port,
 // the timeouts constants and the multiplexer as the handler. After the configuration is set,
 // [http.ListenAndServe] is called.
-func (conf Configuration) Run() error {
+func (conf Configuration) Run() error { //nolint:funlen
 	// Set default timeout time in seconds
 	const readTimeout = 1 * time.Second
 	const WriteTimeout = 1 * time.Second
 	const IdleTimeout = 30 * time.Second
 	const ReadHeaderTimeout = 2 * time.Second
 
-	// Create the filesystem for the assets
-	assetsFS, err := fs.Sub(conf.Static, "static/assets")
-	if err != nil {
-		log.Panic(err)
-	}
+	var assetsHTTPFS http.Handler
+	var err error
 
-	// Create a file server using the assets filesystem
-	assetsHTTPFS := http.FileServer(http.FS(assetsFS))
+	// Handle the assets
+	if _, err := os.Stat("./custom_static"); !os.IsNotExist(err) {
+		// Create a file server using the custom_static dir
+		assetsHTTPFS = http.FileServer(http.Dir("custom_static/assets"))
+	} else {
+		// Create the filesystem for the assets
+		assetsFS, err := fs.Sub(conf.Static, "static/assets")
+		if err != nil {
+			log.Panic(err)
+		}
+
+		// Create a file server using the assets filesystem
+		assetsHTTPFS = http.FileServer(http.FS(assetsFS))
+	}
 
 	// Create a multiplexer
 	mux := http.NewServeMux()

@@ -22,6 +22,7 @@ import (
 	"embed"
 	"html/template"
 	"log"
+	"os"
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/database"
@@ -107,7 +108,15 @@ func main() { //nolint:funlen
 	}(time.Duration(envVars.TimeBetweenCleanups) * time.Minute)
 
 	// Parse html templates
-	http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/*.tmpl"))
+	if _, err := os.Stat("./custom_static"); !os.IsNotExist(err) {
+		http.Templates = template.Must(
+			template.ParseFiles("./custom_static/index.tmpl", "./custom_static/add.tmpl",
+				"./custom_static/error.tmpl", "./custom_static/pass.tmpl", "./custom_static/privacy.tmpl",
+				"./custom_static/footer.tmpl", "./custom_static/head.tmpl", "./custom_static/nav.tmpl"),
+		)
+	} else {
+		http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/*.tmpl"))
+	}
 
 	// Create an adapter for the server
 	httpAdapter := http.NewAdapter(*conf)
