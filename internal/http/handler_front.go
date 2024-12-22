@@ -21,6 +21,7 @@ import (
 	"html/template"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"time"
 
@@ -75,7 +76,7 @@ type Page struct {
 //
 // It starts by setting the appropriate headers using [http.Header.Set] and [http.WriteHeader], then
 // the requested template is rendered using a given page struct using [template.ExecuteTemplate].
-func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code int) {
+func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code int, lang string) {
 	// Tell that we serve HTML in UTF-8.
 	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	// Tell that all resources comes from here and that only this site can frame itself
@@ -88,10 +89,17 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	// Write the header giving a code
 	writer.WriteHeader(code)
 
+	// Check if lang is supported, defaults to english if it's not the case
+	supportedLangs := []string{"en"}
+
+	if !slices.Contains(supportedLangs, lang) {
+		lang = "en"
+	}
+
 	// Render a given template, json error if it can't
-	err := Templates.ExecuteTemplate(writer, tmpl+".tmpl", page)
+	err := Templates.ExecuteTemplate(writer, tmpl+"."+lang+".tmpl", page)
 	if err != nil {
-		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to load the page.")
+		json.RespondWithError(writer, http.StatusInternalServerError, fmt.Sprintln("Unable to load the page.", err))
 
 		return
 	}
@@ -100,11 +108,19 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 // FrontErrorPage returns an error page to the user using a given code and message with [RenderTemplate].
 func (conf Configuration) FrontErrorPage(
 	writer http.ResponseWriter,
-	_ *http.Request,
+	req *http.Request,
 	code int,
 	errMsg string,
 	url string,
 ) {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 {
+		lang = lang[:2]
+	} else {
+		lang = "en"
+	}
+
 	// Set what is going to be displayed on the error page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
@@ -115,13 +131,21 @@ func (conf Configuration) FrontErrorPage(
 	}
 
 	// Display the error page
-	RenderTemplate(writer, "error", page, code)
+	RenderTemplate(writer, "error", page, code, lang)
 }
 
 // FrontHandlerMainPage displays the main page with a form used to shorten a link.
 //
 // An expiry date is created by adding DefaultExpiryTime to now, this date will be used as the default expiry date in the form.
-func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, _ *http.Request) {
+func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 {
+		lang = lang[:2]
+	} else {
+		lang = "en"
+	}
+
 	var defaultExpiryDate string
 	if conf.DefaultExpiryTime != 0 {
 		// Convert default expiry time into date
@@ -145,11 +169,19 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, _ *ht
 	}
 
 	// Display the front page
-	RenderTemplate(writer, "index", page, http.StatusOK)
+	RenderTemplate(writer, "index", page, http.StatusOK, lang)
 }
 
 // FrontHandlerPrivacyPage displays the Privacy Policy page.
-func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, _ *http.Request) {
+func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 {
+		lang = lang[:2]
+	} else {
+		lang = "en"
+	}
+
 	// Set what is going to be displayed on the privacy page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
@@ -159,7 +191,7 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, _ 
 	}
 
 	// Display the front page
-	RenderTemplate(writer, "privacy", page, http.StatusOK)
+	RenderTemplate(writer, "privacy", page, http.StatusOK, lang)
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
@@ -172,6 +204,14 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 {
+		lang = lang[:2]
+	} else {
+		lang = "en"
+	}
+
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
 	if req.FormValue("add") != "Add" {
@@ -261,11 +301,19 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	}
 
 	// Display the add page which will display the information about the added link
-	RenderTemplate(writer, "add", page, http.StatusCreated)
+	RenderTemplate(writer, "add", page, http.StatusCreated, lang)
 }
 
 // FrontAskForPassword asks for a password to access a given shortened link.
 func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request) {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 {
+		lang = lang[:2]
+	} else {
+		lang = "en"
+	}
+
 	// Set what is going to be displayed on the pass page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
@@ -275,7 +323,7 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 	}
 
 	// Display the pass page which will ask the user for a password
-	RenderTemplate(writer, "pass", page, http.StatusOK)
+	RenderTemplate(writer, "pass", page, http.StatusOK, lang)
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
