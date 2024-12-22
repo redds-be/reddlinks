@@ -34,7 +34,7 @@ import (
 )
 
 func (suite frontTestSuite) TestRenderTemplate() {
-	HTTP.Templates = template.Must(template.ParseFiles("test.tmpl"))
+	HTTP.Templates = template.Must(template.ParseFiles("test.en.tmpl"))
 
 	page := HTTP.Page{
 		InstanceTitle:          "test",
@@ -57,7 +57,7 @@ func (suite frontTestSuite) TestRenderTemplate() {
 	// Test if template rendering works
 	resp := httptest.NewRecorder()
 
-	HTTP.RenderTemplate(resp, "test", &page, http.StatusOK)
+	HTTP.RenderTemplate(resp, "test", &page, http.StatusOK, "en")
 
 	suite.a.Assert(resp.Code, http.StatusOK)
 	suite.a.Assert(resp.Header().Get("X-Content-Type-Options"), "nosniff")
@@ -85,7 +85,7 @@ func (suite frontTestSuite) TestRenderTemplate() {
 }
 
 func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
-	HTTP.Templates = template.Must(template.ParseGlob("../../static/*.tmpl"))
+	HTTP.Templates = template.Must(template.ParseGlob("../../static/**/*.tmpl"))
 
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "front_test.db"
@@ -126,6 +126,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test if the error page works
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp := httptest.NewRecorder()
 
 	httpAdapter := HTTP.NewAdapter(*conf)
@@ -135,6 +136,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test if the main page works
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp = httptest.NewRecorder()
 
 	httpAdapter.FrontHandlerMainPage(resp, req)
@@ -143,6 +145,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test if the privacy page works
 	req = httptest.NewRequest(http.MethodGet, "/privacy", nil)
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp = httptest.NewRecorder()
 
 	httpAdapter.FrontHandlerPrivacyPage(resp, req)
@@ -151,6 +154,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 
 	// Test if the password asking page works
 	req = httptest.NewRequest(http.MethodGet, "/pass", nil)
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp = httptest.NewRecorder()
 
 	httpAdapter.FrontAskForPassword(resp, req)
@@ -168,6 +172,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	}
 
 	req = httptest.NewRequest(http.MethodPost, "/add", strings.NewReader(addForm.Encode()))
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp = httptest.NewRecorder()
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -183,6 +188,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	}
 
 	req = httptest.NewRequest(http.MethodPost, "/pass", strings.NewReader(redirectForm.Encode()))
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp = httptest.NewRecorder()
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -198,6 +204,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	}
 
 	req = httptest.NewRequest(http.MethodPost, "/pass", strings.NewReader(redirectForm.Encode()))
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp = httptest.NewRecorder()
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
