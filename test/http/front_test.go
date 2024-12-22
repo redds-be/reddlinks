@@ -85,11 +85,7 @@ func (suite frontTestSuite) TestRenderTemplate() {
 }
 
 func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
-	HTTP.Templates = template.Must(
-		template.ParseFiles("../../static/index.tmpl", "../../static/add.tmpl",
-			"../../static/error.tmpl", "../../static/pass.tmpl", "../../static/privacy.tmpl",
-			"../../static/footer.tmpl", "../../static/head.tmpl", "../../static/nav.tmpl"),
-	)
+	HTTP.Templates = template.Must(template.ParseGlob("../../static/*.tmpl"))
 
 	testEnv := env.GetEnv("../.env.test")
 	testEnv.DBURL = "front_test.db"
