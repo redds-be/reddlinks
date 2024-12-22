@@ -115,7 +115,7 @@ func (conf Configuration) FrontErrorPage(
 ) {
 	// Get the client's main language
 	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 {
+	if len(lang) >= 2 { //nolint:mnd
 		lang = lang[:2]
 	} else {
 		lang = "en"
@@ -140,7 +140,7 @@ func (conf Configuration) FrontErrorPage(
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
 	// Get the client's main language
 	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 {
+	if len(lang) >= 2 { //nolint:mnd
 		lang = lang[:2]
 	} else {
 		lang = "en"
@@ -176,7 +176,7 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
 	// Get the client's main language
 	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 {
+	if len(lang) >= 2 { //nolint:mnd
 		lang = lang[:2]
 	} else {
 		lang = "en"
@@ -206,7 +206,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 ) {
 	// Get the client's main language
 	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 {
+	if len(lang) >= 2 { //nolint:mnd
 		lang = lang[:2]
 	} else {
 		lang = "en"
@@ -308,7 +308,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request) {
 	// Get the client's main language
 	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 {
+	if len(lang) >= 2 { //nolint:mnd
 		lang = lang[:2]
 	} else {
 		lang = "en"
