@@ -1,0 +1,69 @@
+<!--
+    reddlinks, a simple link shortener written in Go.
+    Copyright (C) 2024 redd
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+{{template "head.fr.tmpl" .}}
+{{template "nav.fr.tmpl" .}}
+<div class="main">
+    <p>Entrez un URL à raccourcir</p>
+    <form id="create_link" action="/add" method="post">
+        <div class="div-input">
+            <input placeholder="https://exemple.com" name="url" title="A url" class="url-input" type="url" pattern="^https?://.*\..*$" required>
+        </div>
+        <div class="div-input">
+            <input placeholder="custom" name="short" title="Un chemin personnalisé" type="text" maxlength="{{.DefaultMaxCustomLength}}">
+            <details>
+                <summary>Chemin custom pour votre URL. <b>Optionnel</b></summary>
+                Exemple : {{.ShortenedLink}}<b>custom</b><br>
+                Si aucun n'est entré, un chemin sera généré aléatoirement.<br>
+                "error", "status", "add", et "assets" sont réservés.
+            </details>
+        </div>
+        <div class="div-input">
+            <label>
+                <input placeholder="{{.DefaultShortLength}}" type="number" name="length" min="{{.DefaultShortLength}}" max="{{.DefaultMaxShortLength}}" value="{{.DefaultShortLength}}">
+            </label>
+            <details>
+                <summary>Longueur d'un chemin généré aléatoirement. <b>Optionnel</b></summary>
+                Exemple : {{.ShortenedLink}}<b>hTx0Z0</b><br>
+                La longueur par défaut est {{.DefaultShortLength}}.
+            </details>
+        </div>
+        <input type="hidden" name="expire_after">
+        <div class="div-input">
+            <label>
+                <input placeholder="{{.DefaultExpiryDate}}" type="datetime-local" name="expire_datetime" value="{{.DefaultExpiryDate}}">
+            </label>
+            <details>
+                <summary>Date d'expiration (UTC) <b>Optionnel</b></summary>
+                        Date d'expiration du lien, selon la zone UTC.<br>
+                Par défaut, l'expiration est dans 48h. ({{.DefaultExpiryDate}})
+            </details>
+        </div>
+        <div class="div-input">
+            <input placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" name="password" title="Password" type="password">
+            <details>
+                <summary>Mot de passe pour protéger le lien <b>Optionnel</b></summary>
+                Exemple : {{.ShortenedLink}}<b>chemin</b> va demander un mot de passe.
+            </details>
+        </div>
+        <div class="div-input">
+            <button value="Add" name="add" type="submit">Raccourcir l'URL</button>
+        </div>
+    </form>
+</div>
+{{template "footer.fr.tmpl" .}}

@@ -16,31 +16,31 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-{{template "head.en.tmpl" .}}
-{{template "nav.en.tmpl" .}}
+{{template "head.fr.tmpl" .}}
+{{template "nav.fr.tmpl" .}}
 <div class="main">
     {{if .AddInfo}}
         <p>{{.AddInfo}}</p>
     {{end}}
-    <p>Shortened link: <a href="{{.InstanceURL}}{{.Short}}" target="_blank" id="short">{{.ShortenedLink}}</a></p>
-    <p>Links to: {{.URL}}</p>
+    <p>Lien raccourci : <a href="{{.InstanceURL}}{{.Short}}" target="_blank" id="short">{{.ShortenedLink}}</a></p>
+    <p>Mène vers : {{.URL}}</p>
     {{if .Password}}
         <input type="hidden" value="{{.Password}}" id="password">
-        <p id="pass">Accessible using password: ********</p>
+        <p id="pass">Accessible via le mot de passe : ********</p>
         <div class="div-input">
-            <button id="reveal">Reveal Password</button>
+            <button id="reveal">Révéler le mot de passe</button>
         </div>
     {{end}}
-    <p>Will expire on: {{.ExpireAt}}</p>
-    <img class="qr-image" src="data:image/png;base64, {{.ShortenedQR}}" alt="QR code for shortened link" />
+    <p>Expire le : {{.ExpireAt}}</p>
+    <img class="qr-image" src="data:image/png;base64, {{.ShortenedQR}}" alt="QR code du lien raccourci" />
     <div class="div-input">
-        <button id="copy">Copy Link</button>
+        <button id="copy">Copier le lien</button>
     </div>
     <form action="/" method="Get">
         <div class="div-input">
-            <button>Shorten Another URL</button>
+            <button>Raccourcir un autre URL</button>
         </div>
     </form>
 </div>
-<script type="application/javascript" src="assets/js/add.en.js"></script>
-{{template "footer.en.tmpl" .}}
+<script type="application/javascript" src="assets/js/add.fr.js"></script>
+{{template "footer.fr.tmpl" .}}

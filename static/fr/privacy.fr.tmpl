@@ -1,0 +1,82 @@
+<!--
+    reddlinks, a simple link shortener written in Go.
+    Copyright (C) 2024 redd
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+{{template "head.fr.tmpl" .}}
+<div id="page-container">
+    <div id="content-wrap">
+        {{template "nav.fr.tmpl" .}}
+
+        <h2>Privacy</h2>
+        <p class="privacy">Ce document concerne les données que vous envoyez à ce site, ce qu'elles signifient,
+        comment elles sont stockées, comment celles-ci peuvent être supprimées ainsi que les informations de license.
+        Aucune donnée n'est stockés sur votre navigateur.
+        </p>
+
+        <h3>Données que vous fournissez de manière directe</h3>
+        <p class="privacy">Les informations stockées quant à la création d'un lien raccourci se limitent à :</p>
+        <ul class="privacy">
+            <li>L'URL que vous raccourcissez.</li>
+            <li>Le chemin customisé du lien raccourci si celui-ci est renseigné.</li>
+            <li>La longueur du chemin raccourci généré aléatoirement.</li>
+            <li>La date d'expiration du lien raccourci.</li>
+            <li>Le mot de passe du lien raccourci si celui-ci est renseigné.</li>
+        </ul>
+
+        <h3>Données que vous fournissez passivement</h3>
+        <p class="privacy">
+            Par défault, reddlinks (l'application web que vous utilisez actuellement) n'enregistre pas vos actions, cependant, vos actions peuvent êtres enregistrées par l'administrateur de ce site web.<br>
+            <em>Veuillez noter que cette politique ne s'applique qu'à reddlinks (l'application web que vous utilisez actuellement) et non le serveur web. L'étendue des données récoltées via les requêtes dépendent de la configuration du serveur web de l'administrateur de ce site. Ceci étant entièrement indépendant de reddlinks.</em>
+        </p>
+
+        <h3>Removal of data</h3>
+        <p class="privacy">
+            Pour supprimer les données que vous avez directement ou passivement envoyé, vous pouvez contacter l'administrateur de ce site.<br>
+            <em>Veuillez noter que reddlinks (l'application web que vous utilisez actuellement) n'a pas les moyens quels qu'ils soient de forcer l'administrateur de ce site à honorer ce type de requêtes et ce, en dépit des lois et régulations. C'est à l'administrateur d'être contactable et de respecter les lois et régulations en question. Une bonne piste pour le contacter est d'utiliser une application "whois" afin de récupérer des informations à propos du propriétaire du nom de domaine.</em>
+        </p>
+
+        {{if .ContactEmail}}
+        <h3>Contact par email</h3>
+        <p class="privacy">
+            L'adresse email de l'administrateur est : {{.ContactEmail}}<br>
+            <em>Si l'adresse email ne ressemble pas à une adresse normale, elle est soit fausse, soit <a href="https://spencermortensen.com/articles/email-obfuscation/#text-substitution" target="_blank">obscurcie</a>.</em>
+        </p>
+        {{end}}
+
+        <h3>Notice de garantie</h3>
+        <p class="privacy">
+            reddlinks, a simple link shortener written in Go.<br>
+            Copyright (C) 2024 redd<br><br>
+
+            This program is free software: you can redistribute it and/or modify<br>
+            it under the terms of the GNU General Public License as published by<br>
+            the Free Software Foundation, either version 3 of the License, or<br>
+            (at your option) any later version.<br><br>
+
+            This program is distributed in the hope that it will be useful,<br>
+            but WITHOUT ANY WARRANTY; without even the implied warranty of<br>
+            MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br>
+            GNU General Public License for more details.<br><br>
+
+            You should have received a copy of the GNU General Public License<br>
+            along with this program.  If not, see <<a href="https://www.gnu.org/licenses/">https://www.gnu.org/licenses/</a>>.
+        </p>
+
+        <p class="privacy">Pour tout problème en lien avec ce document (imprécisions, ambiguïtés, non-respect des lois et régulations, ...), veuillez créer une issue sur : <a href="https://github.com/redds-be/reddlinks/issues/new">https://github.com/redds-be/reddlinks/issues/new</a>.</p>
+
+    </div>
+{{template "footer.fr.tmpl" .}}

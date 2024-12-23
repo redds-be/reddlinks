@@ -111,7 +111,7 @@ func main() { //nolint:funlen
 	if _, err := os.Stat("./custom_static"); !os.IsNotExist(err) {
 		http.Templates = template.Must(template.ParseGlob("./custom_static/**/*.tmpl"))
 	} else {
-		http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/en/*.tmpl"))
+		http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/**/*.tmpl"))
 	}
 
 	// Create an adapter for the server
