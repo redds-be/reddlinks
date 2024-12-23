@@ -16,18 +16,15 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-{{template "head.en.tmpl" .}}
-{{template "nav.en.tmpl" .}}
-<div class="main">
-    <p>This link requires a password</p>
-    <form action="/access" method="post">
-        <div class="div-input">
-                <input placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" name="password" title="Password" class="oth-input" type="password" required>
-        </div>
-        <input type="hidden" name="short" value="{{.Short}}">
-        <div class="div-input">
-            <button value="Access" name="access" type="submit">Access the link</button>
-        </div>
-    </form>
+<div class="footer">
+    <p>
+        <a href="/privacy">Politique de vie privée</a> | Version : {{.Version}}
+    </p>
+    <p>Développé par <a href="https://github.com/redds-be" target="_blank">redd</a>. Sous la license
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPLv3</a>
+        © 2024. Récupérez le
+        <a href="https://github.com/redds-be/reddlinks" target="_blank">Code Source</a>.
+    </p>
 </div>
-{{template "footer.en.tmpl" .}}
+</body>
+</html>

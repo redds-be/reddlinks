@@ -90,7 +90,7 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	writer.WriteHeader(code)
 
 	// Check if lang is supported, defaults to english if it's not the case
-	supportedLangs := []string{"en"}
+	supportedLangs := []string{"en", "fr"}
 
 	if !slices.Contains(supportedLangs, lang) {
 		lang = "en"
@@ -99,7 +99,7 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	// Render a given template, json error if it can't
 	err := Templates.ExecuteTemplate(writer, tmpl+"."+lang+".tmpl", page)
 	if err != nil {
-		json.RespondWithError(writer, http.StatusInternalServerError, fmt.Sprintln("Unable to load the page.", err))
+		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to load the page.")
 
 		return
 	}
