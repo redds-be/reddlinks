@@ -1,5 +1,5 @@
 //    reddlinks, a simple link shortener written in Go.
-//    Copyright (C) 2024 redd
+//    Copyright (C) 2025 redd
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by

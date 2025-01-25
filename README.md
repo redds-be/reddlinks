@@ -144,6 +144,6 @@ Make sure to run `make prep` before committing any code.
 
 *Project under the [GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.html).*
 
-*Copyright (C) 2024 redd*
+*Copyright (C) 2025 redd*
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
