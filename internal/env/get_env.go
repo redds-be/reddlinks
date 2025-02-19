@@ -73,7 +73,7 @@ type Env struct {
 // DefaultMaxLength is checked for being positive,
 // being superior or equal to DefaultLength and DefaultMaxCustomLength and for being inferior to 8000
 // DefaultExpiryTime is checked for being null or positive.
-func (env Env) EnvCheck() error { //nolint:funlen,cyclop
+func (env Env) EnvCheck() error { //nolint:cyclop
 	// Check if the instance name isn't null
 	if env.InstanceName == "" {
 		return fmt.Errorf("the instance name %w", ErrEmpty)

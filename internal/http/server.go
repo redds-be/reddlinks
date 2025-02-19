@@ -66,7 +66,7 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 // After the multiplexer is configured, the HTTP server needs to be configured with the address and port,
 // the timeouts constants and the multiplexer as the handler. After the configuration is set,
 // [http.ListenAndServe] is called.
-func (conf Configuration) Run() error { //nolint:funlen
+func (conf Configuration) Run() error {
 	// Set default timeout time in seconds
 	const readTimeout = 1 * time.Second
 	const WriteTimeout = 1 * time.Second
