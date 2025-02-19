@@ -2,19 +2,8 @@
 linters:
   enable-all: true
   disable:
-    # Deprecated
-    - deadcode
-    - ifshort
-    - scopelint
-    - maligned
-    - golint
-    - varcheck
-    - nosnakecase
-    - structcheck
-    - interfacer
-    - exhaustivestruct
-    - gomnd
-    - execinquery
+    # Deprecated (without step 2 warning)
+    - tenv
     # Conflicts with gofmt
     - wsl
     # I do like some empty structs
