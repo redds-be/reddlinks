@@ -14,7 +14,7 @@
     A simple link shortener written in Go
     <br />
     <br />
-    <a href="https://ls.redds.be">View Demo</a>
+    <a href="https://r4.pm">View Demo</a>
     ·
     <a href="https://github.com/redds-be/reddlinks/wiki">Wiki</a>
     ·
