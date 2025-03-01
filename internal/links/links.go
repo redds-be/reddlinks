@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -94,7 +93,7 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 // [atp.ParseDuration] and this time will be added to now. If there's a specific expiration date provided, it will be used in priority.
 // The length provided will be checked and fixed according to min and max settings. the custom path provided will be checked if there's one,
 // endpoints and some characters are blacklisted, if the path exceeds the length of DefaultMaxCustomLength,
-// it will be trimmed. If there's no custom path provided, a random one will generated using either DefaultShortLength or
+// it will be trimmed. If there's no custom path provided, a random one will be generated using either DefaultShortLength or
 // the provided length with [utils.GenStr]. If there's a password provided, it will be hashed using [argon2id.CreateHash].
 // After all is done, a link entry will be created in the database using [database.CreateLink].
 // If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
@@ -156,7 +155,7 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 			params.Path,
 		)
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Could not check the path."
+			return Link{}, http.StatusInternalServerError, "", "Could not check the validity of the path."
 		}
 		if reservedMatch {
 			return Link{}, http.StatusBadRequest, "", fmt.Sprintf(
@@ -165,41 +164,20 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 			)
 		}
 
-		// Check the validity of the custom path
-		reservedChars := []string{
-			":",
-			"/",
-			"?",
-			"#",
-			"[",
-			"]",
-			"@",
-			"!",
-			"$",
-			"&",
-			"'",
-			"(",
-			")",
-			"*",
-			"+",
-			",",
-			";",
-			"=",
+		specialCharMatch, err := regexp.MatchString("^[A-Za-z0-9]*$", params.Path)
+		if err != nil {
+			return Link{}, http.StatusInternalServerError, "", "Could not check the validity of the path."
 		}
-		for _, char := range reservedChars {
-			if match := strings.Contains(params.Path, char); match {
-				return Link{}, http.StatusBadRequest, "", fmt.Sprintf(
-					"The character '%s' is not allowed.",
-					char,
-				)
-			}
+
+		if !specialCharMatch {
+			return Link{}, http.StatusBadRequest, "", "Only alphanumeric characters are allowed. (https://en.wikipedia.org/wiki/Alphanumericals)"
 		}
 	}
 
 	// Check the path, will default to a randomly generated one with specified length,
 	// if its length is over DefaultMaxCustomLength, it will be trimmed
 	autoGen := false
-	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	if params.Path == "" {
 		autoGen = true
 		params.Path = utils.GenStr(params.Length, allowedChars)
