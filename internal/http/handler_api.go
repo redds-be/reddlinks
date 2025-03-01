@@ -174,7 +174,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 		json.RespondWithJSON(writer, http.StatusContinue, informationResponse{Information: addInfo})
 	}
 
-	// Format the shortedned link
+	// Format the shortened link
 	shortenedLink := regexp.MustCompile("^https://|http://").
 		ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, link.Short), "")
 

@@ -164,7 +164,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 
 	_, code, _, errMsg = linksAdapter.CreateLink(params)
 
-	suite.a.Assert(errMsg, "The character '*' is not allowed.")
+	suite.a.Assert(errMsg, "Only alphanumeric characters are allowed. (https://en.wikipedia.org/wiki/Alphanumericals)")
 	suite.a.Assert(code, http.StatusBadRequest)
 
 	// Test link creation with an invalid url

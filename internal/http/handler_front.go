@@ -215,7 +215,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
 	if req.FormValue("add") != "Add" {
-		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the form.", req.URL.Path)
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the form.", "/")
 
 		return
 	}
@@ -228,7 +228,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 			req,
 			http.StatusInternalServerError,
 			"There was an error trying to read the length.",
-			req.URL.Path,
+			"/",
 		)
 
 		return
@@ -265,7 +265,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	// Create a link entry into the database, display an error page if it can't
 	link, code, addInfo, errMsg := linksAdapter.CreateLink(params)
 	if errMsg != "" {
-		conf.FrontErrorPage(writer, req, code, errMsg, req.URL.Path)
+		conf.FrontErrorPage(writer, req, code, errMsg, "/")
 
 		return
 	}

@@ -348,7 +348,10 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	mux.ServeHTTP(resp, req)
 
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
-	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 The character '*' is not allowed.\"}")
+	suite.a.Assert(
+		resp.Body.String(),
+		"{\"error\":\"400 Only alphanumeric characters are allowed. (https://en.wikipedia.org/wiki/Alphanumericals)\"}",
+	)
 
 	// Test link redirection with a short that does not exist
 	req = httptest.NewRequest(http.MethodGet, "/idonotexist", nil)
