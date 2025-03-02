@@ -186,6 +186,14 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 		params.Path = params.Path[:conf.DefaultMaxCustomLength]
 	}
 
+	// Check for an attempt at creating a redirection loop, error if that's the case
+	if regexp.MustCompile("^https://|http://").
+		ReplaceAllString(params.URL, "") ==
+		regexp.MustCompile("^https://|http://").
+			ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, params.Path), "") {
+		return Link{}, http.StatusBadRequest, "", "Could not create a redirection loop."
+	}
+
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
 	hash := ""
 	if params.Password != "" {

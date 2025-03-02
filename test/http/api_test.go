@@ -416,6 +416,28 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	mux.ServeHTTP(resp, req)
 
 	suite.a.Assert(resp.Code, http.StatusNotFound)
+
+	// Test redirection loop creation
+	params = utils.Parameters{
+		URL:         "http://127.0.0.1:8080/loop",
+		Length:      0,
+		Path:        "loop",
+		ExpireAfter: "",
+		Password:    "",
+	}
+
+	err = json.NewEncoder(&buf).Encode(params)
+	suite.a.AssertNoErr(err)
+
+	req = httptest.NewRequest(http.MethodPost, "/", &buf)
+	resp = httptest.NewRecorder()
+	mux.ServeHTTP(resp, req)
+
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
+	suite.a.Assert(
+		resp.Body.String(),
+		"{\"error\":\"400 Could not create a redirection loop.\"}",
+	)
 }
 
 // Test suite structure.
