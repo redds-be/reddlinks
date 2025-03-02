@@ -29,6 +29,14 @@ type ErrResponse struct {
 	Error string `json:"error"`
 }
 
+// InfoResponse defines a JSON structure for info on a shortened url.
+type InfoResponse struct {
+	DstURL    string `json:"dstUrl"`
+	Short     string `json:"short"`
+	CreatedAt string `json:"createdAt"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
 // RespondWithError sends the JSON the client along with the error code.
 func RespondWithError(writer http.ResponseWriter, code int, msg string) {
 	RespondWithJSON(writer, code, ErrResponse{Error: fmt.Sprintf("%d %s", code, msg)})

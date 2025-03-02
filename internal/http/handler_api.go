@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -31,19 +32,30 @@ import (
 
 // APIRedirectToURL redirects the client to the URL corresponding to given shortened link.
 //
-// It first starts by getting the short from the request (GET /{short}), then it gets
+// It first starts by getting the short from the request (GET /{short}),
+// then it checks if there's a '+' at the end, meaning an info request. If it is, the '+' is trimmed and then
 // its password's hash using [database.GetHashByShort], if there is one,
 // it firsts checks if there's a json payload to get a password from,
 // if not, redirect to /access handled by FrontAskForPassword which is going to ask for a password using a form.
 // Once the JSON payload is decoded using [utils.DecodeJSON], if there's a password, its hash will be compared to the hash corresponding
-// to the short using [argon2id.ComparePasswordAndHash], if it's the case, the client will be redirected.
-// If there's no hash associated with the short, the client will be redirected.
+// to the short using [argon2id.ComparePasswordAndHash], if it's the case,
+// if it's an info request, the information associated with the URL is sent to the client, without redirection, if not, the client will be redirected.
+// If there's no hash associated with the short,
+// if it's an info request, the information associated with the URL is sent to the client, without redirection, if not, the client will be redirected.
 func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
 	// Get the requested short
 	requestedShort := req.PathValue("short")
+
+	// Check for a '+' at the end of the short, indicating an info request.
+	infoRequest := strings.HasSuffix(requestedShort, "+")
+
+	// Remove the '+' at the end so that it can be
+	if infoRequest {
+		requestedShort = requestedShort[:len(requestedShort)-1]
+	}
 
 	// Check if there is a hash associated with the short, if there is a hash, we will require a password
 	hash, err := database.GetHashByShort(conf.DB, requestedShort)
@@ -88,7 +100,7 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 		case req.URL.Query().Get("pass") != "":
 			password = req.URL.Query().Get("pass")
 		default:
-			conf.FrontAskForPassword(writer, req)
+			conf.FrontAskForPassword(writer, req, infoRequest)
 
 			return
 		}
@@ -104,6 +116,39 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 
 			return
 		}
+	}
+
+	// If it's an info request, we send the info
+	if infoRequest {
+		// CLI clients usually use only '*/*' whilst web browser typically uses a list containing both '*/*' and "text/html".
+		// if "text/html" is present, it is safe to assume it's a web browser
+		if strings.Contains(req.Header.Get("Accept"), "text/html") {
+			conf.FrontHandlerURLInfo(writer, req, requestedShort)
+
+			return
+		}
+
+		// Get the information
+		url, createdAt, expireAt, err := database.GetURLInfo(conf.DB, requestedShort)
+		if err != nil {
+			json.RespondWithError(
+				writer,
+				http.StatusInternalServerError,
+				"Could not get informations associated with this shortened path.",
+			)
+
+			return
+		}
+
+		// Send the information to the client
+		json.RespondWithJSON(writer, http.StatusOK, json.InfoResponse{
+			DstURL:    url,
+			Short:     requestedShort,
+			CreatedAt: createdAt.Format(time.RFC822),
+			ExpiresAt: expireAt.Format(time.RFC822),
+		})
+
+		return
 	}
 
 	// Get the URL

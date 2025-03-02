@@ -70,6 +70,10 @@ type Page struct {
 	DefaultMaxCustomLength int
 	DefaultExpiryDate      string
 	ContactEmail           string
+	InfoRequest            string
+	DstURL                 string
+	CreationDate           string
+	ExpirationDate         string
 }
 
 // RenderTemplate renders the templates using a given Page struct.
@@ -305,7 +309,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 }
 
 // FrontAskForPassword asks for a password to access a given shortened link.
-func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request) {
+func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request, infoRequest bool) {
 	// Get the client's main language
 	lang := req.Header.Get("Accept-Language")
 	if len(lang) >= 2 { //nolint:mnd
@@ -314,16 +318,67 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 		lang = "en"
 	}
 
+	// Get the short
+	short := req.PathValue("short")
+
+	// Check if info request
+	info := "false"
+	if infoRequest {
+		info = "true"
+		// Trim ending '+'
+		short = short[:len(short)-1]
+	}
+
 	// Set what is going to be displayed on the pass page
 	page := &Page{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
-		Short:         req.PathValue("short"),
+		Short:         short,
 		Version:       conf.Version,
+		InfoRequest:   info,
 	}
 
 	// Display the pass page which will ask the user for a password
 	RenderTemplate(writer, "pass", page, http.StatusOK, lang)
+}
+
+// FrontHandlerURLInfo displays basic information about a given short.
+func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *http.Request, short string) {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 { //nolint:mnd
+		lang = lang[:2]
+	} else {
+		lang = "en"
+	}
+
+	// Get short information
+	url, createdAt, expireAt, err := database.GetURLInfo(conf.DB, short)
+	if err != nil {
+		conf.FrontErrorPage(
+			writer,
+			req,
+			http.StatusInternalServerError,
+			"Could not get informations associated with this shortened path.",
+			"/",
+		)
+
+		return
+	}
+
+	// Set what is going to be displayed on the info page
+	page := &Page{
+		InstanceTitle:  conf.InstanceName,
+		InstanceURL:    conf.InstanceURL,
+		Short:          short,
+		Version:        conf.Version,
+		DstURL:         url,
+		CreationDate:   createdAt.Format(time.RFC822),
+		ExpirationDate: expireAt.Format(time.RFC822),
+	}
+
+	// Display the shortened link info page
+	RenderTemplate(writer, "info", page, http.StatusOK, lang)
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
@@ -374,8 +429,16 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 		return
 	}
 
+	// If it's an info request, go directly to info page
+	infoRequest := req.FormValue("info")
+	if infoRequest == "true" {
+		conf.FrontHandlerURLInfo(writer, req, returnURL)
+
+		return
+	}
+
 	// Get the URL corresponding to the short
-	url, err := database.GetURLByShort(conf.DB, req.FormValue("short"))
+	url, err := database.GetURLByShort(conf.DB, returnURL)
 	if err != nil {
 		conf.FrontErrorPage(
 			writer,

@@ -157,7 +157,7 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	resp = httptest.NewRecorder()
 
-	httpAdapter.FrontAskForPassword(resp, req)
+	httpAdapter.FrontAskForPassword(resp, req, false)
 
 	suite.a.Assert(resp.Code, http.StatusOK)
 
@@ -211,6 +211,23 @@ func (suite frontTestSuite) TestMainFrontHandlers() { //nolint:funlen
 	httpAdapter.FrontHandlerRedirectToURL(resp, req)
 
 	suite.a.Assert(resp.Code, http.StatusNotFound)
+
+	// Test getting shortened link information
+	redirectForm = url.Values{
+		"access":   {"Access"},
+		"short":    {"addpagetest"},
+		"info":     {"true"},
+		"password": {"secret"},
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/pass", strings.NewReader(redirectForm.Encode()))
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	resp = httptest.NewRecorder()
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	httpAdapter.FrontHandlerRedirectToURL(resp, req)
+
+	suite.a.Assert(resp.Code, http.StatusOK)
 }
 
 // Test suite structure.

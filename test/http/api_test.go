@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -121,6 +122,29 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
 	)
 
+	// Test getting shortened link information
+	req = httptest.NewRequest(
+		http.MethodGet,
+		"/"+strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")+"+",
+		nil,
+	)
+	resp = httptest.NewRecorder()
+
+	mux.ServeHTTP(resp, req)
+
+	suite.a.Assert(resp.Code, http.StatusOK)
+
+	suite.a.Assert(
+		resp.Body.String(),
+		fmt.Sprintf(
+			"{\"dstUrl\":\"%s\",\"short\":\"%s\",\"createdAt\":\"%s\",\"expiresAt\":\"%s\"}",
+			returnedLink.URL,
+			strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+			time.Now().UTC().Format(time.RFC822),
+			returnedLink.ExpireAt,
+		),
+	)
+
 	// Test link redirection with default values
 	req = httptest.NewRequest(
 		http.MethodGet,
@@ -132,6 +156,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	mux.ServeHTTP(resp, req)
 
 	suite.a.Assert(resp.Code, http.StatusSeeOther)
+
 	// Test link creation with custom length for random short
 	params = utils.Parameters{
 		URL:         "http://example.com/",
@@ -290,6 +315,37 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(
 		returnedLink.ExpireAt,
 		time.Now().UTC().Add(time.Duration(conf.DefaultExpiryTime)*time.Minute).Format(time.RFC822),
+	)
+
+	// Test getting password protected shortened link information
+	params = utils.Parameters{
+		Password: "secret",
+	}
+
+	err = json.NewEncoder(&buf).Encode(params)
+	suite.a.AssertNoErr(err)
+
+	req = httptest.NewRequest(
+		http.MethodGet,
+		"/"+strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, "")+"+",
+		&buf,
+	)
+	resp = httptest.NewRecorder()
+	req.Header.Add("Content-Type", "application/json")
+
+	mux.ServeHTTP(resp, req)
+
+	suite.a.Assert(resp.Code, http.StatusOK)
+
+	suite.a.Assert(
+		resp.Body.String(),
+		fmt.Sprintf(
+			"{\"dstUrl\":\"%s\",\"short\":\"%s\",\"createdAt\":\"%s\",\"expiresAt\":\"%s\"}",
+			returnedLink.URL,
+			strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
+			time.Now().UTC().Format(time.RFC822),
+			returnedLink.ExpireAt,
+		),
 	)
 
 	// Test link redirection with a password
