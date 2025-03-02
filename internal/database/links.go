@@ -121,7 +121,18 @@ func CreateLink(
 	return err
 }
 
-// GetURLByShort gets a link entry from the links table by its value of the short column.
+// GetURLInfo gets a link entry from the links table by its value of the short column.
+func GetURLInfo(db *sql.DB, short string) (string, time.Time, time.Time, error) {
+	sqlGetURLByShort := `SELECT url, created_at, expire_at FROM links WHERE short = $1;`
+	var url string
+	var createdAt time.Time
+	var expireAt time.Time
+	err := db.QueryRow(sqlGetURLByShort, short).Scan(&url, &createdAt, &expireAt)
+
+	return url, createdAt, expireAt, err
+}
+
+// GetURLByShort gets the URL associated to the given short.
 func GetURLByShort(db *sql.DB, short string) (string, error) {
 	sqlGetURLByShort := `SELECT url FROM links WHERE short = $1;`
 	var url string

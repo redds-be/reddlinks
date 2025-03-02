@@ -19,15 +19,13 @@
 {{template "head.en.tmpl" .}}
 {{template "nav.en.tmpl" .}}
 <div class="main">
-    <p>This link requires a password</p>
-    <form action="/access" method="post">
+    <p>Destination URL : {{.DstURL}}</p>
+    <p>Short : {{.Short}}</p>
+    <p>Date de création : {{.CreationDate}}</p>
+    <p>Date d'expiration : {{.ExpirationDate}}</p>
+    <form action="/" method="Get">
         <div class="div-input">
-                <input placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" name="password" title="Password" class="oth-input" type="password" required>
-        </div>
-        <input type="hidden" name="short" value="{{.Short}}">
-        <input type="hidden" name="info" value="{{.InfoRequest}}">
-        <div class="div-input">
-            <button value="Access" name="access" type="submit">Access the link</button>
+            <a class="button" href="{{.DstURL}}">Accéder à la destination</a>
         </div>
     </form>
 </div>
