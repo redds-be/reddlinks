@@ -180,6 +180,20 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 
 	suite.a.Assert(errMsg, "The URL is invalid.")
 	suite.a.Assert(code, http.StatusBadRequest)
+
+	// Test redirection loop creation
+	params = utils.Parameters{
+		URL:         "http://127.0.0.1:8080/loop",
+		Length:      0,
+		Path:        "loop",
+		ExpireAfter: "",
+		Password:    "",
+	}
+
+	_, code, _, errMsg = linksAdapter.CreateLink(params)
+
+	suite.a.Assert(errMsg, "Could not create a redirection loop.")
+	suite.a.Assert(code, http.StatusBadRequest)
 }
 
 // Test suite structure.
