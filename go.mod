@@ -26,7 +26,7 @@ require (
 	github.com/yeqown/go-qrcode/v2 v2.2.5
 	github.com/yeqown/go-qrcode/writer/standard v1.2.5
 	gitlab.gnous.eu/ada/atp v1.0.0
-	modernc.org/sqlite v1.36.0
+	modernc.org/sqlite v1.36.1
 )
 
 require (
