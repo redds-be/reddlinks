@@ -19,6 +19,7 @@ package utils_test
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -128,7 +129,8 @@ func (suite utilsTestSuite) TestIsURL() {
 
 func (suite utilsTestSuite) TestGetLocales() {
 	// Test GetLocales and check for errors
-	locales, supportedLocales, err := utils.GetLocales("./")
+	var notEmbedded embed.FS
+	locales, supportedLocales, err := utils.GetLocales("./", notEmbedded)
 	suite.a.AssertNoErr(err)
 
 	// Verify the supported locales value

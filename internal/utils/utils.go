@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"math/rand"
 	"net"
 	"net/http"
@@ -91,6 +92,14 @@ type Parameters struct {
 	Password    string `json:"password"`
 }
 
+// PageLocaleTl defines the translatable text content for web pages.
+//
+// This struct contains all text elements that appear in the UI, allowing for
+// internationalization. Each field represents a specific piece of text on the page,
+// and the values are loaded from language-specific JSON files.
+//
+// Field names correspond to translation keys, and their string values hold the
+// translated content for a specific locale.
 type PageLocaleTl struct {
 	Title                    string `json:"title"`
 	AltGitHubLogo            string `json:"alt_GitHub_logo"`
@@ -162,40 +171,84 @@ type PageLocaleTl struct {
 	PrivIssues               string `json:"priv_issues"`
 }
 
-// GetLocales parses locale json files and return them as structs
+// GetLocales parses locale JSON files and returns them as structs.
 //
-// It gets a list of locale files, parses them, add locale as supported in a slice and return a map of PageLocaleTL struct.
-func GetLocales(localesDir string) (map[string]PageLocaleTl, []string, error) {
-	// Get locales file list
-	localeFileList, err := os.ReadDir(localesDir)
+// It accepts either a custom locales directory path or uses embedded static files.
+// The function reads locale files (expected to be JSON), parses them into PageLocaleTl
+// structs, and builds a list of supported locales.
+//
+// Parameters:
+//   - customLocalesDir: Path to directory containing custom locale files. If empty,
+//     embedded static files will be used instead.
+//   - embeddedStatic: An embed.FS containing the embedded static locale files.
+//
+// Returns:
+//   - map[string]PageLocaleTl: A map of locale codes to their corresponding PageLocaleTl structs.
+//   - []string: A slice of supported locale codes.
+//   - error: Any error encountered during processing.
+//
+// The locale files are expected to be named with their language code and .json extension
+// (e.g., "en.json", "fr.json"). The language code is extracted by removing the .json suffix.
+func GetLocales(customLocalesDir string, embeddedStatic embed.FS) (map[string]PageLocaleTl, []string, error) {
+	var localeFileList []os.DirEntry
+	var err error
+
+	// Determine whether to use custom locales directory or embedded files
+	if customLocalesDir != "" {
+		// Read files from custom directory
+		localeFileList, err = os.ReadDir(customLocalesDir)
+	} else {
+		// Read files from embedded static files
+		localeFileList, err = embeddedStatic.ReadDir("static/locales")
+	}
 	if err != nil {
 		return make(map[string]PageLocaleTl), nil, err
 	}
 
+	// Initialize maps and slices to store results
 	locales := map[string]PageLocaleTl{}
 	var supportedLocales []string //nolint:prealloc
 
-	// Get the locale file
+	// Process each locale file
 	for _, localeFile := range localeFileList {
+		// Extract language code by removing .json extension
 		lang := strings.TrimSuffix(localeFile.Name(), ".json")
 
+		// Initialize map entry for this language
 		locales[lang] = PageLocaleTl{}
 		locale := PageLocaleTl{}
 
-		jsonLocaleFile, err := os.Open(localesDir + localeFile.Name())
+		var customJSONLocaleFile *os.File
+		var embeddedJSONLocaleFile fs.File
+
+		// Open the appropriate file based on source
+		if customLocalesDir != "" {
+			// Open file from custom directory
+			customJSONLocaleFile, err = os.Open(customLocalesDir + localeFile.Name())
+		} else {
+			// Open file from embedded static files
+			embeddedJSONLocaleFile, err = embeddedStatic.Open("static/locales/" + localeFile.Name())
+		}
 		if err != nil {
 			return make(map[string]PageLocaleTl), nil, err
 		}
 
 		// Decode locale file
-		decoder := json.NewDecoder(jsonLocaleFile)
+		var decoder *json.Decoder
+		if customLocalesDir != "" {
+			decoder = json.NewDecoder(customJSONLocaleFile)
+		} else {
+			decoder = json.NewDecoder(embeddedJSONLocaleFile)
+		}
+
+		// Parse JSON into locale struct
 		err = decoder.Decode(&locale)
 		if err != nil {
 			return make(map[string]PageLocaleTl), nil, err
 		}
 
+		// Store parsed locale in map and add language to list of supported locales
 		locales[lang] = locale
-
 		supportedLocales = append(supportedLocales, lang)
 	}
 

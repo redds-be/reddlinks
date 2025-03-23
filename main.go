@@ -86,14 +86,14 @@ func main() { //nolint:funlen
 	var supportedLocales []string
 	if _, err := os.Stat("./custom_static"); !os.IsNotExist(err) {
 		http.Templates = template.Must(template.ParseGlob("custom_static/templates/*.tmpl"))
-		locales, supportedLocales, err = utils.GetLocales("custom_static/locales/")
+		locales, supportedLocales, err = utils.GetLocales("custom_static/locales/", embeddedStatic)
 		if err != nil {
 			log.Panic(err)
 		}
 	} else {
 		http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/templates/*.tmpl"))
 		// Get locales and the list of supported ones
-		locales, supportedLocales, err = utils.GetLocales("static/locales/")
+		locales, supportedLocales, err = utils.GetLocales("", embeddedStatic)
 		if err != nil {
 			log.Panic(err)
 		}
