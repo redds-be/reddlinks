@@ -440,6 +440,93 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	)
 }
 
+func (suite apiTestSuite) TestRespondWithError() { //nolint:funlen
+	testEnv := env.GetEnv("../.env.test")
+	testEnv.DBURL = "api_resp_test.db"
+
+	// If the test db already exists, delete it as it will cause errors
+	if _, err := os.Stat(testEnv.DBURL); !errors.Is(err, os.ErrNotExist) {
+		err = os.Remove(testEnv.DBURL)
+		suite.a.AssertNoErrf(err)
+	}
+
+	// Prep everything
+	dataBase, err := database.DBConnect(
+		testEnv.DBType,
+		testEnv.DBURL,
+		testEnv.DBUser,
+		testEnv.DBPass,
+		testEnv.DBHost,
+		testEnv.DBPort,
+		testEnv.DBName,
+	)
+	suite.a.AssertNoErrf(err)
+
+	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
+	suite.a.AssertNoErrf(err)
+
+	conf := &utils.Configuration{
+		DB:                     dataBase,
+		InstanceName:           testEnv.InstanceName,
+		InstanceURL:            testEnv.InstanceURL,
+		Version:                "noVersion",
+		AddrAndPort:            testEnv.AddrAndPort,
+		DefaultShortLength:     testEnv.DefaultLength,
+		DefaultMaxShortLength:  testEnv.DefaultMaxLength,
+		DefaultMaxCustomLength: testEnv.DefaultMaxCustomLength,
+		DefaultExpiryTime:      testEnv.DefaultExpiryTime,
+		ContactEmail:           testEnv.ContactEmail,
+	}
+
+	httpAdapter := HTTP.NewAdapter(*conf)
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /", httpAdapter.APICreateLink)
+
+	// Test with a JSON error
+	params := utils.Parameters{
+		URL:         "http://127.0.0.1:8080/loop",
+		Length:      0,
+		Path:        "loop",
+		ExpireAfter: "",
+		Password:    "",
+	}
+
+	var buf bytes.Buffer
+	err = json.NewEncoder(&buf).Encode(params)
+	suite.a.AssertNoErr(err)
+
+	req := httptest.NewRequest(http.MethodPost, "/", &buf)
+	resp := httptest.NewRecorder()
+	mux.ServeHTTP(resp, req)
+
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
+	suite.a.Assert(
+		resp.Body.String(),
+		"{\"error\":\"400 Could not create a redirection loop.\"}",
+	)
+	suite.a.Assert(resp.Header().Get("Content-Type"), "application/json; charset=UTF-8")
+
+	// Test with an HTML error
+	params = utils.Parameters{
+		URL:         "http://127.0.0.1:8080/loop",
+		Length:      0,
+		Path:        "loop",
+		ExpireAfter: "",
+		Password:    "",
+	}
+
+	err = json.NewEncoder(&buf).Encode(params)
+	suite.a.AssertNoErr(err)
+
+	req = httptest.NewRequest(http.MethodPost, "/", &buf)
+	req.Header.Set("Accept", "text/html")
+	resp = httptest.NewRecorder()
+	mux.ServeHTTP(resp, req)
+
+	suite.a.Assert(resp.Code, http.StatusBadRequest)
+	suite.a.Assert(resp.Header().Get("Content-Type"), "text/html; charset=UTF-8")
+}
+
 // Test suite structure.
 type apiTestSuite struct {
 	t *testing.T
@@ -459,4 +546,5 @@ func TestAPISuite(t *testing.T) {
 	// Call the tests
 	suite.TestReadiness()
 	suite.TestMainAPIHandlers()
+	suite.TestRespondWithError()
 }

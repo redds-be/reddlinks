@@ -60,8 +60,9 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	// Check if there is a hash associated with the short, if there is a hash, we will require a password
 	hash, err := database.GetHashByShort(conf.DB, requestedShort)
 	if err != nil {
-		json.RespondWithError(
+		conf.RespondWithError(
 			writer,
+			req,
 			http.StatusNotFound,
 			"There is no link associated with this path, it is probably invalid or expired.",
 		)
@@ -88,8 +89,9 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 		case isJSON:
 			params, err := utils.DecodeJSON(req)
 			if err != nil {
-				json.RespondWithError(
+				conf.RespondWithError(
 					writer,
+					req,
 					http.StatusBadRequest,
 					"Wrong JSON or no password has been given. This link requires a password to access it.",
 				)
@@ -108,11 +110,11 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 		// Check if the password matches the hash
 		if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil &&
 			!match {
-			json.RespondWithError(writer, http.StatusBadRequest, "Wrong password has been given.")
+			conf.RespondWithError(writer, req, http.StatusBadRequest, "Wrong password has been given.")
 
 			return
 		} else if err != nil {
-			json.RespondWithError(writer, http.StatusInternalServerError, "Could not compare the password against corresponding hash.")
+			conf.RespondWithError(writer, req, http.StatusInternalServerError, "Could not compare the password against corresponding hash.")
 
 			return
 		}
@@ -131,8 +133,9 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 		// Get the information
 		url, createdAt, expireAt, err := database.GetURLInfo(conf.DB, requestedShort)
 		if err != nil {
-			json.RespondWithError(
+			conf.RespondWithError(
 				writer,
+				req,
 				http.StatusInternalServerError,
 				"Could not get informations associated with this shortened path.",
 			)
@@ -154,8 +157,9 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	// Get the URL
 	url, err := database.GetURLByShort(conf.DB, requestedShort)
 	if err != nil {
-		json.RespondWithError(
+		conf.RespondWithError(
 			writer,
+			req,
 			http.StatusNotFound,
 			"There is no link associated with this path, it is probably invalid or expired.",
 		)
@@ -180,7 +184,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 	// Get the JSON parameters
 	params, err := utils.DecodeJSON(req)
 	if err != nil {
-		json.RespondWithError(writer, http.StatusBadRequest, "Invalid JSON syntax.")
+		conf.RespondWithError(writer, req, http.StatusBadRequest, "Invalid JSON syntax.")
 
 		return
 	}
@@ -206,7 +210,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 	// Create the link entry
 	link, code, addInfo, errMsg := linksAdapter.CreateLink(params)
 	if errMsg != "" {
-		json.RespondWithError(writer, code, errMsg)
+		conf.RespondWithError(writer, req, code, errMsg)
 
 		return
 	}
@@ -252,4 +256,27 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 		// Return the expiry time, the url and the short to the user
 		json.RespondWithJSON(writer, code, linkToReturn)
 	}
+}
+
+// RespondWithError sends an appropriate error response to the client based on the
+// Accept header in the request. If the Accept header contains "text/html", it renders
+// an HTML error page using FrontErrorPage. Otherwise, it responds with a JSON error
+// using json.RespondWithError.
+//
+// Parameters:
+//   - writer: The http.ResponseWriter to write the response to
+//   - req: The incoming HTTP request
+//   - code: The HTTP status code to return
+//   - errMsg: The error message to display
+func (conf Configuration) RespondWithError(writer http.ResponseWriter, req *http.Request, code int, errMsg string) {
+	// CLI clients usually use only '*/*' whilst web browser typically uses a list containing both '*/*' and "text/html".
+	// if "text/html" is present, it is safe to assume it's a web browser, so we give render an error page
+	if strings.Contains(req.Header.Get("Accept"), "text/html") {
+		conf.FrontErrorPage(writer, req, code, errMsg, "/")
+
+		return
+	}
+
+	// Otherwise, respond in JSON
+	json.RespondWithError(writer, code, errMsg)
 }
