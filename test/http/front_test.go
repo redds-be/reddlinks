@@ -33,10 +33,47 @@ import (
 	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (suite frontTestSuite) TestRenderTemplate() {
-	HTTP.Templates = template.Must(template.ParseFiles("test.en.tmpl"))
+func (suite frontTestSuite) TestRenderTemplate() { //nolint: funlen
+	HTTP.Templates = template.Must(template.ParseFiles("test.tmpl"))
 
-	page := HTTP.Page{
+	testEnv := env.GetEnv("../.env.test")
+	testEnv.DBURL = "front_test.db"
+
+	// If the test db already exists, delete it as it will cause errors
+	if _, err := os.Stat(testEnv.DBURL); !errors.Is(err, os.ErrNotExist) {
+		err = os.Remove(testEnv.DBURL)
+		suite.a.AssertNoErr(err)
+	}
+
+	// Prep everything
+	dataBase, err := database.DBConnect(
+		testEnv.DBType,
+		testEnv.DBURL,
+		testEnv.DBUser,
+		testEnv.DBPass,
+		testEnv.DBHost,
+		testEnv.DBPort,
+		testEnv.DBName,
+	)
+	suite.a.AssertNoErr(err)
+
+	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
+	suite.a.AssertNoErr(err)
+
+	conf := &utils.Configuration{
+		DB:                     dataBase,
+		InstanceName:           testEnv.InstanceName,
+		InstanceURL:            testEnv.InstanceURL,
+		Version:                "noVersion",
+		AddrAndPort:            testEnv.AddrAndPort,
+		DefaultShortLength:     testEnv.DefaultLength,
+		DefaultMaxShortLength:  testEnv.DefaultMaxLength,
+		DefaultMaxCustomLength: testEnv.DefaultMaxCustomLength,
+		DefaultExpiryTime:      testEnv.DefaultExpiryTime,
+		ContactEmail:           testEnv.ContactEmail,
+	}
+
+	page := HTTP.PageParameters{
 		InstanceTitle:          "test",
 		InstanceURL:            "test.com",
 		ShortenedLink:          "shortenedtest",
@@ -54,10 +91,13 @@ func (suite frontTestSuite) TestRenderTemplate() {
 		ContactEmail:           "test AT test DOT test",
 	}
 
+	httpAdapter := HTTP.NewAdapter(*conf)
+
 	// Test if template rendering works
 	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	HTTP.RenderTemplate(resp, "test", &page, http.StatusOK, "en")
+	httpAdapter.RenderTemplate(resp, req, "test", &page, http.StatusOK)
 
 	suite.a.Assert(resp.Code, http.StatusOK)
 	suite.a.Assert(resp.Header().Get("X-Content-Type-Options"), "nosniff")

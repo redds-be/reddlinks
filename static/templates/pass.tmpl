@@ -16,19 +16,19 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-{{template "head.en.tmpl" .}}
-{{template "nav.en.tmpl" .}}
+{{template "head.tmpl" .}}
+{{template "nav.tmpl" .}}
 <div class="main">
-    <p>This link requires a password</p>
+    <p>{{.Locales.PasswordRequired}}</p>
     <form action="/access" method="post">
         <div class="div-input">
                 <input placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" name="password" title="Password" class="oth-input" type="password" required>
         </div>
-        <input type="hidden" name="short" value="{{.Short}}">
-        <input type="hidden" name="info" value="{{.InfoRequest}}">
+        <input type="hidden" name="short" value="{{.PageParams.Short}}">
+        <input type="hidden" name="info" value="{{.PageParams.InfoRequest}}">
         <div class="div-input">
-            <button value="Access" name="access" type="submit">Access the link</button>
+            <button value="Access" name="access" type="submit">{{.Locales.AccessLink}}</button>
         </div>
     </form>
 </div>
-{{template "footer.en.tmpl" .}}
+{{template "footer.tmpl" .}}

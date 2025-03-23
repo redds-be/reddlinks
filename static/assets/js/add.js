@@ -20,20 +20,20 @@ function copyLink() {
     /* Copy the link into the clipboard */
     navigator.clipboard.writeText(document.getElementById("short").textContent);
     /* Tell that the link is copied */
-    document.getElementById("copy").innerHTML = "Lien copié";
+    document.getElementById("copy").innerHTML = document.getElementById("locale-copied-link").value;
 }
 
 function revertCopy() {
     /* Reset the value for the copy button */
-    document.getElementById("copy").innerHTML = "Copier le lien";
+    document.getElementById("copy").innerHTML = document.getElementById("locale-copy-link").value;
 }
 
 function revealPass() {
     /* Prepare a string to concatenate */
-    let accssibleStr = "Accessible via le mot de passe :";
-    document.getElementById("pass").innerHTML = accssibleStr.concat(" ", document.getElementById("password").value);
+    let accessibleStr = document.getElementById("locale-accessible-pass").value;
+    document.getElementById("pass").innerHTML = accessibleStr.concat(" ", document.getElementById("password").value);
     /* Tell that the password is revealed */
-    document.getElementById("reveal").innerHTML = "Mot de passe révélé";
+    document.getElementById("reveal").innerHTML = document.getElementById("locale-password-revealed").value;
 }
 
 document.getElementById("copy").addEventListener("click", copyLink); 

@@ -35,7 +35,7 @@ import (
 // Templates is a global variables for the HTML templates.
 var Templates *template.Template //nolint:gochecknoglobals
 
-// Page defines the structure of what can be displayed on a page.
+// PageParameters defines the structure of what can be displayed on a page.
 //
 // InstanceTitle is the title of the instance,
 // InstanceURL is the URL of the instance,
@@ -52,8 +52,8 @@ var Templates *template.Template //nolint:gochecknoglobals
 // DefaultMaxCustomLength refers to the maximum length of custom strings for a short URL,
 // DefaultExpiryTime refers to the default expiry time of links records,
 // DefaultExpiryDate refers to the default expiry date,
-// ContactEmail refers to an optional admin's contact email.
-type Page struct {
+// ContactEmail refers to an optional admin contact email.
+type PageParameters struct {
 	InstanceTitle          string
 	InstanceURL            string
 	ShortenedLink          string
@@ -76,11 +76,17 @@ type Page struct {
 	ExpirationDate         string
 }
 
-// RenderTemplate renders the templates using a given Page struct.
+// RenderTemplate renders the templates using a given PageParameters struct.
 //
 // It starts by setting the appropriate headers using [http.Header.Set] and [http.WriteHeader], then
 // the requested template is rendered using a given page struct using [template.ExecuteTemplate].
-func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code int, lang string) {
+func (conf Configuration) RenderTemplate(
+	writer http.ResponseWriter,
+	req *http.Request,
+	tmpl string,
+	pageParams *PageParameters,
+	code int,
+) {
 	// Tell that we serve HTML in UTF-8.
 	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	// Tell that all resources comes from here and that only this site can frame itself
@@ -93,15 +99,28 @@ func RenderTemplate(writer http.ResponseWriter, tmpl string, page *Page, code in
 	// Write the header giving a code
 	writer.WriteHeader(code)
 
-	// Check if lang is supported, defaults to english if it's not the case
-	supportedLangs := []string{"en", "fr"}
-
-	if !slices.Contains(supportedLangs, lang) {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 { //nolint:mnd
+		lang = lang[:2]
+	} else {
 		lang = "en"
 	}
 
+	// Check if lang is supported, else, default to english
+	if !slices.Contains(conf.SupportedLocales, lang) {
+		lang = "en"
+	}
+
+	// Get the locale according to the chose one
+	chosenLocale := conf.Locales[lang]
+
 	// Render a given template, json error if it can't
-	err := Templates.ExecuteTemplate(writer, tmpl+"."+lang+".tmpl", page)
+	err := Templates.ExecuteTemplate(
+		writer,
+		tmpl+".tmpl",
+		map[string]interface{}{"PageParams": pageParams, "Locales": chosenLocale},
+	)
 	if err != nil {
 		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to load the page.")
 
@@ -117,39 +136,23 @@ func (conf Configuration) FrontErrorPage(
 	errMsg string,
 	url string,
 ) {
-	// Get the client's main language
-	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
-	}
-
 	// Set what is going to be displayed on the error page
-	page := &Page{
+	pageParams := &PageParameters{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
-		Error:         fmt.Sprintf("Error %d: %s", code, errMsg),
+		Error:         fmt.Sprintf("%s (%d)", errMsg, code),
 		Version:       conf.Version,
 		URL:           url,
 	}
 
 	// Display the error page
-	RenderTemplate(writer, "error", page, code, lang)
+	conf.RenderTemplate(writer, req, "error", pageParams, code)
 }
 
 // FrontHandlerMainPage displays the main page with a form used to shorten a link.
 //
 // An expiry date is created by adding DefaultExpiryTime to now, this date will be used as the default expiry date in the form.
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
-	// Get the client's main language
-	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
-	}
-
 	var defaultExpiryDate string
 	if conf.DefaultExpiryTime != 0 {
 		// Convert default expiry time into date
@@ -160,7 +163,7 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 	}
 
 	// Set what is going to be displayed on the main page
-	page := &Page{
+	pageParams := &PageParameters{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
 		ShortenedLink: regexp.MustCompile("^https://|http://").
@@ -173,21 +176,13 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 	}
 
 	// Display the front page
-	RenderTemplate(writer, "index", page, http.StatusOK, lang)
+	conf.RenderTemplate(writer, req, "index", pageParams, http.StatusOK)
 }
 
 // FrontHandlerPrivacyPage displays the Privacy Policy page.
 func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
-	// Get the client's main language
-	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
-	}
-
 	// Set what is going to be displayed on the privacy page
-	page := &Page{
+	pageParams := &PageParameters{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
 		Version:       conf.Version,
@@ -195,7 +190,7 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, re
 	}
 
 	// Display the front page
-	RenderTemplate(writer, "privacy", page, http.StatusOK, lang)
+	conf.RenderTemplate(writer, req, "privacy", pageParams, http.StatusOK)
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
@@ -208,14 +203,6 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
-	// Get the client's main language
-	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
-	}
-
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
 	if req.FormValue("add") != "Add" {
@@ -290,7 +277,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	}
 
 	// Set what is going to be displayed on the add page
-	page := &Page{
+	pageParams := &PageParameters{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
 		ShortenedLink: regexp.MustCompile("^https://|http://").
@@ -305,19 +292,11 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	}
 
 	// Display the add page which will display the information about the added link
-	RenderTemplate(writer, "add", page, http.StatusCreated, lang)
+	conf.RenderTemplate(writer, req, "add", pageParams, http.StatusCreated)
 }
 
 // FrontAskForPassword asks for a password to access a given shortened link.
 func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request, infoRequest bool) {
-	// Get the client's main language
-	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
-	}
-
 	// Get the short
 	short := req.PathValue("short")
 
@@ -330,7 +309,7 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 	}
 
 	// Set what is going to be displayed on the pass page
-	page := &Page{
+	pageParams := &PageParameters{
 		InstanceTitle: conf.InstanceName,
 		InstanceURL:   conf.InstanceURL,
 		Short:         short,
@@ -339,19 +318,11 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 	}
 
 	// Display the pass page which will ask the user for a password
-	RenderTemplate(writer, "pass", page, http.StatusOK, lang)
+	conf.RenderTemplate(writer, req, "pass", pageParams, http.StatusOK)
 }
 
 // FrontHandlerURLInfo displays basic information about a given short.
 func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *http.Request, short string) {
-	// Get the client's main language
-	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
-	}
-
 	// Get short information
 	url, createdAt, expireAt, err := database.GetURLInfo(conf.DB, short)
 	if err != nil {
@@ -367,7 +338,7 @@ func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *h
 	}
 
 	// Set what is going to be displayed on the info page
-	page := &Page{
+	pageParams := &PageParameters{
 		InstanceTitle:  conf.InstanceName,
 		InstanceURL:    conf.InstanceURL,
 		Short:          short,
@@ -378,7 +349,7 @@ func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *h
 	}
 
 	// Display the shortened link info page
-	RenderTemplate(writer, "info", page, http.StatusOK, lang)
+	conf.RenderTemplate(writer, req, "info", pageParams, http.StatusOK)
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.

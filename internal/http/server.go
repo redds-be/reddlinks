@@ -46,6 +46,8 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 		DefaultExpiryTime:      configuration.DefaultExpiryTime,
 		ContactEmail:           configuration.ContactEmail,
 		Static:                 configuration.Static,
+		Locales:                configuration.Locales,
+		SupportedLocales:       configuration.SupportedLocales,
 	}
 }
 

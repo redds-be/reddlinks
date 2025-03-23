@@ -126,6 +126,26 @@ func (suite utilsTestSuite) TestIsURL() {
 	suite.a.AssertErr(err)
 }
 
+func (suite utilsTestSuite) TestGetLocales() {
+	// Test GetLocales and check for errors
+	locales, supportedLocales, err := utils.GetLocales("./")
+	suite.a.AssertNoErr(err)
+
+	// Verify the supported locales value
+	expectedSupportedLocales := []string{"en"}
+	suite.a.Assert(supportedLocales, expectedSupportedLocales)
+
+	// Verify the translation
+	expectedLocales := []utils.PageLocaleTl{
+		{
+			Title:         "Shorten URL",
+			AltGitHubLogo: "GitHub Logo",
+			Source:        "Source",
+		},
+	}
+	suite.a.Assert(locales, expectedLocales)
+}
+
 // Test suite structure.
 type utilsTestSuite struct {
 	t *testing.T
