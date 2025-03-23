@@ -1,0 +1,75 @@
+<!--
+    reddlinks, a simple link shortener written in Go.
+    Copyright (C) 2025 redd
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+{{template "head.tmpl" .}}
+<div id="page-container">
+    <div id="content-wrap">
+        {{template "nav.tmpl" .}}
+
+        <h2>{{.Locales.PrivacyPolicy}}</h2>
+        <p class="privacy">{{.Locales.PrivIntro}}</p>
+
+        <h3>{{.Locales.PrivDirect}}</h3>
+        <p class="privacy">{{.Locales.PrivDirectStored}}</p>
+        <ul class="privacy">
+            <li>{{.Locales.PrivURL}}</li>
+            <li>{{.Locales.PrivPath}}</li>
+            <li>{{.Locales.PrivLength}}</li>
+            <li>{{.Locales.PrivExpiration}}</li>
+            <li>{{.Locales.PrivCreation}}</li>
+            <li>{{.Locales.PrivPassword}}</li>
+        </ul>
+
+        <h3>{{.Locales.PrivPassive}}</h3>
+        <p class="privacy">{{.Locales.PrivNotLog}}<br><em>{{.Locales.PrivUnenforceableNote}}</em></p>
+
+        <h3>{{.Locales.PrivRemoval}}</h3>
+        <p class="privacy">{{.Locales.PrivToRemove}}<br><em>{{.Locales.PrivUnenforceableRemoval}}</em></p>
+
+        {{if .ContactEmail}}
+        <h3>{{.Locales.PrivContact}}</h3>
+        <p class="privacy">
+            {{.Locales.PrivEmail}} {{.PageParams.ContactEmail}}<br>
+            <em>{{.Locales.PrivIfEmail}} <a href="https://spencermortensen.com/articles/email-obfuscation/#text-substitution" target="_blank">{{.Locales.Obfuscated}}</a>.</em>
+        </p>
+        {{end}}
+
+        <h3>{{.Locales.PrivWarranty}}</h3>
+        <p class="privacy">
+            reddlinks, a simple link shortener written in Go.<br>
+            Copyright (C) 2025 redd<br><br>
+
+            This program is free software: you can redistribute it and/or modify<br>
+            it under the terms of the GNU General Public License as published by<br>
+            the Free Software Foundation, either version 3 of the License, or<br>
+            (at your option) any later version.<br><br>
+
+            This program is distributed in the hope that it will be useful,<br>
+            but WITHOUT ANY WARRANTY; without even the implied warranty of<br>
+            MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br>
+            GNU General Public License for more details.<br><br>
+
+            You should have received a copy of the GNU General Public License<br>
+            along with this program.  If not, see <<a href="https://www.gnu.org/licenses/">https://www.gnu.org/licenses/</a>>.
+        </p>
+
+        <p class="privacy">{{.Locales.PrivIssues}} <a href="https://github.com/redds-be/reddlinks/issues/new">https://github.com/redds-be/reddlinks/issues/new</a>.</p>
+
+    </div>
+{{template "footer.tmpl" .}}
+</div>

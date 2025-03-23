@@ -81,6 +81,24 @@ func main() { //nolint:funlen
 		log.Panic(err)
 	}
 
+	// Parse html templates and get the locales
+	var locales map[string]utils.PageLocaleTl
+	var supportedLocales []string
+	if _, err := os.Stat("./custom_static"); !os.IsNotExist(err) {
+		http.Templates = template.Must(template.ParseGlob("custom_static/templates/*.tmpl"))
+		locales, supportedLocales, err = utils.GetLocales("custom_static/locales/")
+		if err != nil {
+			log.Panic(err)
+		}
+	} else {
+		http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/templates/*.tmpl"))
+		// Get locales and the list of supported ones
+		locales, supportedLocales, err = utils.GetLocales("static/locales/")
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
 	// Create a struct to connect to the database and send the instance name and url to the handlers
 	conf := &utils.Configuration{
 		DB:                     dbase,
@@ -94,6 +112,8 @@ func main() { //nolint:funlen
 		ContactEmail:           envVars.ContactEmail,
 		Static:                 embeddedStatic,
 		Version:                version,
+		SupportedLocales:       supportedLocales,
+		Locales:                locales,
 	}
 
 	// Periodically clean the database
@@ -106,13 +126,6 @@ func main() { //nolint:funlen
 			time.Sleep(duration)
 		}
 	}(time.Duration(envVars.TimeBetweenCleanups) * time.Minute)
-
-	// Parse html templates
-	if _, err := os.Stat("./custom_static"); !os.IsNotExist(err) {
-		http.Templates = template.Must(template.ParseGlob("./custom_static/**/*.tmpl"))
-	} else {
-		http.Templates = template.Must(template.ParseFS(embeddedStatic, "static/**/*.tmpl"))
-	}
 
 	// Create an adapter for the server
 	httpAdapter := http.NewAdapter(*conf)

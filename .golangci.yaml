@@ -2,6 +2,8 @@
 linters:
   enable-all: true
   disable:
+    # I don't like pasta references in my code
+    - tagliatelle
     # Deprecated (without step 2 warning)
     - tenv
     # Conflicts with gofmt

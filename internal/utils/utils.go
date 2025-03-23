@@ -29,6 +29,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/redds-be/reddlinks/internal/database"
@@ -67,6 +69,9 @@ type Configuration struct {
 	DefaultExpiryTime      int
 	ContactEmail           string
 	Static                 embed.FS
+	LocalesDir             string
+	Locales                map[string]PageLocaleTl
+	SupportedLocales       []string
 }
 
 // Parameters defines the structure of the JSON payload that will be read from the user.
@@ -84,6 +89,117 @@ type Parameters struct {
 	ExpireAfter string `json:"expireAfter"`
 	ExpireDate  string `json:"expireDate"`
 	Password    string `json:"password"`
+}
+
+type PageLocaleTl struct {
+	Title                    string `json:"title"`
+	AltGitHubLogo            string `json:"alt_GitHub_logo"`
+	Source                   string `json:"source"`
+	Version                  string `json:"version"`
+	DevelopedBy              string `json:"developed_by"`
+	LicensedUnder            string `json:"licensed_under"`
+	GetThe                   string `json:"get_the"`
+	SourceCode               string `json:"source_code"`
+	Error                    string `json:"error"`
+	GoBack                   string `json:"go_back"`
+	PasswordRequired         string `json:"password_required"`
+	AccessLink               string `json:"access_link"`
+	DestinationURL           string `json:"destination_url"`
+	ShortPath                string `json:"short_path"`
+	CreationDate             string `json:"creation_date"`
+	ExpirationDate           string `json:"expiration_date"`
+	Proceed                  string `json:"proceed"`
+	EnterURL                 string `json:"enter_url"`
+	CustomPathTitle          string `json:"custom_path_title"`
+	CustomPath               string `json:"custom_path"`
+	Optional                 string `json:"optional"`
+	Example                  string `json:"example"`
+	IfNoneGivenPath          string `json:"if_none_given_path"`
+	Reserved                 string `json:"reserved"`
+	LengthTitle              string `json:"length_title"`
+	Length                   string `json:"length"`
+	DefaultsToLength         string `json:"defaults_to_length"`
+	ExpiryDateTitle          string `json:"expiry_date_title"`
+	ExpiryDate               string `json:"expiry_date"`
+	DateOfExpiry             string `json:"date_of_expiry"`
+	DefaultsToExpiry         string `json:"defaults_to_expiry"`
+	PasswordTitle            string `json:"password_title"`
+	Password                 string `json:"password"`
+	Path                     string `json:"path"`
+	WillAskPass              string `json:"will_ask_pass"`
+	ShortenURL               string `json:"shorten_url"`
+	ShortenedLink            string `json:"shortened_link"`
+	LinksTo                  string `json:"links_to"`
+	AccessiblePass           string `json:"accessible_pass"`
+	RevealPass               string `json:"reveal_pass"`
+	WillExpireOn             string `json:"will_expire_on"`
+	QRAlt                    string `json:"qr_alt"`
+	CopyLink                 string `json:"copy_link"`
+	ShortenAnotherURL        string `json:"shorten_another_url"`
+	CopiedLink               string `json:"copied_link"`
+	PasswordRevealed         string `json:"password_revealed"`
+	PrivacyPolicy            string `json:"privacy_policy"`
+	PrivIntro                string `json:"priv_intro"`
+	PrivDirect               string `json:"priv_direct"`
+	PrivDirectStored         string `json:"priv_direct_stored"`
+	PrivURL                  string `json:"priv_url"`
+	PrivPath                 string `json:"priv_path"`
+	PrivLength               string `json:"priv_length"`
+	PrivExpiration           string `json:"priv_expiration"`
+	PrivCreation             string `json:"priv_creation"`
+	PrivPassword             string `json:"priv_password"`
+	PrivPassive              string `json:"priv_passive"`
+	PrivNotLog               string `json:"priv_not_log"`
+	PrivUnenforceableNote    string `json:"priv_unenforceable_note"`
+	PrivRemoval              string `json:"priv_removal"`
+	PrivToRemove             string `json:"priv_to_remove"`
+	PrivUnenforceableRemoval string `json:"priv_unenforceable_removal"`
+	PrivContact              string `json:"priv_contact"`
+	PrivEmail                string `json:"priv_email"`
+	PrivIfEmail              string `json:"priv_if_email"`
+	PrivObfuscated           string `json:"priv_obfuscated"`
+	PrivWarranty             string `json:"priv_warranty"`
+	PrivIssues               string `json:"priv_issues"`
+}
+
+// GetLocales parses locale json files and return them as structs
+//
+// It gets a list of locale files, parses them, add locale as supported in a slice and return a map of PageLocaleTL struct.
+func GetLocales(localesDir string) (map[string]PageLocaleTl, []string, error) {
+	// Get locales file list
+	localeFileList, err := os.ReadDir(localesDir)
+	if err != nil {
+		return make(map[string]PageLocaleTl), nil, err
+	}
+
+	locales := map[string]PageLocaleTl{}
+	var supportedLocales []string //nolint:prealloc
+
+	// Get the locale file
+	for _, localeFile := range localeFileList {
+		lang := strings.TrimSuffix(localeFile.Name(), ".json")
+
+		locales[lang] = PageLocaleTl{}
+		locale := PageLocaleTl{}
+
+		jsonLocaleFile, err := os.Open(localesDir + localeFile.Name())
+		if err != nil {
+			return make(map[string]PageLocaleTl), nil, err
+		}
+
+		// Decode locale file
+		decoder := json.NewDecoder(jsonLocaleFile)
+		err = decoder.Decode(&locale)
+		if err != nil {
+			return make(map[string]PageLocaleTl), nil, err
+		}
+
+		locales[lang] = locale
+
+		supportedLocales = append(supportedLocales, lang)
+	}
+
+	return locales, supportedLocales, err
 }
 
 // CollectGarbage deletes old expired entries in the database.

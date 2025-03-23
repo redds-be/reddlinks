@@ -16,17 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-{{template "head.en.tmpl" .}}
-{{template "nav.en.tmpl" .}}
-<div class="main">
-    <p>Destination URL : {{.DstURL}}</p>
-    <p>Short : {{.Short}}</p>
-    <p>Date de création : {{.CreationDate}}</p>
-    <p>Date d'expiration : {{.ExpirationDate}}</p>
-    <form action="/" method="Get">
-        <div class="div-input">
-            <a class="button" href="{{.DstURL}}">Accéder à la destination</a>
-        </div>
-    </form>
-</div>
-{{template "footer.en.tmpl" .}}
+<p class="nav-text"><a href="{{.PageParams.InstanceURL}}" class="nav-text nav-link">{{.PageParams.InstanceTitle}}</a>
+    <a href="https://github.com/redds-be/reddlinks" target="_blank" class="nav-text nav-link">
+        <img src="assets/img/github_logo.svg" width="16" height="16" alt="{{.Locales.AltGitHubLogo}}" class="svg">{{.Locales.Source}}
+    </a>
+</p>

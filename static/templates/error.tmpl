@@ -16,14 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-{{template "head.fr.tmpl" .}}
-{{template "nav.fr.tmpl" .}}
+{{template "head.tmpl" .}}
+{{template "nav.tmpl" .}}
 <div class="main">
-    <p>{{.Error}}</p>
+    <p>{{.Locales.Error}} {{.PageParams.Error}}</p>
     <form action="/" method="Get">
         <div class="div-input">
-            <a class="button" href="{{.URL}}">Retour</a>
+            <a class="button" href="{{.PageParams.URL}}">{{.Locales.GoBack}}</a>
         </div>
     </form>
 </div>
-{{template "footer.fr.tmpl" .}}
+{{template "footer.tmpl" .}}

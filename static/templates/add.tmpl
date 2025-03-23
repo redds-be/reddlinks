@@ -1,0 +1,51 @@
+<!--
+    reddlinks, a simple link shortener written in Go.
+    Copyright (C) 2025 redd
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+{{template "head.tmpl" .}}
+{{template "nav.tmpl" .}}
+<div class="main">
+    {{if .AddInfo}}
+        <p>{{.PageParams.AddInfo}}</p>
+    {{end}}
+    <p>{{.Locales.ShortenedLink}} <a href="{{.PageParams.InstanceURL}}{{.PageParams.Short}}" target="_blank" id="short">{{.PageParams.ShortenedLink}}</a></p>
+    <p>{{.Locales.LinksTo}} {{.PageParams.URL}}</p>
+    {{if .PageParams.Password}}
+        <input type="hidden" value="{{.PageParams.Password}}" id="password">
+        <p id="pass">{{.Locales.AccessiblePass}} ********</p>
+        <div class="div-input">
+            <button id="reveal">{{.Locales.RevealPass}}</button>
+        </div>
+    {{end}}
+    <p>{{.Locales.WillExpireOn}} {{.PageParams.ExpireAt}}</p>
+    <img class="qr-image" src="data:image/png;base64, {{.PageParams.ShortenedQR}}" alt="{{.Locales.QRAlt}}" />
+    <div class="div-input">
+        <button id="copy">{{.Locales.CopyLink}}</button>
+    </div>
+    <form action="/" method="Get">
+        <div class="div-input">
+            <button>{{.Locales.ShortenAnotherURL}}</button>
+        </div>
+    </form>
+</div>
+
+<input type="hidden" value="{{.Locales.CopyLink}}" id="locale-copy-link">
+<input type="hidden" value="{{.Locales.CopiedLink}}" id="locale-copied-link">
+<input type="hidden" value="{{.Locales.AccessiblePass}}" id="locale-accessible-pass">
+<input type="hidden" value="{{.Locales.PasswordRevealed}}" id="locale-password-revealed">
+<script type="application/javascript" src="../assets/js/add.js"></script>
+{{template "footer.tmpl" .}}
