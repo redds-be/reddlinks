@@ -22,6 +22,7 @@ import (
 	"embed"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -130,22 +131,59 @@ func (suite utilsTestSuite) TestIsURL() {
 func (suite utilsTestSuite) TestGetLocales() {
 	// Test GetLocales and check for errors
 	var notEmbedded embed.FS
-	locales, supportedLocales, err := utils.GetLocales("./", notEmbedded)
+	locales, _, err := utils.GetLocales("./locales/", notEmbedded)
 	suite.a.AssertNoErr(err)
 
-	// Verify the supported locales value
-	expectedSupportedLocales := []string{"en"}
-	suite.a.Assert(supportedLocales, expectedSupportedLocales)
-
 	// Verify the translation
-	expectedLocales := []utils.PageLocaleTl{
-		{
-			Title:         "Shorten URL",
-			AltGitHubLogo: "GitHub Logo",
-			Source:        "Source",
-		},
+	expectedLocale := utils.PageLocaleTl{
+		Title:         "Shorten URL",
+		AltGitHubLogo: "GitHub Logo",
+		Source:        "Source",
 	}
-	suite.a.Assert(locales, expectedLocales)
+	suite.a.Assert(locales["en"], expectedLocale)
+}
+
+func (suite utilsTestSuite) TestGetLocale() {
+	// Test GetLocale with english
+	var notEmbedded embed.FS
+	locales, supportedLocales, err := utils.GetLocales("./locales/", notEmbedded)
+	suite.a.AssertNoErr(err)
+
+	conf := utils.Configuration{
+		Locales:          locales,
+		SupportedLocales: supportedLocales,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Language", "en-US")
+
+	expectedLocale := utils.PageLocaleTl{
+		Title:         "Shorten URL",
+		AltGitHubLogo: "GitHub Logo",
+		Source:        "Source",
+	}
+
+	locale := utils.GetLocale(req, conf)
+	suite.a.Assert(locale, expectedLocale)
+
+	// Test GetLocale with unsupported locale
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Language", "zz-ZZ")
+	locale = utils.GetLocale(req, conf)
+	suite.a.Assert(locale, expectedLocale)
+
+	// Test GetLocale with french
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Language", "fr-FR")
+
+	expectedLocale = utils.PageLocaleTl{
+		Title:         "Raccourcir URL",
+		AltGitHubLogo: "Logo GitHub",
+		Source:        "Source",
+	}
+
+	locale = utils.GetLocale(req, conf)
+	suite.a.Assert(locale, expectedLocale)
 }
 
 // Test suite structure.
@@ -169,4 +207,6 @@ func TestUtilsSuite(t *testing.T) {
 	suite.TestDecodeJSON()
 	suite.TestGenStr()
 	suite.TestIsURL()
+	suite.TestGetLocales()
+	suite.TestGetLocale()
 }

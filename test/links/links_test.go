@@ -52,6 +52,12 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		ContactEmail:           testEnv.ContactEmail,
 	}
 
+	locale := utils.PageLocaleTl{
+		ErrAlphaNumeric:    "alpha",
+		ErrInvalidURL:      "invalid_url",
+		ErrRedirectionLoop: "loop",
+	}
+
 	linksAdapter := links.NewAdapter(*conf)
 
 	// Test link creation with default values
@@ -63,7 +69,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:   "",
 	}
 
-	returnedLink, code, _, errMsg := linksAdapter.CreateLink(params)
+	returnedLink, code, _, errMsg := linksAdapter.CreateLink(params, locale)
 
 	suite.a.Assert(errMsg, "")
 	suite.a.Assert(code, http.StatusCreated)
@@ -82,7 +88,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:   "",
 	}
 
-	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params)
+	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params, locale)
 
 	suite.a.Assert(errMsg, "")
 	suite.a.Assert(code, http.StatusCreated)
@@ -102,7 +108,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:   "",
 	}
 
-	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params)
+	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params, locale)
 
 	suite.a.Assert(errMsg, "")
 	suite.a.Assert(code, http.StatusCreated)
@@ -122,7 +128,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:   "",
 	}
 
-	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params)
+	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params, locale)
 
 	suite.a.Assert(errMsg, "")
 	suite.a.Assert(code, http.StatusCreated)
@@ -143,7 +149,7 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:   "secret",
 	}
 
-	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params)
+	returnedLink, code, _, errMsg = linksAdapter.CreateLink(params, locale)
 
 	suite.a.Assert(errMsg, "")
 	suite.a.Assert(code, http.StatusCreated)
@@ -162,9 +168,9 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:   "",
 	}
 
-	_, code, _, errMsg = linksAdapter.CreateLink(params)
+	_, code, _, errMsg = linksAdapter.CreateLink(params, locale)
 
-	suite.a.Assert(errMsg, "Only alphanumeric characters are allowed. (https://en.wikipedia.org/wiki/Alphanumericals)")
+	suite.a.Assert(errMsg, "alpha")
 	suite.a.Assert(code, http.StatusBadRequest)
 
 	// Test link creation with an invalid url
@@ -176,9 +182,9 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:   "",
 	}
 
-	_, code, _, errMsg = linksAdapter.CreateLink(params)
+	_, code, _, errMsg = linksAdapter.CreateLink(params, locale)
 
-	suite.a.Assert(errMsg, "The URL is invalid.")
+	suite.a.Assert(errMsg, "invalid_url")
 	suite.a.Assert(code, http.StatusBadRequest)
 
 	// Test redirection loop creation
@@ -190,9 +196,9 @@ func (suite linksTestSuite) TestCreateLink() { //nolint:funlen
 		Password:    "",
 	}
 
-	_, code, _, errMsg = linksAdapter.CreateLink(params)
+	_, code, _, errMsg = linksAdapter.CreateLink(params, locale)
 
-	suite.a.Assert(errMsg, "Could not create a redirection loop.")
+	suite.a.Assert(errMsg, "loop")
 	suite.a.Assert(code, http.StatusBadRequest)
 }
 

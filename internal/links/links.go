@@ -52,7 +52,7 @@ type SimpleJSONLink struct {
 	URL           string `json:"url"`
 }
 
-// Link defines the structure of a link entry that will be served to the client in json.
+// PassJSONLink Link defines the structure of a link entry that will be served to the client in json.
 //
 // ShortenedLink is the full shortened link,
 // Password is the password needed to access the url,
@@ -98,15 +98,15 @@ func NewAdapter(configuration utils.Configuration) Configuration {
 // After all is done, a link entry will be created in the database using [database.CreateLink].
 // If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
 func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
-	params utils.Parameters,
+	params utils.Parameters, locale utils.PageLocaleTl,
 ) (Link, int, string, string) {
 	// Check if the url is valid
 	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
 	if err != nil {
-		return Link{}, http.StatusInternalServerError, "", "Unable to check the URL."
+		return Link{}, http.StatusInternalServerError, "", locale.ErrUnableCheckURL
 	}
 	if !isValid {
-		return Link{}, http.StatusBadRequest, "", "The URL is invalid."
+		return Link{}, http.StatusBadRequest, "", locale.ErrInvalidURL
 	}
 
 	// Set the expiry date, if there is none and the default expiry time is 0, the time will be set to the max for sqlite,
@@ -117,25 +117,25 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 	case params.ExpireAfter == "" && conf.DefaultExpiryTime == 0 && params.ExpireDate == "":
 		expireAt, err = time.Parse("2006-01-02", "9999-12-31")
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Unable to tell when the end of the world will be."
+			return Link{}, http.StatusInternalServerError, "", locale.ErrUnableTellEOW
 		}
 	case params.ExpireAfter == "" && params.ExpireDate == "":
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
 	case params.ExpireAfter != "" && params.ExpireDate == "":
 		expireDuration, err := atp.ParseDuration(params.ExpireAfter)
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Could not parse the given time. Should look like '1d2h3m4s'."
+			return Link{}, http.StatusInternalServerError, "", locale.ErrParseTime
 		}
 		expireAt = time.Now().UTC().Add(expireDuration)
 	case params.ExpireDate != "" && params.ExpireAfter == "":
 		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Unable to parse the expiry date."
+			return Link{}, http.StatusInternalServerError, "", locale.ErrParseExpiry
 		}
 	case params.ExpireDate != "" && params.ExpireAfter != "":
 		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Unable to parse the expiry date."
+			return Link{}, http.StatusInternalServerError, "", locale.ErrParseExpiry
 		}
 	}
 
@@ -155,7 +155,7 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 			params.Path,
 		)
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Could not check the validity of the path."
+			return Link{}, http.StatusInternalServerError, "", locale.ErrCheckValidPath
 		}
 		if reservedMatch {
 			return Link{}, http.StatusBadRequest, "", fmt.Sprintf(
@@ -166,11 +166,11 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 
 		specialCharMatch, err := regexp.MatchString("^[A-Za-z0-9]*$", params.Path)
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Could not check the validity of the path."
+			return Link{}, http.StatusInternalServerError, "", locale.ErrCheckValidPath
 		}
 
 		if !specialCharMatch {
-			return Link{}, http.StatusBadRequest, "", "Only alphanumeric characters are allowed. (https://en.wikipedia.org/wiki/Alphanumericals)"
+			return Link{}, http.StatusBadRequest, "", locale.ErrAlphaNumeric
 		}
 	}
 
@@ -191,7 +191,7 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 		ReplaceAllString(params.URL, "") ==
 		regexp.MustCompile("^https://|http://").
 			ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, params.Path), "") {
-		return Link{}, http.StatusBadRequest, "", "Could not create a redirection loop."
+		return Link{}, http.StatusBadRequest, "", locale.ErrRedirectionLoop
 	}
 
 	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
@@ -199,7 +199,7 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 	if params.Password != "" {
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
 		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", "Could not hash the password."
+			return Link{}, http.StatusInternalServerError, "", locale.ErrPathInUse
 		}
 	}
 
@@ -215,7 +215,7 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 		hash,
 	)
 	if err != nil && !autoGen {
-		return Link{}, http.StatusBadRequest, "", "Could not shorten the URL: the path is probably already in use."
+		return Link{}, http.StatusBadRequest, "", locale.ErrPathInUse
 	} else if err != nil && autoGen {
 	loop:
 		for index := conf.DefaultShortLength; index <= conf.DefaultMaxShortLength; index++ {
@@ -223,9 +223,9 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
 			switch {
 			case err != nil && index == conf.DefaultMaxShortLength:
-				return Link{}, http.StatusInternalServerError, "", "No more space left in the database."
+				return Link{}, http.StatusInternalServerError, "", locale.ErrNoSpaceLeft
 			case err == nil && index != params.Length:
-				addInfo = "The length of your auto-generated path had to be changed due to space limitations in the database."
+				addInfo = locale.InfoLengthChange
 
 				break loop
 			case err == nil:

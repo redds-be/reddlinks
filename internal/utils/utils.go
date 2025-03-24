@@ -31,6 +31,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -169,6 +170,28 @@ type PageLocaleTl struct {
 	PrivObfuscated           string `json:"priv_obfuscated"`
 	PrivWarranty             string `json:"priv_warranty"`
 	PrivIssues               string `json:"priv_issues"`
+	ErrNotFound              string `json:"err_not_found"`
+	ErrPassAccess            string `json:"err_pass_access"`
+	ErrWrongPass             string `json:"err_wrong_pass"`
+	ErrCompHash              string `json:"err_comp_hash"`
+	ErrGetInfo               string `json:"err_get_info"`
+	ErrInvalidJSON           string `json:"err_invalid_json"`
+	ErrUnableCheckURL        string `json:"err_unable_check_url"`
+	ErrInvalidURL            string `json:"err_invalid_url"`
+	ErrUnableTellEOW         string `json:"err_unable_tell_eow"`
+	ErrParseTime             string `json:"err_parse_time"`
+	ErrParseExpiry           string `json:"err_parse_expiry"`
+	ErrCheckValidPath        string `json:"err_check_valid_path"`
+	ErrAlphaNumeric          string `json:"err_alpha_numeric"`
+	ErrRedirectionLoop       string `json:"err_redirection_loop"`
+	ErrHashPass              string `json:"err_hash_pass"`
+	ErrPathInUse             string `json:"err_path_in_use"`
+	ErrNoSpaceLeft           string `json:"err_no_space_left"`
+	ErrUnableLoadPage        string `json:"err_unable_load_page"`
+	ErrUnableReadForm        string `json:"err_unable_read_form"`
+	ErrUnableReadLength      string `json:"err_unable_read_length"`
+	ErrReadPass              string `json:"err_read_pass"`
+	InfoLengthChange         string `json:"info_length_change"`
 }
 
 // GetLocales parses locale JSON files and returns them as structs.
@@ -253,6 +276,35 @@ func GetLocales(customLocalesDir string, embeddedStatic embed.FS) (map[string]Pa
 	}
 
 	return locales, supportedLocales, err
+}
+
+// GetLocale determines the appropriate PageLocaleTl struct based on the client's language preference.
+// It extracts the language from the "Accept-Language" HTTP header, checks if it's supported,
+// and returns the corresponding locale from the configuration.
+// If the language is not specified or not supported, it defaults to English ("en").
+//
+// Parameters:
+//   - req: The HTTP request containing the "Accept-Language" header
+//   - conf: The Configuration struct containing reddlinks's config
+//
+// Returns:
+//   - PageLocaleTl: The localization struct for the determined language
+func GetLocale(req *http.Request, conf Configuration) PageLocaleTl {
+	// Get the client's main language
+	lang := req.Header.Get("Accept-Language")
+	if len(lang) >= 2 { //nolint:mnd
+		lang = lang[:2]
+	} else {
+		lang = "en"
+	}
+
+	// Check if lang is supported, else, default to english
+	if !slices.Contains(conf.SupportedLocales, lang) {
+		lang = "en"
+	}
+
+	// Return the locale according to the chose one
+	return conf.Locales[lang]
 }
 
 // CollectGarbage deletes old expired entries in the database.

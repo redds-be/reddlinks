@@ -18,6 +18,7 @@ package http_test
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,6 +72,10 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
 	suite.a.AssertNoErrf(err)
 
+	var emptyEmbed embed.FS
+	locales, supportedLocales, err := utils.GetLocales("./locales/", emptyEmbed)
+	suite.a.AssertNoErrf(err)
+
 	conf := &utils.Configuration{
 		DB:                     dataBase,
 		InstanceName:           testEnv.InstanceName,
@@ -82,6 +87,8 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 		DefaultMaxCustomLength: testEnv.DefaultMaxCustomLength,
 		DefaultExpiryTime:      testEnv.DefaultExpiryTime,
 		ContactEmail:           testEnv.ContactEmail,
+		Locales:                locales,
+		SupportedLocales:       supportedLocales,
 	}
 
 	instanceURLWithoutProto := regexp.MustCompile("^https://|http://").
@@ -406,7 +413,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
 	suite.a.Assert(
 		resp.Body.String(),
-		"{\"error\":\"400 Only alphanumeric characters are allowed. (https://en.wikipedia.org/wiki/Alphanumericals)\"}",
+		"{\"error\":\"400 Only alphanumerical characters are allowed.\"}",
 	)
 
 	// Test link redirection with a short that does not exist
@@ -465,6 +472,10 @@ func (suite apiTestSuite) TestRespondWithError() { //nolint:funlen
 	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
 	suite.a.AssertNoErrf(err)
 
+	var emptyEmbed embed.FS
+	locales, supportedLocales, err := utils.GetLocales("./locales/", emptyEmbed)
+	suite.a.AssertNoErrf(err)
+
 	conf := &utils.Configuration{
 		DB:                     dataBase,
 		InstanceName:           testEnv.InstanceName,
@@ -476,6 +487,8 @@ func (suite apiTestSuite) TestRespondWithError() { //nolint:funlen
 		DefaultMaxCustomLength: testEnv.DefaultMaxCustomLength,
 		DefaultExpiryTime:      testEnv.DefaultExpiryTime,
 		ContactEmail:           testEnv.ContactEmail,
+		Locales:                locales,
+		SupportedLocales:       supportedLocales,
 	}
 
 	httpAdapter := HTTP.NewAdapter(*conf)
