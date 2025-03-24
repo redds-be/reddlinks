@@ -21,7 +21,6 @@ import (
 	"html/template"
 	"net/http"
 	"regexp"
-	"slices"
 	"strconv"
 	"time"
 
@@ -80,12 +79,12 @@ type PageParameters struct {
 //
 // It starts by setting the appropriate headers using [http.Header.Set] and [http.WriteHeader], then
 // the requested template is rendered using a given page struct using [template.ExecuteTemplate].
-func (conf Configuration) RenderTemplate(
+func RenderTemplate(
 	writer http.ResponseWriter,
-	req *http.Request,
 	tmpl string,
 	pageParams *PageParameters,
 	code int,
+	locale utils.PageLocaleTl,
 ) {
 	// Tell that we serve HTML in UTF-8.
 	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
@@ -99,30 +98,14 @@ func (conf Configuration) RenderTemplate(
 	// Write the header giving a code
 	writer.WriteHeader(code)
 
-	// Get the client's main language
-	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
-	}
-
-	// Check if lang is supported, else, default to english
-	if !slices.Contains(conf.SupportedLocales, lang) {
-		lang = "en"
-	}
-
-	// Get the locale according to the chose one
-	chosenLocale := conf.Locales[lang]
-
 	// Render a given template, json error if it can't
 	err := Templates.ExecuteTemplate(
 		writer,
 		tmpl+".tmpl",
-		map[string]interface{}{"PageParams": pageParams, "Locales": chosenLocale},
+		map[string]interface{}{"PageParams": pageParams, "Locales": locale},
 	)
 	if err != nil {
-		json.RespondWithError(writer, http.StatusInternalServerError, "Unable to load the page.")
+		json.RespondWithError(writer, http.StatusInternalServerError, locale.ErrUnableLoadPage)
 
 		return
 	}
@@ -136,6 +119,9 @@ func (conf Configuration) FrontErrorPage(
 	errMsg string,
 	url string,
 ) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// Set what is going to be displayed on the error page
 	pageParams := &PageParameters{
 		InstanceTitle: conf.InstanceName,
@@ -146,13 +132,16 @@ func (conf Configuration) FrontErrorPage(
 	}
 
 	// Display the error page
-	conf.RenderTemplate(writer, req, "error", pageParams, code)
+	RenderTemplate(writer, "error", pageParams, code, locale)
 }
 
 // FrontHandlerMainPage displays the main page with a form used to shorten a link.
 //
 // An expiry date is created by adding DefaultExpiryTime to now, this date will be used as the default expiry date in the form.
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	var defaultExpiryDate string
 	if conf.DefaultExpiryTime != 0 {
 		// Convert default expiry time into date
@@ -176,11 +165,14 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 	}
 
 	// Display the front page
-	conf.RenderTemplate(writer, req, "index", pageParams, http.StatusOK)
+	RenderTemplate(writer, "index", pageParams, http.StatusOK, locale)
 }
 
 // FrontHandlerPrivacyPage displays the Privacy Policy page.
 func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// Set what is going to be displayed on the privacy page
 	pageParams := &PageParameters{
 		InstanceTitle: conf.InstanceName,
@@ -190,7 +182,7 @@ func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, re
 	}
 
 	// Display the front page
-	conf.RenderTemplate(writer, req, "privacy", pageParams, http.StatusOK)
+	RenderTemplate(writer, "privacy", pageParams, http.StatusOK, locale)
 }
 
 // FrontHandlerAdd displays the information about the newly added link to the user.
@@ -203,10 +195,13 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
 	if req.FormValue("add") != "Add" {
-		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the form.", "/")
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, locale.ErrUnableReadForm, "/")
 
 		return
 	}
@@ -214,13 +209,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	// Convert the length to an int, display an error page if it can't
 	length, err := strconv.Atoi(req.FormValue("length"))
 	if err != nil {
-		conf.FrontErrorPage(
-			writer,
-			req,
-			http.StatusInternalServerError,
-			"There was an error trying to read the length.",
-			"/",
-		)
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, locale.ErrUnableReadLength, "/")
 
 		return
 	}
@@ -254,7 +243,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	linksAdapter := links.NewAdapter(linksConf)
 
 	// Create a link entry into the database, display an error page if it can't
-	link, code, addInfo, errMsg := linksAdapter.CreateLink(params)
+	link, code, addInfo, errMsg := linksAdapter.CreateLink(params, locale)
 	if errMsg != "" {
 		conf.FrontErrorPage(writer, req, code, errMsg, "/")
 
@@ -292,11 +281,14 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	}
 
 	// Display the add page which will display the information about the added link
-	conf.RenderTemplate(writer, req, "add", pageParams, http.StatusCreated)
+	RenderTemplate(writer, "add", pageParams, http.StatusCreated, locale)
 }
 
 // FrontAskForPassword asks for a password to access a given shortened link.
 func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request, infoRequest bool) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// Get the short
 	short := req.PathValue("short")
 
@@ -318,11 +310,14 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 	}
 
 	// Display the pass page which will ask the user for a password
-	conf.RenderTemplate(writer, req, "pass", pageParams, http.StatusOK)
+	RenderTemplate(writer, "pass", pageParams, http.StatusOK, locale)
 }
 
 // FrontHandlerURLInfo displays basic information about a given short.
 func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *http.Request, short string) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// Get short information
 	url, createdAt, expireAt, err := database.GetURLInfo(conf.DB, short)
 	if err != nil {
@@ -330,7 +325,7 @@ func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *h
 			writer,
 			req,
 			http.StatusInternalServerError,
-			"Could not get informations associated with this shortened path.",
+			locale.ErrGetInfo,
 			"/",
 		)
 
@@ -349,7 +344,7 @@ func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *h
 	}
 
 	// Display the shortened link info page
-	conf.RenderTemplate(writer, req, "info", pageParams, http.StatusOK)
+	RenderTemplate(writer, "info", pageParams, http.StatusOK, locale)
 }
 
 // FrontHandlerRedirectToURL redirects the client to the URL corresponding to given shortened link.
@@ -362,16 +357,13 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// Get the hash corresponding to the short
 	hash, err := database.GetHashByShort(conf.DB, req.FormValue("short"))
 	if err != nil {
-		conf.FrontErrorPage(
-			writer,
-			req,
-			http.StatusNotFound,
-			"There is no link associated with this path, it is probably invalid or expired.",
-			"/",
-		)
+		conf.FrontErrorPage(writer, req, http.StatusNotFound, locale.ErrNotFound, "/")
 
 		return
 	}
@@ -383,7 +375,7 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	if req.FormValue("access") == "Access" {
 		password = req.FormValue("password")
 	} else {
-		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to read the password.", returnURL)
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, locale.ErrReadPass, returnURL)
 
 		return
 	}
@@ -391,11 +383,11 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	// Check if the password matches the hash
 	if match, err := argon2id.ComparePasswordAndHash(password, hash); err == nil &&
 		!match {
-		conf.FrontErrorPage(writer, req, http.StatusBadRequest, "The password is incorrect.", returnURL)
+		conf.FrontErrorPage(writer, req, http.StatusBadRequest, locale.ErrWrongPass, returnURL)
 
 		return
 	} else if err != nil {
-		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, "Unable to compare the password against the hash.", returnURL)
+		conf.FrontErrorPage(writer, req, http.StatusInternalServerError, locale.ErrCompHash, returnURL)
 
 		return
 	}
@@ -415,7 +407,7 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 			writer,
 			req,
 			http.StatusNotFound,
-			"There is no link associated with this path, it is probably invalid or expired.",
+			locale.ErrNotFound,
 			req.URL.Path,
 		)
 

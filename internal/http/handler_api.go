@@ -46,6 +46,9 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// Get the requested short
 	requestedShort := req.PathValue("short")
 
@@ -64,7 +67,7 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 			writer,
 			req,
 			http.StatusNotFound,
-			"There is no link associated with this path, it is probably invalid or expired.",
+			locale.ErrNotFound,
 		)
 
 		return
@@ -93,7 +96,7 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 					writer,
 					req,
 					http.StatusBadRequest,
-					"Wrong JSON or no password has been given. This link requires a password to access it.",
+					locale.ErrPassAccess,
 				)
 
 				return
@@ -137,7 +140,7 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 				writer,
 				req,
 				http.StatusInternalServerError,
-				"Could not get informations associated with this shortened path.",
+				locale.ErrGetInfo,
 			)
 
 			return
@@ -161,7 +164,7 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 			writer,
 			req,
 			http.StatusNotFound,
-			"There is no link associated with this path, it is probably invalid or expired.",
+			locale.ErrNotFound,
 		)
 
 		return
@@ -181,10 +184,13 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
+	// Get the locale
+	locale := utils.GetLocale(req, utils.Configuration(conf))
+
 	// Get the JSON parameters
 	params, err := utils.DecodeJSON(req)
 	if err != nil {
-		conf.RespondWithError(writer, req, http.StatusBadRequest, "Invalid JSON syntax.")
+		conf.RespondWithError(writer, req, http.StatusBadRequest, locale.ErrInvalidJSON)
 
 		return
 	}
@@ -208,7 +214,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 	linksAdapter := links.NewAdapter(linksConf)
 
 	// Create the link entry
-	link, code, addInfo, errMsg := linksAdapter.CreateLink(params)
+	link, code, addInfo, errMsg := linksAdapter.CreateLink(params, locale)
 	if errMsg != "" {
 		conf.RespondWithError(writer, req, code, errMsg)
 

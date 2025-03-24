@@ -33,45 +33,10 @@ import (
 	"github.com/redds-be/reddlinks/test/helper"
 )
 
-func (suite frontTestSuite) TestRenderTemplate() { //nolint: funlen
+func (suite frontTestSuite) TestRenderTemplate() {
 	HTTP.Templates = template.Must(template.ParseFiles("test.tmpl"))
 
-	testEnv := env.GetEnv("../.env.test")
-	testEnv.DBURL = "front_test.db"
-
-	// If the test db already exists, delete it as it will cause errors
-	if _, err := os.Stat(testEnv.DBURL); !errors.Is(err, os.ErrNotExist) {
-		err = os.Remove(testEnv.DBURL)
-		suite.a.AssertNoErr(err)
-	}
-
-	// Prep everything
-	dataBase, err := database.DBConnect(
-		testEnv.DBType,
-		testEnv.DBURL,
-		testEnv.DBUser,
-		testEnv.DBPass,
-		testEnv.DBHost,
-		testEnv.DBPort,
-		testEnv.DBName,
-	)
-	suite.a.AssertNoErr(err)
-
-	err = database.CreateLinksTable(dataBase, testEnv.DBType, testEnv.DefaultMaxLength)
-	suite.a.AssertNoErr(err)
-
-	conf := &utils.Configuration{
-		DB:                     dataBase,
-		InstanceName:           testEnv.InstanceName,
-		InstanceURL:            testEnv.InstanceURL,
-		Version:                "noVersion",
-		AddrAndPort:            testEnv.AddrAndPort,
-		DefaultShortLength:     testEnv.DefaultLength,
-		DefaultMaxShortLength:  testEnv.DefaultMaxLength,
-		DefaultMaxCustomLength: testEnv.DefaultMaxCustomLength,
-		DefaultExpiryTime:      testEnv.DefaultExpiryTime,
-		ContactEmail:           testEnv.ContactEmail,
-	}
+	locale := utils.PageLocaleTl{}
 
 	page := HTTP.PageParameters{
 		InstanceTitle:          "test",
@@ -91,13 +56,10 @@ func (suite frontTestSuite) TestRenderTemplate() { //nolint: funlen
 		ContactEmail:           "test AT test DOT test",
 	}
 
-	httpAdapter := HTTP.NewAdapter(*conf)
-
 	// Test if template rendering works
 	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	httpAdapter.RenderTemplate(resp, req, "test", &page, http.StatusOK)
+	HTTP.RenderTemplate(resp, "test", &page, http.StatusOK, locale)
 
 	suite.a.Assert(resp.Code, http.StatusOK)
 	suite.a.Assert(resp.Header().Get("X-Content-Type-Options"), "nosniff")
