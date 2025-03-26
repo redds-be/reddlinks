@@ -88,5 +88,6 @@
   "err_unable_read_form": "Unable to read the form.",
   "err_unable_read_length": "Unable to read the length.",
   "err_read_pass": "Unable to read the password.",
+  "err_unable_gen": "Unable to generate an auto-generated path.",
   "info_length_change": "The length of your auto-generated path had to be changed due to space limitations in the database."
 }

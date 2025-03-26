@@ -101,8 +101,9 @@ func (suite utilsTestSuite) TestGenStr() {
 	// Test random char generation
 	const testLength = 6
 
-	randStr := utils.GenStr(testLength, "ABC")
+	randStr, err := utils.GenStr(testLength, "ABC")
 
+	suite.a.AssertNoErr(err)
 	suite.a.Assert(len(randStr), testLength)
 
 	if !strings.Contains(randStr, "A") && !strings.Contains(randStr, "B") &&
@@ -163,13 +164,13 @@ func (suite utilsTestSuite) TestGetLocale() {
 		Source:        "Source",
 	}
 
-	locale := utils.GetLocale(req, conf)
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 	suite.a.Assert(locale, expectedLocale)
 
 	// Test GetLocale with unsupported locale
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Accept-Language", "zz-ZZ")
-	locale = utils.GetLocale(req, conf)
+	locale = utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 	suite.a.Assert(locale, expectedLocale)
 
 	// Test GetLocale with french
@@ -182,7 +183,7 @@ func (suite utilsTestSuite) TestGetLocale() {
 		Source:        "Source",
 	}
 
-	locale = utils.GetLocale(req, conf)
+	locale = utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 	suite.a.Assert(locale, expectedLocale)
 }
 

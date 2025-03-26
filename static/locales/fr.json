@@ -88,5 +88,6 @@
   "err_unable_read_form": "Impossible de lire le formulaire.",
   "err_unable_read_length": "Impossible de lire la longueur.",
   "err_read_pass": "Impossible de lire le mot de passe.",
+  "err_unable_gen": "Impossible de créer un chemin auto-généré.",
   "info_length_change": "La longueur de chemin auto-généré à dû être modifiée à cause de limitations d'espace dans la base de données."
 }

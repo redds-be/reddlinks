@@ -180,7 +180,10 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	if params.Path == "" {
 		autoGen = true
-		params.Path = utils.GenStr(params.Length, allowedChars)
+		params.Path, err = utils.GenStr(params.Length, allowedChars)
+		if err != nil {
+			return Link{}, http.StatusInternalServerError, "", locale.ErrUnableGen
+		}
 	}
 	if len(params.Path) > conf.DefaultMaxCustomLength {
 		params.Path = params.Path[:conf.DefaultMaxCustomLength]
@@ -219,7 +222,10 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 	} else if err != nil && autoGen {
 	loop:
 		for index := conf.DefaultShortLength; index <= conf.DefaultMaxShortLength; index++ {
-			params.Path = utils.GenStr(index, allowedChars)
+			params.Path, err = utils.GenStr(index, allowedChars)
+			if err != nil {
+				return Link{}, http.StatusInternalServerError, "", locale.ErrUnableGen
+			}
 			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
 			switch {
 			case err != nil && index == conf.DefaultMaxShortLength:
