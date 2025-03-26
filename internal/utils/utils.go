@@ -19,21 +19,22 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"database/sql"
 	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
-	"io/fs"
-	"math/rand"
+	"math/big"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"slices"
+	"path/filepath"
+	"regexp"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/redds-be/reddlinks/internal/database"
 	"github.com/yeqown/go-qrcode/v2"
@@ -41,9 +42,24 @@ import (
 )
 
 var (
+	// ErrInvalidURLScheme is returned when the URL scheme is not http or https.
 	ErrInvalidURLScheme = errors.New("URL scheme is invalid")
-	errInvalidHost      = errors.New("URL host is invalid")
-	ErrEmpty            = errors.New("can't be empty")
+
+	// ErrInvalidHost is returned when the host is an IP address instead of a domain name.
+	ErrInvalidHost = errors.New("URL host is invalid")
+
+	// ErrEmpty is returned when the source URL is an empty string.
+	ErrEmpty = errors.New("can't be empty")
+
+	// urlRegex is a precompiled regular expression to quickly match http/https URLs.
+	urlRegex = regexp.MustCompile(`^https?://`)
+
+	// bufferPool is a sync.Pool for efficiently reusing bytes.Buffer instances.
+	bufferPool = sync.Pool{ //nolint:gochecknoglobals
+		New: func() interface{} {
+			return &bytes.Buffer{}
+		},
+	}
 )
 
 // Configuration defines what is going to be sent to the handlers.
@@ -73,7 +89,7 @@ type Configuration struct {
 	Static                 embed.FS
 	LocalesDir             string
 	Locales                map[string]PageLocaleTl
-	SupportedLocales       []string
+	SupportedLocales       map[string]bool
 }
 
 // Parameters defines the structure of the JSON payload that will be read from the user.
@@ -191,28 +207,177 @@ type PageLocaleTl struct {
 	ErrUnableReadForm        string `json:"err_unable_read_form"`
 	ErrUnableReadLength      string `json:"err_unable_read_length"`
 	ErrReadPass              string `json:"err_read_pass"`
+	ErrUnableGen             string `json:"err_unable_gen"`
 	InfoLengthChange         string `json:"info_length_change"`
 }
 
-// GetLocales parses locale JSON files and returns them as structs.
+// localeResult represents the parsed outcome of reading and processing a single locale file.
+// It encapsulates the language code, the parsed locale data, and any potential error.
+type localeResult struct {
+	lang   string
+	locale PageLocaleTl
+	err    error
+}
+
+// readLocaleFile reads and parses a single locale file from either a custom directory or embedded static files.
 //
-// It accepts either a custom locales directory path or uses embedded static files.
-// The function reads locale files (expected to be JSON), parses them into PageLocaleTl
-// structs, and builds a list of supported locales.
+// This function handles the file reading and JSON parsing for a specific locale file. It supports
+// two reading strategies:
+// 1. Reading from a custom directory
+// 2. Reading from embedded static files
 //
 // Parameters:
-//   - customLocalesDir: Path to directory containing custom locale files. If empty,
-//     embedded static files will be used instead.
-//   - embeddedStatic: An embed.FS containing the embedded static locale files.
+//   - file: The directory entry representing the locale file to be read
+//   - customLocalesDir: Path to the custom locales directory (if used)
+//   - embeddedStatic: Embedded filesystem containing static locale files
 //
 // Returns:
-//   - map[string]PageLocaleTl: A map of locale codes to their corresponding PageLocaleTl structs.
-//   - []string: A slice of supported locale codes.
-//   - error: Any error encountered during processing.
+//   - A localeResult struct containing:
+//   - The language code extracted from the filename
+//   - The parsed locale data
+//   - Any error encountered during reading or parsing
+func readLocaleFile(
+	localeFile os.DirEntry,
+	customLocalesDir string,
+	embeddedStatic embed.FS,
+) localeResult {
+	// Extract language code by removing .json extension
+	lang := strings.TrimSuffix(localeFile.Name(), ".json")
+
+	// Variables to store file reading results
+	var JSONLocaleFile []byte
+	var locale PageLocaleTl
+	var err error
+
+	// Read file from appropriate source
+	if customLocalesDir != "" {
+		// Read from custom directory
+		JSONLocaleFile, err = os.ReadFile(filepath.Join(customLocalesDir, localeFile.Name()))
+	} else {
+		// Read from embedded static files
+		JSONLocaleFile, err = embeddedStatic.ReadFile("static/locales/" + localeFile.Name())
+	}
+
+	// Parse JSON if file was read successfully
+	if err == nil {
+		err = json.Unmarshal(JSONLocaleFile, &locale)
+	}
+
+	return localeResult{
+		lang:   lang,
+		locale: locale,
+		err:    err,
+	}
+}
+
+// processLocaleFiles concurrently reads and processes multiple locale files.
 //
-// The locale files are expected to be named with their language code and .json extension
-// (e.g., "en.json", "fr.json"). The language code is extracted by removing the .json suffix.
-func GetLocales(customLocalesDir string, embeddedStatic embed.FS) (map[string]PageLocaleTl, []string, error) {
+// This function manages the parallel processing of locale files using goroutines.
+// It provides an efficient way to read and parse multiple locale files simultaneously.
+//
+// Key features:
+// - Uses goroutines for concurrent file processing
+// - Pre-allocates maps to reduce memory reallocations
+// - Stops processing if any file fails to read or parse
+//
+// Parameters:
+//   - localeFiles: List of directory entries representing locale files
+//   - customLocalesDir: Path to the custom locales directory (if used)
+//   - embeddedStatic: Embedded filesystem containing static locale files
+//
+// Returns:
+//   - Map of parsed locales (language code to locale data)
+//   - Map of supported locale codes
+//   - Any error encountered during processing
+func processLocaleFiles(
+	localeFileList []os.DirEntry,
+	customLocalesDir string,
+	embeddedStatic embed.FS,
+) (map[string]PageLocaleTl, map[string]bool, error) {
+	// Initialize maps
+	locales := make(map[string]PageLocaleTl, len(localeFileList))
+	supportedLocales := make(map[string]bool, len(localeFileList))
+
+	// Define a struct to collect results from concurrent file processing
+	type localeResult struct {
+		lang   string       // Language code extracted from filename
+		locale PageLocaleTl // Parsed locale data
+		err    error        // Any error encountered during processing
+	}
+
+	// Create a buffered channel to collect results from goroutines
+	results := make(chan localeResult, len(localeFileList))
+
+	// WaitGroup to synchronize goroutine completion
+	var waitGroup sync.WaitGroup
+
+	// Process each locale file
+	for _, localeFile := range localeFileList {
+		// Increment WaitGroup before starting a new goroutine
+		waitGroup.Add(1)
+		go func(localeFile os.DirEntry) {
+			defer waitGroup.Done()
+			results <- localeResult(readLocaleFile(localeFile, customLocalesDir, embeddedStatic))
+		}(localeFile)
+	}
+
+	// Close results channel when all goroutines are complete
+	go func() {
+		waitGroup.Wait()
+		close(results)
+	}()
+
+	// Collect and process results from all goroutines
+	for result := range results {
+		// Stop processing and return error if any file fails
+		if result.err != nil {
+			return nil, nil, result.err
+		}
+
+		// Store parsed locale and mark as supported
+		locales[result.lang] = result.locale
+		supportedLocales[result.lang] = true
+	}
+
+	return locales, supportedLocales, nil
+}
+
+// GetLocales parses locale JSON files concurrently from either a custom directory or embedded static files.
+//
+// This is the main entry point for loading localization resources. It provides flexibility
+// in sourcing locale files by supporting:
+// 1. Reading from a custom directory
+// 2. Reading from embedded static files
+//
+// The function reads all JSON files in the specified source, extracts language codes,
+// and parses them into a structured format for internationalization.
+//
+// Performance characteristics:
+// - Concurrent file processing
+// - Minimal memory overhead
+// - Fail-fast error handling
+//
+// Parameters:
+//   - customLocalesDir: Optional path to a directory containing custom locale JSON files
+//     If empty, embedded static files will be used
+//   - embeddedStatic: An embed.FS containing embedded static locale files
+//
+// Returns:
+//   - Map of locale codes to their parsed PageLocaleTl structs
+//   - Map of supported locale codes
+//   - Any error encountered during processing
+//
+// Example:
+//
+//	locales, supportedLocales, err := GetLocales("/path/to/locales", embeddedFS)
+//	if err != nil {
+//	    log.Fatal("Failed to load locales:", err)
+//	}
+func GetLocales(
+	customLocalesDir string,
+	embeddedStatic embed.FS,
+) (map[string]PageLocaleTl, map[string]bool, error) {
+	// Determine the source of locale files
 	var localeFileList []os.DirEntry
 	var err error
 
@@ -225,57 +390,11 @@ func GetLocales(customLocalesDir string, embeddedStatic embed.FS) (map[string]Pa
 		localeFileList, err = embeddedStatic.ReadDir("static/locales")
 	}
 	if err != nil {
-		return make(map[string]PageLocaleTl), nil, err
+		return nil, nil, err
 	}
 
-	// Initialize maps and slices to store results
-	locales := map[string]PageLocaleTl{}
-	var supportedLocales []string //nolint:prealloc
-
-	// Process each locale file
-	for _, localeFile := range localeFileList {
-		// Extract language code by removing .json extension
-		lang := strings.TrimSuffix(localeFile.Name(), ".json")
-
-		// Initialize map entry for this language
-		locales[lang] = PageLocaleTl{}
-		locale := PageLocaleTl{}
-
-		var customJSONLocaleFile *os.File
-		var embeddedJSONLocaleFile fs.File
-
-		// Open the appropriate file based on source
-		if customLocalesDir != "" {
-			// Open file from custom directory
-			customJSONLocaleFile, err = os.Open(customLocalesDir + localeFile.Name())
-		} else {
-			// Open file from embedded static files
-			embeddedJSONLocaleFile, err = embeddedStatic.Open("static/locales/" + localeFile.Name())
-		}
-		if err != nil {
-			return make(map[string]PageLocaleTl), nil, err
-		}
-
-		// Decode locale file
-		var decoder *json.Decoder
-		if customLocalesDir != "" {
-			decoder = json.NewDecoder(customJSONLocaleFile)
-		} else {
-			decoder = json.NewDecoder(embeddedJSONLocaleFile)
-		}
-
-		// Parse JSON into locale struct
-		err = decoder.Decode(&locale)
-		if err != nil {
-			return make(map[string]PageLocaleTl), nil, err
-		}
-
-		// Store parsed locale in map and add language to list of supported locales
-		locales[lang] = locale
-		supportedLocales = append(supportedLocales, lang)
-	}
-
-	return locales, supportedLocales, err
+	// Process locale files concurrently
+	return processLocaleFiles(localeFileList, customLocalesDir, embeddedStatic)
 }
 
 // GetLocale determines the appropriate PageLocaleTl struct based on the client's language preference.
@@ -285,32 +404,40 @@ func GetLocales(customLocalesDir string, embeddedStatic embed.FS) (map[string]Pa
 //
 // Parameters:
 //   - req: The HTTP request containing the "Accept-Language" header
-//   - conf: The Configuration struct containing reddlinks's config
+//   - locales: A map of PageLocaleTl struct containing all the locales
+//   - supportedLocales: A map indicating which locale is supported
 //
 // Returns:
 //   - PageLocaleTl: The localization struct for the determined language
-func GetLocale(req *http.Request, conf Configuration) PageLocaleTl {
+func GetLocale(req *http.Request, locales map[string]PageLocaleTl, supportedLocales map[string]bool) PageLocaleTl {
 	// Get the client's main language
+	const localeCodeInt = 2
 	lang := req.Header.Get("Accept-Language")
-	if len(lang) >= 2 { //nolint:mnd
-		lang = lang[:2]
-	} else {
-		lang = "en"
+	if len(lang) > localeCodeInt {
+		lang = lang[:localeCodeInt]
 	}
 
 	// Check if lang is supported, else, default to english
-	if !slices.Contains(conf.SupportedLocales, lang) {
+	if _, ok := supportedLocales[lang]; !ok {
 		lang = "en"
 	}
 
 	// Return the locale according to the chose one
-	return conf.Locales[lang]
+	return locales[lang]
 }
 
 // CollectGarbage deletes old expired entries in the database.
 //
-// It calls [database.RemoveExpiredLinks] which will delete expired links.
-// As of now, the necessity of this function is questionable.
+// This method performs database cleanup by removing links that have expired.
+// It uses the database.RemoveExpiredLinks function to delete these outdated entries.
+//
+// The method operates on the Configuration receiver and attempts to remove
+// expired links from the associated database.
+//
+// Returns:
+//   - An error if the link removal process fails, otherwise nil.
+//
+// Note: The necessity of this method may be subject to review in future iterations.
 func (conf Configuration) CollectGarbage() error {
 	// Delete expired links
 	err := database.RemoveExpiredLinks(conf.DB)
@@ -321,63 +448,153 @@ func (conf Configuration) CollectGarbage() error {
 	return nil
 }
 
-// DecodeJSON returns a [utils.Parameters] struct that contains the decoded clients's JSON request.
+// DecodeJSON decodes the JSON payload from an HTTP request into a Parameters struct.
 //
-// It creates a decoder using [json.NewDecoder], using this decoder,
-// the function decodes the client's JSON and store it in the [utils.Parameters] struct to then be returned.
-// As of now, the necessity of keeping the function in utils rather json is questionable.
-func DecodeJSON(r *http.Request) (Parameters, error) {
-	decoder := json.NewDecoder(r.Body)
-	params := Parameters{}
-	err := decoder.Decode(&params)
-
-	return params, err
-}
-
-// GenStr returns a string of a set length composed of a specific charset.
+// It handles various error scenarios, including:
+//   - Empty request bodies
+//   - Invalid JSON formatting
+//   - Oversized request payloads (more than 1MB)
 //
-// It first creates a byte map of a set length, then, for the length of the map,
-// select a random char from the charset to be added the map at the actual index of the iteration.
-// After all is done, the map is converted into a string while being returned.
-func GenStr(length int, charset string) string {
-	// Create an empty map for the future string
-	randomByteStr := make([]byte, length)
+// Parameters:
+//   - req: A pointer to the http.Request containing the JSON payload
+//
+// Returns:
+//   - A Parameters struct populated with decoded JSON data
+//   - An error if decoding fails, with detailed error information
+func DecodeJSON(req *http.Request) (Parameters, error) {
+	const oneMB = 1_048_576
+	// Use http.MaxBytesReader to close the connexion if a requests is more than 1MB (prevents DoS attacks)
+	req.Body = http.MaxBytesReader(nil, req.Body, oneMB)
 
-	// For the length of the empty string, append a random character within the charset
-	for i := range randomByteStr {
-		randomByteStr[i] = charset[rand.New( //nolint:gosec
-			rand.NewSource(time.Now().UnixNano())).Intn(len(charset))]
+	// Read the entire request body into memory
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return Parameters{}, err
 	}
 
-	// Convert and return the generated string
-	return string(randomByteStr)
+	// Use json.Unmarshal to decode the payload
+	var params Parameters
+	if err := json.Unmarshal(body, &params); err != nil {
+		return Parameters{}, err
+	}
+
+	// Close the request body
+	err = req.Body.Close()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	// Return the successfully decoded Parameters struct
+	return params, nil
 }
 
-// IsURL verifies if an input string is a valid HTTP(s) URL.
-func IsURL(source string) error {
-	if source == "" {
+// GenStr generates a random string of specified length using the given charset.
+//
+// Parameters:
+//   - length: Desired length of the output string
+//   - charset: Set of characters to choose from when generating the string
+//
+// Returns:
+//   - A randomly generated string of the specified length
+//   - An error if random generation fails
+func GenStr(length int, charset string) (string, error) {
+	// Pre-allocate a byte slice
+	result := make([]byte, length)
+
+	// Create a big integer representing the maximum random value
+	// to ensure uniform distribution across the charset
+	maxRand := big.NewInt(int64(len(charset)))
+
+	// Generate each character of the string individually
+	for char := range length {
+		// Generate a random char
+		// Use crypto/rand to make the linter shut up
+		index, err := rand.Int(rand.Reader, maxRand)
+		if err != nil {
+			return "", err
+		}
+
+		// Select a character from the charset using the random index
+		result[char] = charset[index.Int64()]
+	}
+
+	return string(result), nil
+}
+
+// IsURL validates whether the provided string is a well-formed HTTP or HTTPS URL.
+//
+// The function performs multiple checks:
+//   - Ensures the URL is not empty
+//   - Validates the URL scheme (must be http or https)
+//   - Checks that the host part is valid
+//
+// Parameters:
+//   - supposedURL: The URL string to validate
+//
+// Returns:
+//   - nil if the URL is valid
+//   - An error describing the specific validation failure
+func IsURL(supposedURL string) error {
+	// Quick early exit for empty strings
+	if supposedURL == "" {
 		return ErrEmpty
 	}
 
-	URL, err := url.ParseRequestURI(source)
+	// Perform a quick regex pre-check before full parsing
+	if !urlRegex.MatchString(supposedURL) {
+		return ErrInvalidURLScheme
+	}
+
+	// Parse the URL
+	parsedURL, err := url.ParseRequestURI(supposedURL)
 	if err != nil {
 		return err
 	}
 
-	if URL.Scheme != "http" && URL.Scheme != "https" {
+	// Validate scheme
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return ErrInvalidURLScheme
 	}
 
-	address := net.ParseIP(URL.Host)
+	// Validate the host part
+	address := net.ParseIP(parsedURL.Host)
 	if address != nil {
-		return errInvalidHost
+		return ErrInvalidHost
 	}
 
 	return nil
 }
 
-// TextToB64QR transforms the source string into a base64 encoded QR.
+// TextToB64QR converts a string content into a base64 encoded QR code image.
+//
+// The function performs the following steps:
+// 1. Retrieves a reusable buffer from the sync.Pool
+// 2. Creates a QR code with byte encoding and quartic error correction
+// 3. Generates a PNG image of the QR code
+// 4. Encodes the image to base64
+//
+// Parameters:
+//   - content: The text to be encoded into the QR code
+//
+// Returns:
+//   - A base64 encoded string representation of the QR code image
+//   - An error if QR code generation or encoding fails
 func TextToB64QR(content string) (string, error) {
+	// Retrieve a buffer from the pool and ensure it's reset
+	buf, bufOk := bufferPool.Get().(*bytes.Buffer)
+	if !bufOk {
+		// Handle the case where the type assertion fails
+		buf = &bytes.Buffer{}
+	}
+	// Clear previous contents
+	buf.Reset()
+
+	// Ensure the buffer is returned to the pool after use
+	defer bufferPool.Put(buf)
+
+	// Create QR code with specific encoding and error correction settings
+	// - EncModeByte: Supports full range of character encodings
+	// - ErrorCorrectionQuart: Allows up to 25% of the QR code to be restored if damaged
 	qrc, err := qrcode.NewWith(content,
 		qrcode.WithEncodingMode(qrcode.EncModeByte),
 		qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionQuart),
@@ -386,18 +603,27 @@ func TextToB64QR(content string) (string, error) {
 		return "", err
 	}
 
-	buf := bytes.NewBuffer(nil)
+	// Define the width of the QR code (pixel size)
+	const qrWidth = 40
+
+	// Create a writer that will generate the QR code image
+	// Uses standard PNG encoding with specified width
 	writer := emptyCloser{buf}
-	image := standard.NewWithWriter(writer, standard.WithQRWidth(40)) //nolint:mnd
+	image := standard.NewWithWriter(writer, standard.WithQRWidth(qrWidth))
+
+	// Generate and save the QR code image to the buffer
 	if err := qrc.Save(image); err != nil {
 		return "", err
 	}
 
+	// Convert the image buffer to a base64 encoded string
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
+// It satisfies the io.WriteCloser interface required by some image encoding methods.
 type emptyCloser struct {
 	io.Writer
 }
 
+// Close allows the buffer to be used with writers that expect a Closer.
 func (emptyCloser) Close() error { return nil }

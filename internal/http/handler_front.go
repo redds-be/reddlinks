@@ -120,7 +120,7 @@ func (conf Configuration) FrontErrorPage(
 	url string,
 ) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// Set what is going to be displayed on the error page
 	pageParams := &PageParameters{
@@ -140,7 +140,7 @@ func (conf Configuration) FrontErrorPage(
 // An expiry date is created by adding DefaultExpiryTime to now, this date will be used as the default expiry date in the form.
 func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *http.Request) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	var defaultExpiryDate string
 	if conf.DefaultExpiryTime != 0 {
@@ -171,7 +171,7 @@ func (conf Configuration) FrontHandlerMainPage(writer http.ResponseWriter, req *
 // FrontHandlerPrivacyPage displays the Privacy Policy page.
 func (conf Configuration) FrontHandlerPrivacyPage(writer http.ResponseWriter, req *http.Request) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// Set what is going to be displayed on the privacy page
 	pageParams := &PageParameters{
@@ -196,7 +196,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 	req *http.Request,
 ) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// What to if the form is correct, i.e. the front page form was posted.
 	// If this isn't the case, display an error page
@@ -287,7 +287,7 @@ func (conf Configuration) FrontHandlerAdd( //nolint:funlen
 // FrontAskForPassword asks for a password to access a given shortened link.
 func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *http.Request, infoRequest bool) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// Get the short
 	short := req.PathValue("short")
@@ -316,7 +316,7 @@ func (conf Configuration) FrontAskForPassword(writer http.ResponseWriter, req *h
 // FrontHandlerURLInfo displays basic information about a given short.
 func (conf Configuration) FrontHandlerURLInfo(writer http.ResponseWriter, req *http.Request, short string) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// Get short information
 	url, createdAt, expireAt, err := database.GetURLInfo(conf.DB, short)
@@ -358,7 +358,7 @@ func (conf Configuration) FrontHandlerRedirectToURL(
 	req *http.Request,
 ) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// Get the hash corresponding to the short
 	hash, err := database.GetHashByShort(conf.DB, req.FormValue("short"))

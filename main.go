@@ -83,7 +83,7 @@ func main() { //nolint:funlen
 
 	// Parse html templates and get the locales
 	var locales map[string]utils.PageLocaleTl
-	var supportedLocales []string
+	var supportedLocales map[string]bool
 	if _, err := os.Stat("./custom_static"); !os.IsNotExist(err) {
 		http.Templates = template.Must(template.ParseGlob("custom_static/templates/*.tmpl"))
 		locales, supportedLocales, err = utils.GetLocales("custom_static/locales/", embeddedStatic)

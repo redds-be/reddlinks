@@ -47,7 +47,7 @@ func (conf Configuration) APIRedirectToURL( //nolint:funlen,cyclop
 	req *http.Request,
 ) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// Get the requested short
 	requestedShort := req.PathValue("short")
@@ -185,7 +185,7 @@ func (conf Configuration) APICreateLink( //nolint:funlen
 	req *http.Request,
 ) {
 	// Get the locale
-	locale := utils.GetLocale(req, utils.Configuration(conf))
+	locale := utils.GetLocale(req, conf.Locales, conf.SupportedLocales)
 
 	// Get the JSON parameters
 	params, err := utils.DecodeJSON(req)
