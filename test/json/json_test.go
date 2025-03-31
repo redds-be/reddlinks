@@ -29,7 +29,7 @@ func (suite jsonTestSuite) TestRespondWithError() {
 	resp := httptest.NewRecorder()
 	json.RespondWithError(resp, http.StatusBadRequest, "An error.")
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
-	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 An error.\"}")
+	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 An error.\"}\n")
 }
 
 func (suite jsonTestSuite) TestRespondWithJSON() {
@@ -40,7 +40,7 @@ func (suite jsonTestSuite) TestRespondWithJSON() {
 	resp := httptest.NewRecorder()
 	json.RespondWithJSON(resp, http.StatusOK, msg{Msg: "OK"})
 	suite.a.Assert(resp.Code, http.StatusOK)
-	suite.a.Assert(resp.Body.String(), "{\"msg\":\"OK\"}")
+	suite.a.Assert(resp.Body.String(), "{\"msg\":\"OK\"}\n")
 }
 
 // Test suite structure.
