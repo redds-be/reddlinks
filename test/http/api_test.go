@@ -44,7 +44,7 @@ func (suite apiTestSuite) TestReadiness() {
 	resp := httptest.NewRecorder()
 	HTTP.HandlerReadiness(resp, req)
 	suite.a.Assert(resp.Code, http.StatusOK)
-	suite.a.Assert(resp.Body.String(), "{\"status\":\"Alive.\"}")
+	suite.a.Assert(resp.Body.String(), "{\"status\":\"Alive.\"}\n")
 }
 
 func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
@@ -144,7 +144,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(
 		resp.Body.String(),
 		fmt.Sprintf(
-			"{\"dstUrl\":\"%s\",\"short\":\"%s\",\"createdAt\":\"%s\",\"expiresAt\":\"%s\"}",
+			"{\"dstUrl\":\"%s\",\"short\":\"%s\",\"createdAt\":\"%s\",\"expiresAt\":\"%s\"}\n",
 			returnedLink.URL,
 			strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
 			time.Now().UTC().Format(time.RFC822),
@@ -347,7 +347,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(
 		resp.Body.String(),
 		fmt.Sprintf(
-			"{\"dstUrl\":\"%s\",\"short\":\"%s\",\"createdAt\":\"%s\",\"expiresAt\":\"%s\"}",
+			"{\"dstUrl\":\"%s\",\"short\":\"%s\",\"createdAt\":\"%s\",\"expiresAt\":\"%s\"}\n",
 			returnedLink.URL,
 			strings.ReplaceAll(returnedLink.ShortenedLink, instanceURLWithoutProto, ""),
 			time.Now().UTC().Format(time.RFC822),
@@ -392,7 +392,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	mux.ServeHTTP(resp, req)
 
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
-	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 The URL is invalid.\"}")
+	suite.a.Assert(resp.Body.String(), "{\"error\":\"400 The URL is invalid.\"}\n")
 
 	// Test link creation with an invalid custom path
 	params = utils.Parameters{
@@ -413,7 +413,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
 	suite.a.Assert(
 		resp.Body.String(),
-		"{\"error\":\"400 Only alphanumerical characters are allowed.\"}",
+		"{\"error\":\"400 Only alphanumerical characters are allowed.\"}\n",
 	)
 
 	// Test link redirection with a short that does not exist
@@ -443,7 +443,7 @@ func (suite apiTestSuite) TestMainAPIHandlers() { //nolint:funlen,maintidx
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
 	suite.a.Assert(
 		resp.Body.String(),
-		"{\"error\":\"400 Could not create a redirection loop.\"}",
+		"{\"error\":\"400 Could not create a redirection loop.\"}\n",
 	)
 }
 
@@ -515,7 +515,7 @@ func (suite apiTestSuite) TestRespondWithError() { //nolint:funlen
 	suite.a.Assert(resp.Code, http.StatusBadRequest)
 	suite.a.Assert(
 		resp.Body.String(),
-		"{\"error\":\"400 Could not create a redirection loop.\"}",
+		"{\"error\":\"400 Could not create a redirection loop.\"}\n",
 	)
 	suite.a.Assert(resp.Header().Get("Content-Type"), "application/json; charset=UTF-8")
 

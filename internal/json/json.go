@@ -1,68 +1,79 @@
-//    reddlinks, a simple link shortener written in Go.
-//    Copyright (C) 2025 redd
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-// Package json is used to handle json responses to a client.
+// Package json provides utilities for handling JSON HTTP responses.
 package json
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "log"
+    "net/http"
+    "sync"
 )
 
-// ErrResponse defines a JSON structure for an error.
+// bufferPool creates a sync.Pool for reusing byte buffers during JSON marshaling.
+var bufferPool = sync.Pool{ //nolint:gochecknoglobals
+    New: func() interface{} {
+        // The initial buffer capacity can be tuned based on your typical response size
+        return new(bytes.Buffer)
+    },
+}
+
+// ErrResponse defines a standardized structure for error messages.
 type ErrResponse struct {
-	Error string `json:"error"`
+    Error string `json:"error"`
 }
 
-// InfoResponse defines a JSON structure for info on a shortened url.
+// InfoResponse defines the structure for URL shortener information responses.
 type InfoResponse struct {
-	DstURL    string `json:"dstUrl"`
-	Short     string `json:"short"`
-	CreatedAt string `json:"createdAt"`
-	ExpiresAt string `json:"expiresAt"`
+    DstURL    string `json:"dstUrl"`    // The destination URL that the short URL redirects to
+    Short     string `json:"short"`     // The shortened URL identifier
+    CreatedAt string `json:"createdAt"` // Timestamp when the shortened URL was created
+    ExpiresAt string `json:"expiresAt"` // Timestamp when the shortened URL will expire
 }
 
-// RespondWithError sends the JSON the client along with the error code.
-func RespondWithError(writer http.ResponseWriter, code int, msg string) {
-	RespondWithJSON(writer, code, ErrResponse{Error: fmt.Sprintf("%d %s", code, msg)})
-}
-
-// RespondWithJSON sends a JSON response to a client, internal error if it can't.
+// RespondWithError sends a standardized error response to the client.
+// It formats the error message with the HTTP status code and sends it as JSON.
 //
-// The JSON payload is Marshaled using [json.Marshal], the proper header is then set along with the response code,
-// the JSON message is then sent to the client.
+// Parameters:
+//   - writer: The HTTP response writer to send the response through
+//   - code: The HTTP status code to return
+//   - msg: The error message to include in the response
+func RespondWithError(writer http.ResponseWriter, code int, msg string) {
+    RespondWithJSON(writer, code, ErrResponse{Error: fmt.Sprintf("%d %s", code, msg)})
+}
+
+// RespondWithJSON marshals the provided payload into JSON and sends it to the client.
+//
+// Parameters:
+//   - writer: The HTTP response writer to send the response through
+//   - code: The HTTP status code to return
+//   - payload: The data structure to marshal and send as JSON
 func RespondWithJSON(writer http.ResponseWriter, code int, payload interface{}) {
-	dat, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("Failed to marshal JSON response: %v\n", payload)
-		writer.WriteHeader(http.StatusInternalServerError)
+    // Set content type header
+    writer.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-		return
-	}
+    // Get a buffer from the pool and ensure it's reset
+    buf, bufOk := bufferPool.Get().(*bytes.Buffer)
+    if !bufOk {
+        // Handle the case where the type assertion fails
+        buf = &bytes.Buffer{}
+    }
+    buf.Reset()
 
-	// Add the json header to the response so that the client can interpret it as JSON, internal error if it can't
-	writer.Header().Add("Content-Type", "application/json; charset=UTF-8")
-	writer.WriteHeader(code)
-	_, err = writer.Write(dat)
-	if err != nil {
-		log.Printf("Failed to write JSON response: %v\n", dat)
-		writer.WriteHeader(http.StatusInternalServerError)
+    // Ensure the buffer is returned to the pool when we're done
+    defer bufferPool.Put(buf)
 
-		return
-	}
+    // Encode directly into the buffer
+    if err := json.NewEncoder(buf).Encode(payload); err != nil {
+        log.Printf("Failed to marshal JSON response: %v", err)
+        writer.WriteHeader(http.StatusInternalServerError)
+
+        return
+    }
+
+    // Set status code and write the response
+    writer.WriteHeader(code)
+    if _, err := writer.Write(buf.Bytes()); err != nil {
+        log.Printf("Failed to write JSON response: %v", err)
+    }
 }
