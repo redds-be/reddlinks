@@ -1,20 +1,5 @@
-//    reddlinks, a simple link shortener written in Go.
-//    Copyright (C) 2025 redd
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-// Package env is used to get and check env variables from .env or exported env variables.
+// Package env provides functionality for loading and validating environment
+// configuration from both .env files and system environment variables.
 package env
 
 import (
@@ -30,75 +15,110 @@ import (
 	"github.com/redds-be/reddlinks/internal/utils"
 )
 
-// Env defines a structure for the env variables.
-//
-// AddrAndPort refers to the listening address and port of the instance,
-// InstanceName refers to the name of the instance,
-// InstanceURL refers to the URL of the instance,
-// DBType refers to the type of the database (postgres or sqlite),
-// DBURL refers to the connection string for the database,
-// ContactEmail refers to the admin's contact email,
-// TimeBetweenCleanups refers to the time between garbage collections,
-// DefaultLength refers to the default length of generated strings for a short URL,
-// DefaultMaxLength refers to the maximum length of generated strings for a short URL,
-// DefaultMaxCustomLength refers to the maximum length of custom strings for a short URL,
-// DefaultExpiryTime refers to the default expiry time of links records.
+// Env defines the configuration settings for the application.
 type Env struct {
-	AddrAndPort            string
-	InstanceName           string
-	InstanceURL            string
-	DBType                 string
-	DBUser                 string
-	DBPass                 string
-	DBHost                 string
-	DBPort                 string
-	DBName                 string
-	DBURL                  string
-	ContactEmail           string
-	TimeBetweenCleanups    int
-	DefaultLength          int
-	DefaultMaxLength       int
-	DefaultMaxCustomLength int
-	DefaultExpiryTime      int
+	AddrAndPort            string // Address and port the server listens on (format: "host:port")
+	InstanceName           string // Name of this instance
+	InstanceURL            string // Base URL where this instance is accessible
+	DBType                 string // Database type ("postgres" or "sqlite")
+	DBUser                 string // Database username
+	DBPass                 string // Database password
+	DBHost                 string // Database host address
+	DBPort                 string // Database port
+	DBName                 string // Database name
+	DBURL                  string // Full database connection string (optional, if not provided will be built from other DB fields)
+	ContactEmail           string // Admin contact email address
+	TimeBetweenCleanups    int    // Time between garbage collection runs (in minutes)
+	DefaultLength          int    // Default length for generated short URLs
+	DefaultMaxLength       int    // Maximum allowed length for any short URL
+	DefaultMaxCustomLength int    // Maximum allowed length for custom short URLs
+	DefaultExpiryTime      int    // Default time until links expire (in minutes, 0 for no expiry)
 }
 
-// EnvCheck checks the values of the Env struct.
+// EnvCheck performs comprehensive validation of the environment configuration.
+// It ensures that all required fields are present and that their values meet
+// the application's requirements in terms of format, range, and consistency.
 //
-// InstanceName is checked for emptyness,
-// InstanceURL is checked with a regexp for having http/https and trailing '/',
-// DBType is checked for being either 'postgres' or 'sqlite' with a regexp,
-// TimeBetweenCleanups is checked for being positive,
-// DefaultLength is checked for being positive and not being superior to DefaultMaxLength,
-// DefaultMaxCustomLength is checked for being positive and not being superior to DefaultMaxLength,
-// DefaultMaxLength is checked for being positive,
-// being superior or equal to DefaultLength and DefaultMaxCustomLength and for being inferior to 8000
-// DefaultExpiryTime is checked for being null or positive.
-func (env Env) EnvCheck() error { //nolint:cyclop
+// This method delegates specific validation tasks to specialized helper methods
+// that focus on validating related groups of configuration settings.
+//
+// Returns an error if any validation check fails with a detailed message about
+// which validation failed and why. Returns nil if all validations pass.
+func (env Env) EnvCheck() error {
+	// Validate instance settings
+	if err := env.validateInstanceConfig(); err != nil {
+		return err
+	}
+
+	// Validate database settings
+	if err := env.validateDatabaseConfig(); err != nil {
+		return err
+	}
+
+	if err := env.validateLengthConstraints(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateInstanceConfig checks the validity of instance name and URL parameters.
+// It ensures that:
+// - The instance name is not empty
+// - The instance URL is properly formatted as a valid URL
+//
+// Returns an error if any validation fails, nil otherwise.
+func (env Env) validateInstanceConfig() error {
 	// Check if the instance name isn't null
 	if env.InstanceName == "" {
 		return fmt.Errorf("the instance name %w", ErrEmpty)
 	}
 
 	// Check if the instance URL is valid
-	instanceURLMatch := env.InstanceURL
-	err := utils.IsURL(instanceURLMatch)
-	if err != nil {
+	if err := utils.IsURL(env.InstanceURL); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// validateDatabaseConfig checks the validity of database connection parameters and other database related configs.
+// It ensures that:
+// - The database type is one of the supported types (postgres or sqlite)
+// - The database type is not empty
+// - The time between cleanups is positive
+//
+// Returns an error if any validation fails, nil otherwise.
+func (env Env) validateDatabaseConfig() error {
 	// Check if the database type is valid
-	dbTypeMatch, err := regexp.MatchString(`^postgres$|^sqlite$`, env.DBType)
-	if err != nil {
-		return fmt.Errorf("the database type %w: %w", ErrNotChecked, err)
-	}
-	if env.DBType == "" || !dbTypeMatch {
+	if env.DBType == "" || !regexp.MustCompile(`^postgres$|^sqlite$`).MatchString(env.DBType) {
 		return fmt.Errorf("the database type %w", ErrInvalidOrUnsupported)
 	}
 
-	// Check the time between cleanups, can be any time really, so only checking if it's 0 or less
+	// Check the time between cleanups
 	if env.TimeBetweenCleanups <= 0 {
 		return fmt.Errorf("the time between database cleanups %w", ErrNullOrNegative)
 	}
+
+	return nil
+}
+
+// validateLengthConstraints checks the consistency and validity of URL length parameters.
+// It ensures that:
+// - DefaultLength is positive
+// - DefaultMaxCustomLength is positive
+// - DefaultMaxLength is positive
+// - DefaultLength does not exceed DefaultMaxLength
+// - DefaultMaxCustomLength does not exceed DefaultMaxLength
+// - DefaultMaxLength is not less than DefaultLength
+// - DefaultMaxLength is not less than DefaultMaxCustomLength
+// - DefaultMaxLength does not exceed the maximum string length supported by databases
+// - DefaultExpiryTime is positive
+//
+// Returns an error if any validation fails, nil otherwise.
+func (env Env) validateLengthConstraints() error {
+	// Set max string size of string in db to avoid having a magic number
+	const maxStringLength = 8000
 
 	// Check the default short length
 	if env.DefaultLength <= 0 {
@@ -115,7 +135,6 @@ func (env Env) EnvCheck() error { //nolint:cyclop
 	}
 
 	// Check the default max short length
-	const maxString = 8000
 	switch {
 	case env.DefaultMaxLength <= 0:
 		return fmt.Errorf("the default short length %w", ErrNullOrNegative)
@@ -126,11 +145,11 @@ func (env Env) EnvCheck() error { //nolint:cyclop
 			"the max default short length %w the default max custom short length",
 			ErrInferior,
 		)
-	case env.DefaultMaxLength > maxString:
+	case env.DefaultMaxLength > maxStringLength:
 		return fmt.Errorf( //nolint:goerr113
 			"strangely, some database engines don't support strings over %d chars long"+
 				" for fixed-sized strings",
-			maxString,
+			maxStringLength,
 		)
 	}
 
@@ -139,166 +158,161 @@ func (env Env) EnvCheck() error { //nolint:cyclop
 		return fmt.Errorf("the default expiry time %w", ErrNegative)
 	}
 
-	// No errors, since everything is fine
 	return nil
 }
 
-// GetEnv returns the env variables read from .env or from exported env variables.
+// GetEnv loads and validates the application's environment configuration.
+// It first attempts to load variables from a specified .env file if it exists,
+// then falls back to system environment variables. It applies default values
+// where appropriate, performs validation on all values, and returns a fully
+// populated and validated Env struct.
 //
-// It checks if there's an env file in the working directory, if not, it assumes env variables are exported.
-// For each needed env variables, they are read using [os.Getenv], if they are mendatory and not present, the program exits.
-// Since they all are read as string, those that need to be integers are converted using [strconv.Atoi].
-// In the end, the env variables are gathered into a [env.Env] struct and checked using [env.EnvCheck].
-func GetEnv(envFile string) Env { //nolint:funlen,cyclop
-	// If the envFile exists, load it
-	if _, err := os.Stat(envFile); !errors.Is(err, os.ErrNotExist) {
-		// Load the env file
-		err := godotenv.Load(envFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+// The .env file is only loaded if it exists at the specified path. If no file
+// is found, the function will look for environment variables exported in the
+// system environment.
+//
+// If required environment variables are missing or validation fails, the
+// function will terminate the program with a fatal error.
+//
+// Parameters:
+//   - envFile: Path to an optional .env file containing environment variables.
+//
+// Returns:
+//   - A fully populated and validated Env struct with all configuration values.
+func GetEnv(envFile string) Env {
+	// Set some default numbers as const to not have magic numbers
+	const defaultCleanupTime = 1
+	const defaultShortLength = 3
+	const defaultMaxLength = 12
+	const defaultCustomShortLength = 12
+	const defaultExpiryTime = 2880
 
-	// Read the address and port
-	addrAndPort := os.Getenv("REDDLINKS_LISTEN_ADDR")
-	if addrAndPort == "" {
-		addrAndPort = "0.0.0.0:8080"
-	}
+	loadEnvFile(envFile)
 
-	// Read the default short length
-	defaultLengthStr := os.Getenv("REDDLINKS_DEF_SHORT_LENGTH")
-	if defaultLengthStr == "" {
-		defaultLengthStr = "3"
-	}
-	defaultLength, err := strconv.Atoi(defaultLengthStr)
-	if err != nil {
-		log.Fatal("the default length couldn't be read:", err)
-	}
-
-	// Read the default max short length
-	defaultMaxLengthStr := os.Getenv("REDDLINKS_MAX_SHORT_LENGTH")
-	if defaultMaxLengthStr == "" {
-		defaultMaxLengthStr = "12"
-	}
-	defaultMaxLength, err := strconv.Atoi(defaultMaxLengthStr)
-	if err != nil {
-		log.Fatal("the default max length couldn't be read:", err)
-	}
-
-	// Read the default max custom short length
-	defaultMaxCustomLengthStr := os.Getenv("REDDLINKS_MAX_CUSTOM_SHORT_LENGTH")
-	if defaultMaxCustomLengthStr == "" {
-		defaultMaxCustomLengthStr = defaultMaxLengthStr
-	}
-	defaultMaxCustomLength, err := strconv.Atoi(defaultMaxCustomLengthStr)
-	if err != nil {
-		log.Fatal("the default max custom short length couldn't be read:", err)
-	}
-
-	// Read the default expiry time
-	defaultExpiryTimeStr := os.Getenv("REDDLINKS_DEF_EXPIRY_TIME")
-	if defaultExpiryTimeStr == "" {
-		defaultExpiryTimeStr = "2880"
-	}
-	defaultExpiryTime, err := strconv.Atoi(defaultExpiryTimeStr)
-	if err != nil {
-		log.Fatal("the default expiry time couldn't be read:", err)
-	}
-
-	// Read the instance name
-	instanceName := os.Getenv("REDDLINKS_INSTANCE_NAME")
-	if instanceName == "" {
-		instanceName = "reddlinks"
-	}
-
-	// Read the instance URL
-	instanceURL := os.Getenv("REDDLINKS_INSTANCE_URL")
-	if instanceURL == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_INSTANCE_URL env variable")
-	}
-
-	// Add suffix to the instance URL if there's none
-	if !strings.HasSuffix(instanceURL, "/") {
-		instanceURL += "/"
-	}
-
-	// Read the database type
-	dbType := os.Getenv("REDDLINKS_DB_TYPE")
-	if dbType == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_TYPE env variable")
-	}
-
-	// Read the database URL
-	dbURL := os.Getenv("REDDLINKS_DB_STRING")
-
-	// Read the database username
-	dbUser := os.Getenv("REDDLINKS_DB_USERNAME")
-	if dbUser == "" && dbURL == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_USERNAME env variable")
-	}
-
-	// Read the database password
-	dbPass := os.Getenv("REDDLINKS_DB_PASSWORD")
-	if dbPass == "" && dbURL == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_PASSWORD env variable")
-	}
-
-	// Read the database host
-	dbHost := os.Getenv("REDDLINKS_DB_HOST")
-	if dbHost == "" && dbURL == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_HOST env variable")
-	}
-
-	// Read the database port
-	dbPort := os.Getenv("REDDLINKS_DB_PORT")
-	if dbPort == "" && dbURL == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_PORT env variable")
-	}
-
-	// Read the database name
-	dbName := os.Getenv("REDDLINKS_DB_NAME")
-	if dbName == "" && dbURL == "" {
-		log.Fatal("reddlinks could not find a value for REDDLINKS_DB_NAME env variable")
-	}
-
-	// Read the time between cleanup and convert it to an int
-	timeBetweenCleanupsStr := os.Getenv("REDDLINKS_TIME_BETWEEN_DB_CLEANUPS")
-	if timeBetweenCleanupsStr == "" {
-		timeBetweenCleanupsStr = "1"
-	}
-	timeBetweenCleanups, err := strconv.Atoi(timeBetweenCleanupsStr)
-	if err != nil {
-		log.Fatal("the time between database cleanups couldn't be read:", err)
-	}
-
-	// Read the contact email
-	contactEmail := os.Getenv("REDDLINKS_CONTACT_EMAIL")
-
-	// Store everything in an Env struct
 	env := Env{
-		AddrAndPort:            addrAndPort,
-		InstanceName:           instanceName,
-		InstanceURL:            instanceURL,
-		DBType:                 dbType,
-		DBUser:                 dbUser,
-		DBPass:                 dbPass,
-		DBHost:                 dbHost,
-		DBPort:                 dbPort,
-		DBName:                 dbName,
-		DBURL:                  dbURL,
-		ContactEmail:           contactEmail,
-		TimeBetweenCleanups:    timeBetweenCleanups,
-		DefaultLength:          defaultLength,
-		DefaultMaxLength:       defaultMaxLength,
-		DefaultMaxCustomLength: defaultMaxCustomLength,
-		DefaultExpiryTime:      defaultExpiryTime,
+		// Server settings with defaults
+		AddrAndPort:  getEnvWithDefault("REDDLINKS_LISTEN_ADDR", "0.0.0.0:8080"),
+		InstanceName: getEnvWithDefault("REDDLINKS_INSTANCE_NAME", "reddlinks"),
+		InstanceURL:  getRequiredEnv("REDDLINKS_INSTANCE_URL"),
+
+		// Database settings
+		DBType: getRequiredEnv("REDDLINKS_DB_TYPE"),
+		DBURL:  os.Getenv("REDDLINKS_DB_STRING"),
 	}
 
-	// Check the port and the database URL
-	err = env.EnvCheck()
-	if err != nil {
+	// Only require these if no direct DB string is provided
+	if env.DBURL == "" {
+		env.DBUser = getRequiredEnv("REDDLINKS_DB_USERNAME")
+		env.DBPass = getRequiredEnv("REDDLINKS_DB_PASSWORD")
+		env.DBHost = getRequiredEnv("REDDLINKS_DB_HOST")
+		env.DBPort = getRequiredEnv("REDDLINKS_DB_PORT")
+		env.DBName = getRequiredEnv("REDDLINKS_DB_NAME")
+	}
+
+	// Add trailing slash to instance URL if missing
+	if !strings.HasSuffix(env.InstanceURL, "/") {
+		env.InstanceURL += "/"
+	}
+
+	// Load numeric values
+	env.TimeBetweenCleanups = getEnvAsIntWithDefault("REDDLINKS_TIME_BETWEEN_DB_CLEANUPS", defaultCleanupTime)
+	env.DefaultLength = getEnvAsIntWithDefault("REDDLINKS_DEF_SHORT_LENGTH", defaultShortLength)
+	env.DefaultMaxLength = getEnvAsIntWithDefault("REDDLINKS_MAX_SHORT_LENGTH", defaultMaxLength)
+	env.DefaultMaxCustomLength = getEnvAsIntWithDefault("REDDLINKS_MAX_CUSTOM_SHORT_LENGTH", defaultCustomShortLength)
+	env.DefaultExpiryTime = getEnvAsIntWithDefault("REDDLINKS_DEF_EXPIRY_TIME", defaultExpiryTime)
+
+	// Optional values
+	env.ContactEmail = os.Getenv("REDDLINKS_CONTACT_EMAIL")
+
+	// Validate the configuration
+	if err := env.EnvCheck(); err != nil {
 		log.Fatal(err)
 	}
 
 	return env
+}
+
+// loadEnvFile attempts to load environment variables from a specified .env file.
+// If the file exists at the given path, it will be loaded using godotenv.Load().
+// If the file does not exist, this function does nothing and returns silently.
+// If the file exists but cannot be loaded, the function will terminate the program
+// with a fatal error.
+//
+// Parameters:
+//   - envFile: Path to the .env file to load.
+func loadEnvFile(envFile string) {
+	if _, err := os.Stat(envFile); !errors.Is(err, os.ErrNotExist) {
+		if err := godotenv.Load(envFile); err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+// getEnvWithDefault retrieves the value of an environment variable with a fallback
+// default value. If the environment variable is not set or is empty, the function
+// returns the provided default value.
+//
+// Parameters:
+//   - key: The name of the environment variable to retrieve.
+//   - defaultValue: The value to return if the environment variable is not set or empty.
+//
+// Returns:
+//   - The value of the environment variable, or the default value if not set.
+func getEnvWithDefault(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	return value
+}
+
+// getRequiredEnv retrieves the value of a required environment variable.
+// If the environment variable is not set or is empty, the function will
+// terminate the program with a fatal error.
+//
+// Parameters:
+//   - key: The name of the required environment variable to retrieve.
+//
+// Returns:
+//   - The value of the environment variable.
+//
+// Fatal error if:
+//   - The environment variable is not set or is empty.
+func getRequiredEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("reddlinks could not find a value for %s env variable", key)
+	}
+
+	return value
+}
+
+// getEnvAsIntWithDefault retrieves an environment variable as an integer with
+// a fallback default value. If the environment variable is not set or is empty,
+// the function returns the provided default value. If the variable is set but
+// cannot be converted to an integer, the function will terminate the program
+// with a fatal error.
+//
+// Parameters:
+//   - key: The name of the environment variable to retrieve.
+//   - defaultValue: The integer value to return if the environment variable is not set or empty.
+//
+// Returns:
+//   - The integer value of the environment variable, or the default value if not set.
+//
+// Fatal error if:
+//   - The environment variable is set but cannot be converted to an integer.
+func getEnvAsIntWithDefault(key string, defaultValue int) int {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		log.Fatalf("the value for %s couldn't be converted to an integer: %v", key, err)
+	}
+
+	return value
 }
