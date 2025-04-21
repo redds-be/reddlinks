@@ -14,7 +14,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Package database is used to handle the database connection and queries.
+// Package database provides utilities for database connection management and query operations.
+//
+// This package supports both PostgreSQL and SQLite database systems, handling
+// connection establishment and maintenance for URL shortening services.
 package database
 
 import (
@@ -22,67 +25,110 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/lib/pq"    // Driver for postgresql
-	_ "modernc.org/sqlite" // Driver for sqlite3
+	"github.com/lib/pq"    // Driver for PostgreSQL
+	_ "modernc.org/sqlite" // Driver for SQLite3
 )
 
-// DBConnect returns a pointer to a database connection.
+// DBConnect establishes a connection to the specified database.
 //
-// It connects to the database using [sql.Open] with the database type and the connection string,
-// it then tests the connection before returning it.
-func DBConnect(dbType, dbURL, dbUser, dbPass, dbHost, dbPort, dbName string) (*sql.DB, error) {
-	var err error
-	var dbase *sql.DB
-	switch {
-	case dbURL != "":
-		// Connect to the database
+// This function initiates a connection to either a PostgreSQL or SQLite database
+// using the provided parameters.
+//
+// The function accepts either a complete connection URL or individual connection
+// parameters. If both are provided, the URL takes precedence.
+//
+// Parameters:
+//   - dbType: Database type ("postgres" or "sqlite")
+//   - dbURL: Complete database connection URL (optional if individual parameters provided)
+//   - dbUser: Database username (used if dbURL is empty)
+//   - dbPass: Database password (used if dbURL is empty)
+//   - dbHost: Database host address (used if dbURL is empty)
+//   - dbPort: Database port number (used if dbURL is empty)
+//   - dbName: Database name (used if dbURL is empty)
+//
+// Returns:
+//   - *sql.DB: A database connection object
+//   - error: Any error encountered during connection establishment
+func DBConnect(dbType, dbURL, dbUser, dbPass, dbHost, dbPort, dbName string) (*sql.DB, error) { //nolint:cyclop
+	var (
+		dbase *sql.DB
+		err   error
+	)
+
+	// Determine how to connect based on provided parameters
+	if dbURL != "" { //nolint:nestif
+		// Connect using the provided URL
 		dbase, err = sql.Open(dbType, dbURL)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to open database connection with URL: %w", err)
 		}
 
 		// Test the connection
 		err = dbase.Ping()
 
-		// If the postgres server doesn't support ssl, disable it
-		if errors.Is(err, pq.ErrSSLNotSupported) {
-			dbURL += "?sslmode=disable"
-			dbase, err = sql.Open(dbType, dbURL)
+		// Handle PostgreSQL SSL negotiation if needed
+		if dbType == "postgres" && errors.Is(err, pq.ErrSSLNotSupported) {
+			// Close the existing connection
+			err := dbase.Close()
 			if err != nil {
 				return nil, err
 			}
 
-			err = dbase.Ping()
+			// Retry with SSL disabled
+			dbase, err = sql.Open(dbType, dbURL+"?sslmode=disable")
+			if err != nil {
+				return nil, fmt.Errorf("failed to open PostgreSQL connection with SSL disabled: %w", err)
+			}
+
+			// Test the connection again
+			// golangci-lint doesn't like that but the error value is checked at the end of the function
+			err = dbase.Ping() //nolint:ineffassign,staticcheck,wastedassign
 		}
-	case dbURL == "":
-		dbURL = fmt.Sprintf(
-			"user=%s dbname=%s password=%s host=%s port=%s",
-			dbUser,
-			dbName,
-			dbPass,
-			dbHost,
-			dbPort,
-		)
-		// Connect to the database
-		dbase, err = sql.Open(dbType, dbURL)
+	} else {
+		// Construct a connection string from individual parameters
+		connectionString := fmt.Sprintf("user=%s dbname=%s password=%s host=%s port=%s", dbUser, dbName, dbPass, dbHost, dbPort)
+
+		// Connect to the database with the constructed connection string
+		dbase, err = sql.Open(dbType, connectionString)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to open database connection: %w", err)
 		}
 
 		// Test the connection
 		err = dbase.Ping()
 
-		// If the postgres server doesn't support ssl, disable it
+		// Handle PostgreSQL SSL negotiation if needed
 		if errors.Is(err, pq.ErrSSLNotSupported) {
-			dbURL += " sslmode=disable"
-			dbase, err = sql.Open(dbType, dbURL)
+			// Close the existing connection
+			err := dbase.Close()
 			if err != nil {
 				return nil, err
 			}
 
-			err = dbase.Ping()
+			// Retry with SSL disabled
+			dbase, err = sql.Open(dbType, connectionString+" sslmode=disable")
+			if err != nil {
+				return nil, fmt.Errorf("failed to open PostgreSQL connection with SSL disabled: %w", err)
+			}
+
+			// Test the connection again
+			// golangci-lint doesn't like that but the error value is checked at the end of the function
+			err = dbase.Ping() //nolint:ineffassign,staticcheck,wastedassign
 		}
 	}
 
-	return dbase, err
+	// Final error check after all connection attempts
+	if err != nil {
+		// Ensure connection is closed if ping failed
+		if dbase != nil {
+			err := dbase.Close()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return nil, fmt.Errorf("database connection test failed: %w", err)
+	}
+
+	return dbase, nil
 }
