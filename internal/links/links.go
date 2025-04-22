@@ -30,133 +30,128 @@ import (
 	"gitlab.gnous.eu/ada/atp"
 )
 
+// Common validation patterns compiled once for reuse.
+var (
+	urlPattern    = regexp.MustCompile(`^https?://.*\..*$`)
+	reservedPaths = regexp.MustCompile(`^status$|^error$|^add$|^access$|^privacy$|^assets.*$`)
+	alphaNumeric  = regexp.MustCompile(`^[A-Za-z0-9]*$`)
+	protocolRegex = regexp.MustCompile(`^https://|http://`)
+)
+
 // Link defines the structure of a link entry.
-//
-// ExpireAt is the date at which the link will expire,
-// URL is the original URL,
-// Short is the shortened path.
 type Link struct {
+	// ExpireAt is the date at which the link will expire
 	ExpireAt time.Time `json:"expireAt"`
-	URL      string    `json:"url"`
-	Short    string    `json:"short"`
+	// URL is the original URL
+	URL string `json:"url"`
+	// Short is the shortened path
+	Short string `json:"short"`
 }
 
-// SimpleJSONLink defines the structure of a link entry that will be served to the client in json.
-//
-// ShortenedLink is the full shortened link,
-// ExpireAt is the formatted date at which the link will expire,
-// URL is the original URL.
+// SimpleJSONLink defines the structure of a link entry that will be served to the client in JSON.
 type SimpleJSONLink struct {
+	// ShortenedLink is the full shortened link
 	ShortenedLink string `json:"shortenedLink"`
-	ExpireAt      string `json:"expireAt"`
-	URL           string `json:"url"`
+	// ExpireAt is the formatted date at which the link will expire
+	ExpireAt string `json:"expireAt"`
+	// URL is the original URL
+	URL string `json:"url"`
 }
 
-// PassJSONLink Link defines the structure of a link entry that will be served to the client in json.
-//
-// ShortenedLink is the full shortened link,
-// Password is the password needed to access the url,
-// ExpireAt is the formatted date at which the link will expire,
-// URL is the original URL.
+// PassJSONLink defines the structure of a link entry with password that will be served to the client in JSON.
 type PassJSONLink struct {
+	// ShortenedLink is the full shortened link
 	ShortenedLink string `json:"shortenedLink"`
-	Password      string `json:"password"`
-	ExpireAt      string `json:"expireAt"`
-	URL           string `json:"url"`
+	// Password is the password needed to access the url
+	Password string `json:"password"`
+	// ExpireAt is the formatted date at which the link will expire
+	ExpireAt string `json:"expireAt"`
+	// URL is the original URL
+	URL string `json:"url"`
 }
 
-// Configuration redefines [utils.Configuration] to be used for methods within the package.
+// Configuration redefines utils.Configuration to be used for methods within the package.
 type Configuration utils.Configuration
 
 // NewAdapter returns a configuration to be used by the link handling functions.
-// Check [utils.Configuration] to know about these fields.
+//
+// It takes a utils.Configuration and returns a Configuration specific to this package.
 func NewAdapter(configuration utils.Configuration) Configuration {
-	return Configuration{
-		DB:                     configuration.DB,
-		InstanceName:           configuration.InstanceName,
-		InstanceURL:            configuration.InstanceURL,
-		Version:                configuration.Version,
-		AddrAndPort:            configuration.AddrAndPort,
-		DefaultShortLength:     configuration.DefaultShortLength,
-		DefaultMaxShortLength:  configuration.DefaultMaxShortLength,
-		DefaultMaxCustomLength: configuration.DefaultMaxCustomLength,
-		DefaultExpiryTime:      configuration.DefaultExpiryTime,
-		ContactEmail:           configuration.ContactEmail,
-		Static:                 configuration.Static,
-	}
+	return Configuration(configuration)
 }
 
-// CreateLink returns a [Link] struct along with an HTTP code, optional information and an optional error code.
+// CreateLink returns a Link struct along with an HTTP code, optional information and an optional error code.
 //
-// It checks using a regexp if the URL from the payload has http/https as its protocol, it then checks the expiration time,
-// if there is none, DefaultExpiryTime will be added to now, if there's one, the time will be parsed using
-// [atp.ParseDuration] and this time will be added to now. If there's a specific expiration date provided, it will be used in priority.
-// The length provided will be checked and fixed according to min and max settings. the custom path provided will be checked if there's one,
-// endpoints and some characters are blacklisted, if the path exceeds the length of DefaultMaxCustomLength,
-// it will be trimmed. If there's no custom path provided, a random one will be generated using either DefaultShortLength or
-// the provided length with [utils.GenStr]. If there's a password provided, it will be hashed using [argon2id.CreateHash].
-// After all is done, a link entry will be created in the database using [database.CreateLink].
-// If there's an error when creating a link entry using a generated short, it will be re-generated again and again until it works.
-func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
-	params utils.Parameters, locale utils.PageLocaleTl,
+// It performs the following validations and operations:
+//   - Validates URL format (must use http/https protocol)
+//   - Determines link expiration time based on provided parameters or defaults
+//   - Validates or generates a path for the shortened URL
+//   - Prevents creation of redirection loops
+//   - Hashes passwords if provided for protected links
+//   - Creates the link entry in the database, handling collisions for generated paths
+//
+// Parameters:
+//   - params: Contains all link creation parameters (URL, path, expiry, etc.)
+//   - locale: Contains localized text messages for error reporting
+//
+// Returns:
+//   - Link: The created link structure (empty if error occurred)
+//   - int: HTTP status code
+//   - string: Additional information message (if any)
+//   - string: Error message (if any)
+func (conf *Configuration) CreateLink( //nolint:gocognit,gocyclo,cyclop,funlen
+	params utils.Parameters,
+	locale utils.PageLocaleTl,
 ) (Link, int, string, string) {
-	// Check if the url is valid
-	isValid, err := regexp.MatchString(`^https?://.*\..*$`, params.URL)
-	if err != nil {
-		return Link{}, http.StatusInternalServerError, "", locale.ErrUnableCheckURL
-	}
+	// Check if the url is valid using pre-compiled regex
+	isValid := urlPattern.MatchString(params.URL)
 	if !isValid {
 		return Link{}, http.StatusBadRequest, "", locale.ErrInvalidURL
 	}
 
-	// Set the expiry date, if there is none and the default expiry time is 0, the time will be set to the max for sqlite,
-	// if there is none and there is a default expiry time, add the default expiry time to now, if there is a "1d2h3m4s" time format,
-	// parse it and add it to now, if there's a date, parse the date ans set it as the expiry date
+	// Set the expiry date, handling different expiration scenarios
 	var expireAt time.Time
+	var err error
+
 	switch {
 	case params.ExpireAfter == "" && conf.DefaultExpiryTime == 0 && params.ExpireDate == "":
+		// No expiration specified and no default - use max date
 		expireAt, err = time.Parse("2006-01-02", "9999-12-31")
 		if err != nil {
 			return Link{}, http.StatusInternalServerError, "", locale.ErrUnableTellEOW
 		}
 	case params.ExpireAfter == "" && params.ExpireDate == "":
+		// Use default expiration time
 		expireAt = time.Now().UTC().Add(time.Minute * time.Duration(conf.DefaultExpiryTime))
 	case params.ExpireAfter != "" && params.ExpireDate == "":
+		// Parse and use custom duration
 		expireDuration, err := atp.ParseDuration(params.ExpireAfter)
 		if err != nil {
 			return Link{}, http.StatusInternalServerError, "", locale.ErrParseTime
 		}
 		expireAt = time.Now().UTC().Add(expireDuration)
-	case params.ExpireDate != "" && params.ExpireAfter == "":
-		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
-		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", locale.ErrParseExpiry
-		}
-	case params.ExpireDate != "" && params.ExpireAfter != "":
+	case params.ExpireDate != "":
+		// Parse and use explicit expiration date (priority over duration)
 		expireAt, err = time.Parse("2006-01-02T15:04", params.ExpireDate)
 		if err != nil {
 			return Link{}, http.StatusInternalServerError, "", locale.ErrParseExpiry
 		}
 	}
 
-	// Check the length, will default to DefaultShortLength,
-	// if it's inferior or equal to 0 or will default to DefaultMaxShortLength if it's over DefaultMaxShortLength
+	// Adjust length parameter to be within valid bounds
 	if params.Length <= 0 {
 		params.Length = conf.DefaultShortLength
 	} else if params.Length > conf.DefaultMaxShortLength {
 		params.Length = conf.DefaultMaxShortLength
 	}
 
-	// Check the validity of a custom path
-	if params.Path != "" {
-		// Check if the path is a reserved one, 'status' and 'error' are used to debug. add, access, privacy and assets are used for the front.
-		reservedMatch, err := regexp.MatchString(
-			`^status$|^error$|^add$|^access$|^privacy$|^assets.*$`,
-			params.Path,
-		)
-		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", locale.ErrCheckValidPath
-		}
+	// Process custom path or generate a random one
+	autoGen := false
+	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+	if params.Path != "" { //nolint:nestif
+		// Check if the path is reserved
+		reservedMatch := reservedPaths.MatchString(params.Path)
 		if reservedMatch {
 			return Link{}, http.StatusBadRequest, "", fmt.Sprintf(
 				"The path '/%s' is reserved.",
@@ -164,40 +159,33 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 			)
 		}
 
-		specialCharMatch, err := regexp.MatchString("^[A-Za-z0-9]*$", params.Path)
-		if err != nil {
-			return Link{}, http.StatusInternalServerError, "", locale.ErrCheckValidPath
-		}
-
+		// Check if path contains only alphanumeric characters
+		specialCharMatch := alphaNumeric.MatchString(params.Path)
 		if !specialCharMatch {
 			return Link{}, http.StatusBadRequest, "", locale.ErrAlphaNumeric
 		}
-	}
 
-	// Check the path, will default to a randomly generated one with specified length,
-	// if its length is over DefaultMaxCustomLength, it will be trimmed
-	autoGen := false
-	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	if params.Path == "" {
+		// Trim path if it exceeds maximum length
+		if len(params.Path) > conf.DefaultMaxCustomLength {
+			params.Path = params.Path[:conf.DefaultMaxCustomLength]
+		}
+	} else {
+		// Generate random path
 		autoGen = true
 		params.Path, err = utils.GenStr(params.Length, allowedChars)
 		if err != nil {
 			return Link{}, http.StatusInternalServerError, "", locale.ErrUnableGen
 		}
 	}
-	if len(params.Path) > conf.DefaultMaxCustomLength {
-		params.Path = params.Path[:conf.DefaultMaxCustomLength]
-	}
 
-	// Check for an attempt at creating a redirection loop, error if that's the case
-	if regexp.MustCompile("^https://|http://").
-		ReplaceAllString(params.URL, "") ==
-		regexp.MustCompile("^https://|http://").
-			ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, params.Path), "") {
+	// Check for redirection loops
+	normalizedOriginal := protocolRegex.ReplaceAllString(params.URL, "")
+	normalizedShortened := protocolRegex.ReplaceAllString(fmt.Sprintf("%s%s", conf.InstanceURL, params.Path), "")
+	if normalizedOriginal == normalizedShortened {
 		return Link{}, http.StatusBadRequest, "", locale.ErrRedirectionLoop
 	}
 
-	// If the password given to by the request isn't null (meaning no password), generate an argon2 hash from it
+	// Hash password if provided
 	hash := ""
 	if params.Password != "" {
 		hash, err = argon2id.CreateHash(params.Password, argon2id.DefaultParams)
@@ -206,7 +194,7 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 		}
 	}
 
-	// Insert the information to the database, error if it can't, most likely that the short is already in use
+	// Create link in database
 	addInfo := ""
 	err = database.CreateLink(
 		conf.DB,
@@ -217,16 +205,29 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 		params.Path,
 		hash,
 	)
+
+	// Handle collision for custom path
 	if err != nil && !autoGen {
 		return Link{}, http.StatusBadRequest, "", locale.ErrPathInUse
 	} else if err != nil && autoGen {
+		// Handle collision for auto-generated path by trying different lengths
 	loop:
 		for index := conf.DefaultShortLength; index <= conf.DefaultMaxShortLength; index++ {
 			params.Path, err = utils.GenStr(index, allowedChars)
 			if err != nil {
 				return Link{}, http.StatusInternalServerError, "", locale.ErrUnableGen
 			}
-			err = database.CreateLink(conf.DB, uuid.New(), time.Now().UTC(), expireAt, params.URL, params.Path, hash)
+
+			err = database.CreateLink(
+				conf.DB,
+				uuid.New(),
+				time.Now().UTC(),
+				expireAt,
+				params.URL,
+				params.Path,
+				hash,
+			)
+
 			switch {
 			case err != nil && index == conf.DefaultMaxShortLength:
 				return Link{}, http.StatusInternalServerError, "", locale.ErrNoSpaceLeft
@@ -240,7 +241,7 @@ func (conf Configuration) CreateLink( //nolint:funlen,gocognit,cyclop,gocyclo
 		}
 	}
 
-	// Return the necessary information
+	// Return the created link
 	link := Link{
 		ExpireAt: expireAt,
 		URL:      params.URL,
