@@ -24,7 +24,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/yeqown/go-qrcode/v2 v2.2.5
-	github.com/yeqown/go-qrcode/writer/standard v1.2.6
+	github.com/yeqown/go-qrcode/writer/standard v1.3.0
 	gitlab.gnous.eu/ada/atp v1.0.0
 	modernc.org/sqlite v1.37.0
 )
