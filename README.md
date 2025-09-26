@@ -1,3 +1,7 @@
+# ⚠️ Deprecated ⚠️
+
+I've stopped working on this project for a while and I no longer plan to work on it. If for whatever reason you are interested in continuing this personal project of mine, which was meant as a way to practice Go, feel free to fork it.
+
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <a name="readme-top"></a>
 
@@ -14,8 +18,6 @@
     A simple link shortener written in Go
     <br />
     <br />
-    <a href="https://r4.pm">View Demo</a>
-    ·
     <a href="https://github.com/redds-be/reddlinks/wiki">Wiki</a>
     ·
     <a href="https://github.com/redds-be/reddlinks/issues">Report Bug</a>
